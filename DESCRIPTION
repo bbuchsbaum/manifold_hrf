@@ -6,7 +6,9 @@ Authors@R: person("First", "Last", email = "your.email@example.com", role = c("a
 Description: This package provides manifold learning methods for analyzing 
     hemodynamic response functions (HRF) in neuroimaging data. It implements 
     dimensionality reduction techniques and manifold-based approaches for 
-    understanding HRF patterns and dynamics.
+    understanding HRF patterns and dynamics. The package includes a complete 
+    pipeline for manifold-guided HRF estimation and trial-wise deconvolution 
+    (M-HRF-LSS) with support for neuroimaging data formats.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -14,11 +16,21 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
 Imports:
     stats,
-    utils
+    utils,
+    Matrix,
+    MASS,
+    RSpectra,
+    RANN
 Suggests:
     testthat (>= 3.0.0),
     knitr,
-    rmarkdown
+    rmarkdown,
+    neuroim2,
+    fmrireg,
+    future.apply,
+    parallel,
+    proxy,
+    RcppHNSW
 VignetteBuilder: knitr
-URL: https://github.com/yourusername/manifold_hrf
-BugReports: https://github.com/yourusername/manifold_hrf/issues 
+URL: https://github.com/bbuchsbaum/manifold_hrf
+BugReports: https://github.com/bbuchsbaum/manifold_hrf/issues 
