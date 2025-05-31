@@ -138,6 +138,10 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #' @param B_reconstructor_matrix p x m manifold reconstructor
 #' @param h_ref_shape_vector p-length canonical HRF shape
 #' @param ident_scale_method one of "l2_norm", "max_abs_val", "none"
+#' @param ident_sign_method one of "first_component", "canonical_correlation"
+#' @param zero_tol numeric tolerance for treating a reconstructed HRF as zero.
+#'   Voxels with L2 norm or maximum absolute value below this threshold are
+#'   zeroed in both \code{Xi_ident_matrix} and \code{Beta_ident_matrix}.
 #' @param ident_sign_method Sign alignment method. Only
 #'   "canonical_correlation" is currently supported.
 #' @return list with Xi_ident_matrix and Beta_ident_matrix
@@ -147,7 +151,10 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                  B_reconstructor_matrix,
                                                  h_ref_shape_vector,
                                                  ident_scale_method = c("l2_norm", "max_abs_val", "none"),
+                                                 ident_sign_method = c("first_component", "canonical_correlation"),
+                                                 zero_tol = 1e-8) {
                                                  ident_sign_method = c("canonical_correlation")) {
+
   ident_scale_method <- match.arg(ident_scale_method)
   ident_sign_method <- match.arg(ident_sign_method)
 
@@ -170,9 +177,21 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
     hrf_v <- B_reconstructor_matrix %*% xi_v
     scale_val <- 1
     if (ident_scale_method == "l2_norm") {
-      scale_val <- 1 / pmax(sqrt(sum(hrf_v^2)), .Machine$double.eps)
+      l2_norm <- sqrt(sum(hrf_v^2))
+      if (l2_norm < zero_tol) {
+        Xi_ident[, v] <- 0
+        Beta_ident[, v] <- 0
+        next
+      }
+      scale_val <- 1 / pmax(l2_norm, .Machine$double.eps)
     } else if (ident_scale_method == "max_abs_val") {
-      scale_val <- 1 / pmax(max(abs(hrf_v)), .Machine$double.eps)
+      max_abs <- max(abs(hrf_v))
+      if (max_abs < zero_tol) {
+        Xi_ident[, v] <- 0
+        Beta_ident[, v] <- 0
+        next
+      }
+      scale_val <- 1 / pmax(max_abs, .Machine$double.eps)
     }
     Xi_ident[, v] <- xi_v * scale_val
     Beta_ident[, v] <- beta_v / scale_val

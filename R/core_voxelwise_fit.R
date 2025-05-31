@@ -453,8 +453,13 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #' @param h_ref_shape_vector The p x 1 reference HRF shape (e.g., canonical HRF)
 #' @param ident_scale_method Scaling method: "l2_norm" (unit length), "max_abs_val" 
 #'   (peak = 1), or "none"
-#' @param ident_sign_method Sign alignment method: "canonical_correlation" (align with 
+#' @param ident_sign_method Sign alignment method: "canonical_correlation" (align with
 #'   reference) or "data_fit_correlation" (requires additional data, not implemented)
+#' @param zero_tol Numeric tolerance for treating a reconstructed HRF as zero
+#'   when applying scale normalization. If the L2 norm (for "l2_norm") or
+#'   maximum absolute value (for "max_abs_val") of a voxel's HRF is below this
+#'   threshold, both \code{Xi_ident_matrix} and \code{Beta_ident_matrix} are set
+#'   to zero for that voxel.
 #'   
 #' @return A list containing:
 #'   \itemize{
@@ -467,6 +472,8 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #'   1. Aligning sign with a reference HRF (avoiding arbitrary sign flips)
 #'   2. Normalizing scale consistently across voxels
 #'   The beta amplitudes are adjusted inversely to preserve the overall signal.
+#'   Voxels whose reconstructed HRFs fall below \code{zero_tol} are zeroed in
+#'   both returned matrices.
 #'   
 #' @examples
 #' \dontrun{
@@ -495,7 +502,8 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                 B_reconstructor_matrix,
                                                 h_ref_shape_vector,
                                                 ident_scale_method = "l2_norm",
-                                                ident_sign_method = "canonical_correlation") {
+                                                ident_sign_method = "canonical_correlation",
+                                                zero_tol = 1e-8) {
   
   # Input validation
   if (!is.matrix(Xi_raw_matrix)) {
@@ -587,10 +595,20 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
     if (ident_scale_method == "l2_norm") {
       # Scale by L2 norm
       l2_norm <- sqrt(sum(reconstructed_hrf_vx^2))
+      if (l2_norm < zero_tol) {
+        Xi_ident_matrix[, vx] <- 0
+        Beta_ident_matrix[, vx] <- 0
+        next
+      }
       scl <- 1 / max(l2_norm, .Machine$double.eps)
     } else if (ident_scale_method == "max_abs_val") {
       # Scale by maximum absolute value
       max_abs <- max(abs(reconstructed_hrf_vx))
+      if (max_abs < zero_tol) {
+        Xi_ident_matrix[, vx] <- 0
+        Beta_ident_matrix[, vx] <- 0
+        next
+      }
       scl <- 1 / max(max_abs, .Machine$double.eps)
     } else {  # "none"
       scl <- 1
