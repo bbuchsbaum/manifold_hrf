@@ -1,0 +1,503 @@
+---
+title: "M-HRF-LSS Pipeline QC Report"
+date: "`r format(Sys.time(), '%Y-%m-%d %H:%M:%S')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: cosmo
+    highlight: tango
+    code_folding: hide
+    self_contained: true
+params:
+  results: NULL
+  parameters: NULL
+  metadata: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.width = 10,
+  fig.height = 6,
+  fig.align = "center"
+)
+
+# Load required libraries
+library(manifoldhrf)
+library(ggplot2)
+library(plotly)
+library(DT)
+library(knitr)
+
+# Set theme
+theme_set(theme_minimal())
+
+# Extract parameters
+results <- params$results
+parameters <- params$parameters
+metadata <- params$metadata
+```
+
+# Executive Summary
+
+```{r summary}
+# Calculate key QC metrics
+n_voxels <- ncol(results$core_matrices$Y_data)
+n_timepoints <- nrow(results$core_matrices$Y_data)
+n_conditions <- nrow(results$core_matrices$Beta_condition_final)
+n_trials <- nrow(results$core_matrices$Beta_trial)
+manifold_dim <- ncol(results$core_matrices$Xi_smoothed)
+
+# QC flags
+qc_flags <- list()
+
+# Check for low trial count
+if (n_trials < 20) {
+  qc_flags$low_trial_count <- list(
+    status = "warning",
+    message = sprintf("Low trial count: %d trials (recommended: ≥20)", n_trials)
+  )
+}
+
+# Calculate mean R² if available
+if (!is.null(results$diagnostics$r2_voxelwise)) {
+  mean_r2 <- mean(results$diagnostics$r2_voxelwise, na.rm = TRUE)
+  poor_fit_fraction <- mean(results$diagnostics$r2_voxelwise < 0.1, na.rm = TRUE)
+  
+  if (poor_fit_fraction > 0.3) {
+    qc_flags$poor_fits <- list(
+      status = "warning",
+      message = sprintf("%.1f%% of voxels have R² < 0.1", 100 * poor_fit_fraction)
+    )
+  }
+} else {
+  mean_r2 <- NA
+  poor_fit_fraction <- NA
+}
+
+# Overall QC status
+qc_status <- if (length(qc_flags) == 0) {
+  "PASS"
+} else if (any(sapply(qc_flags, function(x) x$status == "error"))) {
+  "FAIL"
+} else {
+  "WARNING"
+}
+
+# Status badge color
+status_color <- switch(qc_status,
+  "PASS" = "success",
+  "WARNING" = "warning",
+  "FAIL" = "danger"
+)
+```
+
+<div class="alert alert-`r status_color`" role="alert">
+  <h4 class="alert-heading">QC Status: `r qc_status`</h4>
+  <hr>
+  <p><strong>Data dimensions:</strong> `r n_timepoints` timepoints × `r n_voxels` voxels</p>
+  <p><strong>Experimental design:</strong> `r n_conditions` conditions, `r n_trials` trials</p>
+  <p><strong>Manifold dimension:</strong> `r manifold_dim` (target: `r parameters$manifold$m_manifold_dim_target`)</p>
+  `r if (!is.na(mean_r2)) paste0("<p><strong>Mean voxel R²:</strong> ", sprintf("%.3f", mean_r2), "</p>")`
+</div>
+
+```{r qc_flags}
+if (length(qc_flags) > 0) {
+  cat("\n### QC Flags\n\n")
+  for (flag_name in names(qc_flags)) {
+    flag <- qc_flags[[flag_name]]
+    badge_color <- ifelse(flag$status == "error", "danger", flag$status)
+    cat(sprintf(
+      '<span class="badge bg-%s">%s</span> %s\n\n',
+      badge_color,
+      gsub("_", " ", toupper(flag_name)),
+      flag$message
+    ))
+  }
+}
+```
+
+# Input Parameters
+
+```{r parameters_table}
+# Create parameters data frame
+param_df <- data.frame(
+  Parameter = character(),
+  Value = character(),
+  stringsAsFactors = FALSE
+)
+
+# Add manifold parameters
+if (!is.null(parameters$manifold)) {
+  for (name in names(parameters$manifold)) {
+    param_df <- rbind(param_df, data.frame(
+      Parameter = paste0("manifold.", name),
+      Value = as.character(parameters$manifold[[name]])
+    ))
+  }
+}
+
+# Add pipeline parameters
+if (!is.null(parameters$pipeline)) {
+  for (name in names(parameters$pipeline)) {
+    param_df <- rbind(param_df, data.frame(
+      Parameter = paste0("pipeline.", name),
+      Value = as.character(parameters$pipeline[[name]])
+    ))
+  }
+}
+
+# Display table
+if (nrow(param_df) > 0) {
+  datatable(param_df, 
+            options = list(pageLength = 20, dom = 'ft'),
+            rownames = FALSE)
+}
+```
+
+# Manifold Diagnostics
+
+## Eigenvalue Spectrum
+
+```{r eigenvalue_spectrum, fig.height=5}
+if (!is.null(results$manifold$eigenvalues_S)) {
+  eigenvals <- results$manifold$eigenvalues_S[-1]  # Remove first trivial eigenvalue
+  n_show <- min(50, length(eigenvals))
+  
+  df_eigen <- data.frame(
+    Component = 1:n_show,
+    Eigenvalue = eigenvals[1:n_show],
+    Cumulative_Variance = cumsum(eigenvals[1:n_show]) / sum(eigenvals)
+  )
+  
+  # Scree plot
+  p1 <- ggplot(df_eigen, aes(x = Component, y = Eigenvalue)) +
+    geom_line(size = 1.2, color = "steelblue") +
+    geom_point(size = 3, color = "steelblue") +
+    geom_vline(xintercept = manifold_dim, linetype = "dashed", color = "red") +
+    scale_y_log10() +
+    labs(title = "Eigenvalue Spectrum (Scree Plot)",
+         subtitle = sprintf("Red line: Selected dimension (m = %d)", manifold_dim),
+         x = "Component", y = "Eigenvalue (log scale)") +
+    theme_minimal()
+  
+  print(p1)
+}
+```
+
+## Variance Explained
+
+```{r variance_explained, fig.height=5}
+if (!is.null(results$manifold$eigenvalues_S)) {
+  # Cumulative variance plot
+  p2 <- ggplot(df_eigen, aes(x = Component, y = Cumulative_Variance)) +
+    geom_line(size = 1.2, color = "darkgreen") +
+    geom_point(size = 3, color = "darkgreen") +
+    geom_hline(yintercept = parameters$manifold$m_manifold_dim_min_variance, 
+               linetype = "dashed", color = "orange") +
+    geom_vline(xintercept = manifold_dim, linetype = "dashed", color = "red") +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Cumulative Variance Explained",
+         subtitle = sprintf("Orange: Target variance (%.0f%%), Red: Selected dimension",
+                           100 * parameters$manifold$m_manifold_dim_min_variance),
+         x = "Component", y = "Cumulative Variance") +
+    theme_minimal()
+  
+  print(p2)
+  
+  # Report auto-selected dimension
+  if (!is.null(results$manifold$m_auto_selected)) {
+    cat(sprintf("\n**Auto-selected dimension:** %d (for %.0f%% variance)\n",
+                results$manifold$m_auto_selected,
+                100 * parameters$manifold$m_manifold_dim_min_variance))
+    cat(sprintf("**Final dimension used:** %d\n", manifold_dim))
+  }
+}
+```
+
+## Reconstruction Error
+
+```{r reconstruction_error, fig.height=5}
+if (!is.null(results$diagnostics$reconstruction_error)) {
+  df_recon <- data.frame(
+    Dimension = 1:length(results$diagnostics$reconstruction_error),
+    Error = results$diagnostics$reconstruction_error
+  )
+  
+  p3 <- ggplot(df_recon, aes(x = Dimension, y = Error)) +
+    geom_line(size = 1.2, color = "darkred") +
+    geom_point(size = 3, color = "darkred") +
+    geom_vline(xintercept = manifold_dim, linetype = "dashed", color = "red") +
+    labs(title = "HRF Library Reconstruction Error",
+         subtitle = "||L - BΦ||_F / ||L||_F vs manifold dimension",
+         x = "Manifold Dimension", y = "Relative Reconstruction Error") +
+    theme_minimal()
+  
+  print(p3)
+}
+```
+
+# HRF Diagnostics
+
+## Manifold Coordinate Maps
+
+```{r xi_maps, fig.height=8}
+# Show first 3 manifold coordinates
+n_coords_show <- min(3, nrow(results$core_matrices$Xi_smoothed))
+
+for (i in 1:n_coords_show) {
+  xi_values <- results$core_matrices$Xi_smoothed[i, ]
+  
+  # Create simple visualization
+  p <- ggplot(data.frame(voxel = 1:length(xi_values), value = xi_values),
+               aes(x = voxel, y = value)) +
+    geom_point(alpha = 0.5, size = 0.5) +
+    geom_smooth(method = "loess", se = FALSE, color = "blue") +
+    labs(title = sprintf("Manifold Coordinate %d (ξ_%d)", i, i),
+         x = "Voxel Index", y = "Coordinate Value") +
+    theme_minimal()
+  
+  print(p)
+}
+```
+
+## Spatial Smoothing Effect
+
+```{r smoothing_effect, fig.height=6}
+if (!is.null(results$core_matrices$Xi_ident) && !is.null(results$core_matrices$Xi_smoothed)) {
+  # Show effect of spatial smoothing on first coordinate
+  coord_idx <- 1
+  xi_before <- results$core_matrices$Xi_ident[coord_idx, ]
+  xi_after <- results$core_matrices$Xi_smoothed[coord_idx, ]
+  
+  df_smooth <- data.frame(
+    voxel = rep(1:length(xi_before), 2),
+    value = c(xi_before, xi_after),
+    type = rep(c("Before Smoothing", "After Smoothing"), each = length(xi_before))
+  )
+  
+  p <- ggplot(df_smooth, aes(x = voxel, y = value, color = type)) +
+    geom_point(alpha = 0.3, size = 0.5) +
+    facet_wrap(~type, ncol = 1) +
+    scale_color_manual(values = c("Before Smoothing" = "red", "After Smoothing" = "blue")) +
+    labs(title = sprintf("Spatial Smoothing Effect on ξ_%d", coord_idx),
+         x = "Voxel Index", y = "Coordinate Value") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  print(p)
+}
+```
+
+## HRF Shape Statistics
+
+```{r hrf_stats, fig.height=8}
+if (!is.null(results$core_matrices$H_shapes)) {
+  # Calculate HRF statistics
+  n_voxels_hrf <- ncol(results$core_matrices$H_shapes)
+  hrf_stats <- data.frame(
+    voxel = 1:n_voxels_hrf,
+    peak_time = NA,
+    peak_amplitude = NA,
+    fwhm = NA
+  )
+  
+  # Time grid (assuming uniform sampling)
+  time_points <- seq(0, (nrow(results$core_matrices$H_shapes) - 1) * parameters$manifold$TR_precision,
+                     by = parameters$manifold$TR_precision)
+  
+  for (v in 1:n_voxels_hrf) {
+    hrf <- results$core_matrices$H_shapes[, v]
+    
+    # Find peak
+    peak_idx <- which.max(hrf)
+    hrf_stats$peak_time[v] <- time_points[peak_idx]
+    hrf_stats$peak_amplitude[v] <- hrf[peak_idx]
+    
+    # Estimate FWHM
+    half_max <- max(hrf) / 2
+    above_half <- which(hrf >= half_max)
+    if (length(above_half) >= 2) {
+      hrf_stats$fwhm[v] <- time_points[max(above_half)] - time_points[min(above_half)]
+    }
+  }
+  
+  # Peak time histogram
+  p1 <- ggplot(hrf_stats, aes(x = peak_time)) +
+    geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+    geom_vline(xintercept = 5, linetype = "dashed", color = "red") +
+    labs(title = "Distribution of HRF Peak Times",
+         subtitle = "Red line: Canonical peak time (5s)",
+         x = "Peak Time (seconds)", y = "Count") +
+    theme_minimal()
+  
+  # FWHM histogram
+  p2 <- ggplot(hrf_stats[!is.na(hrf_stats$fwhm), ], aes(x = fwhm)) +
+    geom_histogram(bins = 30, fill = "darkgreen", alpha = 0.7) +
+    labs(title = "Distribution of HRF Full Width at Half Maximum",
+         x = "FWHM (seconds)", y = "Count") +
+    theme_minimal()
+  
+  print(p1)
+  print(p2)
+  
+  # Flag unusual HRFs
+  unusual_peaks <- sum(hrf_stats$peak_time < 2 | hrf_stats$peak_time > 10, na.rm = TRUE)
+  if (unusual_peaks > 0) {
+    cat(sprintf("\n**Warning:** %d voxels (%.1f%%) have unusual peak times (<2s or >10s)\n",
+                unusual_peaks, 100 * unusual_peaks / n_voxels_hrf))
+  }
+}
+```
+
+# Model Fit Diagnostics
+
+## Voxel-wise R²
+
+```{r r2_distribution, fig.height=6}
+if (!is.null(results$diagnostics$r2_voxelwise)) {
+  df_r2 <- data.frame(r2 = results$diagnostics$r2_voxelwise)
+  
+  p1 <- ggplot(df_r2, aes(x = r2)) +
+    geom_histogram(bins = 50, fill = "darkblue", alpha = 0.7) +
+    geom_vline(xintercept = median(df_r2$r2, na.rm = TRUE), 
+               linetype = "dashed", color = "red", size = 1) +
+    labs(title = "Distribution of Voxel-wise R²",
+         subtitle = sprintf("Median R² = %.3f", median(df_r2$r2, na.rm = TRUE)),
+         x = "R²", y = "Count") +
+    theme_minimal()
+  
+  print(p1)
+  
+  # Spatial map of R² (simplified as line plot)
+  p2 <- ggplot(data.frame(voxel = 1:length(results$diagnostics$r2_voxelwise),
+                          r2 = results$diagnostics$r2_voxelwise),
+               aes(x = voxel, y = r2)) +
+    geom_point(alpha = 0.3, size = 0.5) +
+    geom_smooth(method = "loess", se = FALSE, color = "blue") +
+    geom_hline(yintercept = 0.1, linetype = "dashed", color = "red") +
+    labs(title = "Voxel-wise R² Across Brain",
+         subtitle = "Red line: R² = 0.1 threshold",
+         x = "Voxel Index", y = "R²") +
+    theme_minimal()
+  
+  print(p2)
+}
+```
+
+## Convergence (Component 4)
+
+```{r convergence, fig.height=5}
+if (!is.null(results$diagnostics$convergence)) {
+  df_conv <- data.frame(
+    iteration = 1:length(results$diagnostics$convergence$beta_change),
+    beta_change = results$diagnostics$convergence$beta_change,
+    hrf_change = results$diagnostics$convergence$hrf_change
+  )
+  
+  if (nrow(df_conv) > 1) {
+    df_conv_long <- tidyr::pivot_longer(df_conv, cols = c(beta_change, hrf_change),
+                                        names_to = "metric", values_to = "change")
+    
+    p <- ggplot(df_conv_long, aes(x = iteration, y = change, color = metric)) +
+      geom_line(size = 1.2) +
+      geom_point(size = 3) +
+      scale_y_log10() +
+      scale_color_manual(values = c("beta_change" = "blue", "hrf_change" = "red"),
+                         labels = c("Beta Change", "HRF Change")) +
+      labs(title = "Alternating Optimization Convergence",
+           x = "Iteration", y = "Relative Change (log scale)") +
+      theme_minimal() +
+      theme(legend.title = element_blank())
+    
+    print(p)
+  } else {
+    cat("\nOnly 1 iteration performed (no convergence plot available)\n")
+  }
+}
+```
+
+# Performance Metrics
+
+```{r performance}
+if (!is.null(metadata$timing)) {
+  timing_df <- data.frame(
+    Component = names(metadata$timing),
+    Time_seconds = unlist(metadata$timing)
+  )
+  
+  timing_df$Time_minutes <- timing_df$Time_seconds / 60
+  
+  p <- ggplot(timing_df, aes(x = reorder(Component, Time_seconds), y = Time_minutes)) +
+    geom_bar(stat = "identity", fill = "steelblue") +
+    coord_flip() +
+    labs(title = "Computation Time by Component",
+         x = "", y = "Time (minutes)") +
+    theme_minimal()
+  
+  print(p)
+  
+  cat(sprintf("\n**Total processing time:** %.1f minutes\n", sum(timing_df$Time_minutes)))
+}
+```
+
+# Failure Mode Checklist
+
+Based on the QC flags and diagnostics, here are potential issues to investigate:
+
+```{r failure_checklist}
+checklist <- character()
+
+# Low R²
+if (!is.na(poor_fit_fraction) && poor_fit_fraction > 0.3) {
+  checklist <- c(checklist, 
+    "High proportion of poor fits - Check motion parameters and data quality",
+    "Consider increasing regularization parameters or adjusting manifold dimension")
+}
+
+# Unusual HRFs
+if (exists("unusual_peaks") && unusual_peaks > 0) {
+  checklist <- c(checklist,
+    "Unusual HRF peak times detected - Review HRF library and manifold construction",
+    "Check TR specification and event timing")
+}
+
+# Low trial count
+if (n_trials < 20) {
+  checklist <- c(checklist,
+    "Low trial count may affect LSS stability - Consider condition-level analysis only")
+}
+
+# Manifold dimension
+if (!is.null(results$manifold$m_auto_selected) && 
+    abs(manifold_dim - results$manifold$m_auto_selected) > 2) {
+  checklist <- c(checklist,
+    sprintf("Large discrepancy between target (m=%d) and auto-selected (m=%d) dimensions",
+            manifold_dim, results$manifold$m_auto_selected),
+    "Review eigenvalue spectrum and consider adjusting target dimension")
+}
+
+if (length(checklist) > 0) {
+  cat("\n<div class='alert alert-info'>\n")
+  for (item in checklist) {
+    cat(sprintf("- %s\n", item))
+  }
+  cat("</div>\n")
+} else {
+  cat("\n<div class='alert alert-success'>")
+  cat("No major issues detected. Pipeline completed successfully.")
+  cat("</div>\n")
+}
+```
+
+# Session Information
+
+```{r session_info}
+cat("\n```\n")
+print(sessionInfo())
+cat("```\n")
+```

@@ -1,0 +1,305 @@
+---
+title: "Using M-HRF-LSS with fmrireg"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using M-HRF-LSS with fmrireg}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Introduction
+
+The `mhrf_lss()` function provides a user-friendly interface to the M-HRF-LSS (Manifold-Guided HRF Estimation and Trial-wise Deconvolution) pipeline that integrates seamlessly with the `fmrireg` package infrastructure.
+
+## Quick Start
+
+```{r setup}
+library(manifoldhrf)
+library(fmrireg)
+```
+
+### Basic Usage
+
+```{r basic}
+# Load your fMRI data using fmrireg
+dataset <- fmri_dataset(
+  scans = "path/to/bold.nii.gz",
+  mask = "path/to/mask.nii.gz",
+  TR = 2,
+  run_length = c(200, 200)
+)
+
+# Fit M-HRF-LSS model
+fit <- mhrf_lss(
+  formula = ~ hrf(condition),
+  dataset = dataset,
+  estimation = "both"  # Estimate both condition and trial-wise betas
+)
+
+# View results
+print(fit)
+```
+
+## HRF Library Options
+
+The `mhrf_lss()` function supports multiple ways to specify the HRF library:
+
+### 1. Using Canonical fmrireg HRFs
+
+```{r canonical}
+# Use default canonical HRFs from fmrireg
+fit_canonical <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  hrf_library = "canonical"  # Default
+)
+```
+
+### 2. Using Custom fmrireg HRF Objects
+
+```{r custom_hrf}
+# Create custom HRF library from fmrireg objects
+hrf_library <- list(
+  HRF_SPMG1,      # SPM canonical
+  HRF_SPMG2,      # SPM + temporal derivative
+  HRF_SPMG3,      # SPM + temporal & dispersion derivatives
+  HRF_GAMMA,      # Gamma function
+  HRF_GAUSSIAN    # Gaussian
+)
+
+# Add lagged versions
+hrf_library <- c(
+  hrf_library,
+  lapply(c(1, 2, 3), function(lag) lag_hrf(HRF_SPMG1, lag))
+)
+
+fit_custom <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  hrf_library = hrf_library
+)
+```
+
+### 3. Using a Pre-computed HRF Matrix
+
+```{r matrix_hrf}
+# Load or create your own HRF matrix (p timepoints x N HRFs)
+hrf_matrix <- matrix(rnorm(30 * 50), 30, 50)  # Example
+
+fit_matrix <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  hrf_library = hrf_matrix
+)
+```
+
+## Manifold Parameter Presets
+
+The package provides convenient parameter presets:
+
+```{r presets}
+# Conservative: Fewer dimensions, more regularization
+fit_conservative <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  manifold_params = "conservative"
+)
+
+# Balanced: Default trade-off (recommended)
+fit_balanced <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  manifold_params = "balanced"
+)
+
+# Aggressive: More dimensions, less regularization
+fit_aggressive <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  manifold_params = "aggressive"
+)
+```
+
+## Advanced Options
+
+### Custom Parameters
+
+```{r custom_params}
+# Fine-tune all parameters
+custom_params <- list(
+  m_manifold_dim_target = 5,         # Target manifold dimensions
+  m_manifold_dim_min_variance = 0.95, # Min variance to retain
+  k_local_nn_for_sigma = 10,         # Neighbors for bandwidth
+  lambda_gamma = 0.01,               # Gamma regularization
+  lambda_spatial_smooth = 0.5,       # Spatial smoothing
+  num_neighbors_Lsp = 6              # Spatial neighbors
+)
+
+fit_custom_params <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  manifold_params = custom_params
+)
+```
+
+### Spatial Smoothing
+
+```{r spatial}
+# Enable spatial smoothing by providing voxel coordinates
+fit_spatial <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  spatial_info = dataset$mask,  # Will extract coordinates
+  manifold_params = list(
+    lambda_spatial_smooth = 1.0  # Increase smoothing
+  )
+)
+```
+
+### Robust Estimation
+
+```{r robust}
+# Enable outlier detection and downweighting
+fit_robust <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  robust = TRUE
+)
+```
+
+### Memory-Efficient Processing
+
+```{r chunked}
+# Process large datasets in chunks
+fit_chunked <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  strategy = "chunked",
+  nchunks = 20  # Process in 20 chunks
+)
+```
+
+## Working with Results
+
+### Extract Coefficients
+
+```{r coef}
+# Get condition-level betas
+betas_condition <- coef(fit, type = "condition")
+
+# Get trial-wise betas
+betas_trial <- coef(fit, type = "trial")
+
+# Get estimated HRF shapes
+hrfs <- coef(fit, type = "hrf")
+```
+
+### Visualize Results
+
+```{r plot}
+# Plot HRFs for selected voxels
+plot(fit, type = "hrfs", voxels = c(100, 500, 1000))
+
+# Plot manifold diagnostics
+plot(fit, type = "manifold")
+```
+
+### Generate QC Report
+
+```{r qc}
+# Generate comprehensive quality control report
+generate_qc_report(
+  manifold = fit$manifold,
+  hrfs = fit$hrfs,
+  xi_coordinates = fit$xi_coordinates,
+  betas_condition = fit$betas_condition,
+  betas_trial = fit$betas_trial,
+  output_file = "mhrf_lss_qc.html"
+)
+```
+
+## Integration with fmrireg Workflow
+
+The M-HRF-LSS interface is designed to work seamlessly with existing fmrireg workflows:
+
+```{r integration}
+# 1. Create event model with multiple conditions
+event_data <- data.frame(
+  onset = c(10, 30, 50, 70, 90, 110),
+  condition = rep(c("faces", "houses", "objects"), 2),
+  run = rep(1:2, each = 3)
+)
+
+dataset$event_table <- event_data
+
+# 2. Specify complex model with baseline
+fit_complex <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  baseline_model = baseline_model(
+    basis = "poly",
+    degree = 2  # Quadratic drift
+  ),
+  estimation = "both"
+)
+
+# 3. Compare with standard fmrireg GLM
+fit_standard <- fmri_lm(
+  ~ hrf(condition),
+  dataset = dataset,
+  baseline_model = baseline_model(degree = 2)
+)
+
+# M-HRF-LSS provides voxel-specific HRFs and trial-wise estimates
+# that standard GLM cannot capture
+```
+
+## Tips and Best Practices
+
+1. **Start with presets**: Use `"balanced"` parameters for initial analyses
+2. **Check QC reports**: Always generate and review QC reports
+3. **Use spatial smoothing**: Improves stability for neighboring voxels
+4. **Enable robust mode**: For datasets with motion artifacts
+5. **Monitor memory**: Use chunked processing for >50k voxels
+6. **Validate HRF library**: Ensure sufficient HRF diversity
+
+## Troubleshooting
+
+### Memory Issues
+```{r memory}
+# Estimate memory requirements
+mem_req <- estimate_memory_requirements(
+  n_timepoints = 300,
+  n_voxels = 100000,
+  n_conditions = 5,
+  n_trials = 200
+)
+print(mem_req)
+
+# Use more chunks if needed
+fit <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  strategy = "chunked",
+  nchunks = ceiling(mem_req$recommended_chunks)
+)
+```
+
+### Convergence Issues
+```{r convergence}
+# Use conservative parameters
+fit <- mhrf_lss(
+  ~ hrf(condition),
+  dataset = dataset,
+  manifold_params = "conservative",
+  robust = TRUE
+)
+```
