@@ -420,7 +420,7 @@ test_that("M-HRF-LSS trial-wise estimation is unbiased and efficient compared to
   )
   
   # Check that we get reasonable values
-  expect_equal(length(beta_single), n_trials)
+  expect_equal(length(beta_single), length(X_trials))
   expect_true(any(abs(beta_single) > 0.01),
               "LSS should produce non-zero estimates for at least some trials")
   
@@ -438,7 +438,7 @@ test_that("M-HRF-LSS trial-wise estimation is unbiased and efficient compared to
   )
   
   # Check dimensions
-  expect_equal(dim(beta_all), c(n_trials, n_voxels))
+  expect_equal(dim(beta_all), c(length(X_trials), n_voxels))
   
   # Check that single voxel result matches full loop
   expect_equal(beta_all[, test_voxel], beta_single,

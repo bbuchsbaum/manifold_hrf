@@ -39,7 +39,8 @@ test_that("apply_spatial_smoothing_core returns same dimension", {
 })
 
 test_that("prepare_lss_fixed_components_core returns matrices of correct size", {
-  A <- cbind(1, matrix(rnorm(20), nrow = 5))
+  # Create a matrix where q_lss < n (3 columns, 10 rows)
+  A <- cbind(1, matrix(rnorm(18), nrow = 10, ncol = 2))
   res <- prepare_lss_fixed_components_core(A, 1, 0.01)
   expect_equal(dim(res$P_lss_matrix), c(ncol(A), nrow(A)))
   expect_length(res$p_lss_vector, nrow(A))
