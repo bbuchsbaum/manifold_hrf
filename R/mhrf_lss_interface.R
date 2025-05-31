@@ -577,6 +577,39 @@ compute_pipeline_diagnostics <- function(Y_data, Y_proj, H_shapes,
 }
 
 
+#' Extract Voxel Coordinates
+#'
+#' @param spatial_info Either a matrix of coordinates or a mask array
+#' @param mask Optional mask to apply
+#' @return Matrix of voxel coordinates or NULL
+#' @keywords internal
+extract_voxel_coordinates <- function(spatial_info, mask = NULL) {
+  if (is.null(spatial_info)) {
+    return(NULL)
+  }
+  
+  if (is.matrix(spatial_info)) {
+    # Already a coordinate matrix
+    return(spatial_info)
+  }
+  
+  if (is.array(spatial_info)) {
+    # Extract coordinates from mask array
+    if (!is.null(mask)) {
+      # Use mask to select voxels
+      indices <- which(mask != 0, arr.ind = TRUE)
+      return(indices)
+    } else {
+      # Use all non-zero voxels
+      indices <- which(spatial_info != 0, arr.ind = TRUE)
+      return(indices)
+    }
+  }
+  
+  stop("spatial_info must be either a matrix or an array")
+}
+
+
 # S3 Methods for mhrf_lss_fit
 
 #' @export

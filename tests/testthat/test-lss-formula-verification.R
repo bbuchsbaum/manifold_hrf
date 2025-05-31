@@ -50,7 +50,7 @@ test_that("Current LSS formula matches reference implementation", {
   
   # Compute p_vec (projection of intercept)
   AtA_inv <- solve(crossprod(A) + lambda * diag(q))
-  p_vec <- A[, 1] %*% AtA_inv[1, 1]  # Intercept projection
+  p_vec <- A[, 1] * AtA_inv[1, 1]  # Intercept projection
   
   # Reference formula
   pc_row <- drop(crossprod(p_vec, C))

@@ -147,7 +147,7 @@ test_that("estimate_final_condition_betas_core validates inputs", {
   expect_error(
     estimate_final_condition_betas_core(Y, X_list, H,
                                       control_alt_list = list(rel_change_tol = -1)),
-    "rel_change_tol must be a positive scalar"
+    "rel_change_tol must be a non-negative scalar"
   )
 })
 

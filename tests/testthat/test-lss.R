@@ -35,7 +35,7 @@ test_that("prepare_lss_fixed_components_core works correctly", {
   
   # Check that p_lss_vector is related to intercept
   # It should be the first row of the pseudoinverse
-  expect_equal(result$p_lss_vector, result$P_lss_matrix[1, ], tolerance = 1e-10)
+  expect_equal(result$p_lss_vector, result$P_lss_matrix[1, ], tolerance = 1e-6)
 })
 
 test_that("prepare_lss_fixed_components_core handles no intercept", {

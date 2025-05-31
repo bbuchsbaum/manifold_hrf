@@ -154,12 +154,41 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 #' @return sparse V x V graph Laplacian matrix
 #' @export
 make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, num_neighbors_Lsp = 6) {
-  nn <- RANN::nn2(voxel_coords_matrix, k = num_neighbors_Lsp + 1)
-  i_idx <- rep(seq_len(nrow(voxel_coords_matrix)), each = num_neighbors_Lsp)
-  j_idx <- as.vector(nn$nn.idx[, -1])
-  W <- Matrix::sparseMatrix(i = i_idx, j = j_idx, x = 1,
-                            dims = c(nrow(voxel_coords_matrix), nrow(voxel_coords_matrix)))
-  W <- (W + t(W)) / 2
+  # Input validation
+  if (!is.matrix(voxel_coords_matrix)) {
+    stop("voxel_coords_matrix must be a matrix")
+  }
+  
+  if (ncol(voxel_coords_matrix) != 3) {
+    stop("voxel_coords_matrix must have exactly 3 columns (x, y, z coordinates)")
+  }
+  
+  n_voxels <- nrow(voxel_coords_matrix)
+  
+  if (n_voxels < 2) {
+    stop("voxel_coords_matrix must have at least 2 rows (voxels)")
+  }
+  
+  if (!is.numeric(num_neighbors_Lsp) || length(num_neighbors_Lsp) != 1 || 
+      num_neighbors_Lsp != round(num_neighbors_Lsp) || num_neighbors_Lsp < 1) {
+    stop("num_neighbors_Lsp must be a positive integer")
+  }
+  
+  # Handle edge case where we have fewer voxels than requested neighbors
+  if (n_voxels <= num_neighbors_Lsp) {
+    warning(sprintf("Requested %d neighbors but only %d other voxels available. Creating fully connected graph.",
+                    num_neighbors_Lsp, n_voxels - 1))
+    # Create fully connected graph
+    W <- Matrix::Matrix(1, n_voxels, n_voxels) - Matrix::Diagonal(n_voxels)
+  } else {
+    nn <- RANN::nn2(voxel_coords_matrix, k = min(num_neighbors_Lsp + 1, n_voxels))
+    i_idx <- rep(seq_len(n_voxels), each = ncol(nn$nn.idx) - 1)
+    j_idx <- as.vector(nn$nn.idx[, -1])
+    W <- Matrix::sparseMatrix(i = i_idx, j = j_idx, x = 1,
+                              dims = c(n_voxels, n_voxels))
+    W <- (W + Matrix::t(W)) / 2
+  }
+  
   D <- Matrix::Diagonal(x = Matrix::rowSums(W))
   L <- D - W
   L
@@ -175,7 +204,28 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, num_neighbors_L
 apply_spatial_smoothing_core <- function(Xi_ident_matrix,
                                          L_sp_sparse_matrix,
                                          lambda_spatial_smooth) {
+  # Input validation
+  if (!is.matrix(Xi_ident_matrix)) {
+    stop("Xi_ident_matrix must be a matrix")
+  }
+  
+  if (!inherits(L_sp_sparse_matrix, c("Matrix", "sparseMatrix", "dgCMatrix"))) {
+    stop("L_sp_sparse_matrix must be a sparse matrix (Matrix package)")
+  }
+  
+  if (!is.numeric(lambda_spatial_smooth) || length(lambda_spatial_smooth) != 1 || 
+      lambda_spatial_smooth < 0) {
+    stop("lambda_spatial_smooth must be a non-negative scalar")
+  }
+  
   V <- ncol(Xi_ident_matrix)
+  
+  # Check dimensions match
+  if (nrow(L_sp_sparse_matrix) != V || ncol(L_sp_sparse_matrix) != V) {
+    stop(sprintf("L_sp_sparse_matrix must be %d x %d to match Xi_ident_matrix with %d voxels",
+                 V, V, V))
+  }
+  
   A <- Matrix::Diagonal(V) + lambda_spatial_smooth * L_sp_sparse_matrix
   Xi_smoothed <- Xi_ident_matrix
   for (j in seq_len(nrow(Xi_ident_matrix))) {
@@ -301,9 +351,45 @@ estimate_final_condition_betas_core <- function(Y_proj_matrix,
                                                 H_shapes_allvox_matrix,
                                                 lambda_beta_final = 0,
                                                 control_alt_list = list(max_iter = 1)) {
+  # Input validation
+  if (!is.matrix(Y_proj_matrix)) {
+    stop("Y_proj_matrix must be a matrix")
+  }
+  if (!is.list(X_condition_list_proj_matrices)) {
+    stop("X_condition_list_proj_matrices must be a list")
+  }
+  if (length(X_condition_list_proj_matrices) == 0) {
+    stop("X_condition_list_proj_matrices must contain at least one condition")
+  }
+  if (!is.matrix(H_shapes_allvox_matrix)) {
+    stop("H_shapes_allvox_matrix must be a matrix")
+  }
+  
   k <- length(X_condition_list_proj_matrices)
   V <- ncol(Y_proj_matrix)
   n <- nrow(Y_proj_matrix)
+  
+  # More validation
+  if (ncol(H_shapes_allvox_matrix) != V) {
+    stop("H_shapes_allvox_matrix must have V columns matching Y_proj_matrix")
+  }
+  if (!is.numeric(lambda_beta_final) || length(lambda_beta_final) != 1 || lambda_beta_final < 0) {
+    stop("lambda_beta_final must be a non-negative scalar")
+  }
+  if (!is.list(control_alt_list)) {
+    stop("control_alt_list must be a list")
+  }
+  if (!is.null(control_alt_list$max_iter)) {
+    if (!is.numeric(control_alt_list$max_iter) || control_alt_list$max_iter < 1) {
+      stop("max_iter must be a positive integer")
+    }
+  }
+  if (!is.null(control_alt_list$rel_change_tol)) {
+    if (!is.numeric(control_alt_list$rel_change_tol) || control_alt_list$rel_change_tol < 0) {
+      stop("rel_change_tol must be a non-negative scalar")
+    }
+  }
+  
   Beta_final <- matrix(0, k, V)
   for (v in seq_len(V)) {
     X_v <- matrix(0, n, k)
@@ -312,7 +398,14 @@ estimate_final_condition_betas_core <- function(Y_proj_matrix,
     }
     XtX <- crossprod(X_v) + diag(lambda_beta_final, k)
     XtY <- crossprod(X_v, Y_proj_matrix[, v])
-    Beta_final[, v] <- solve(XtX, XtY)
+    
+    # Check for near-singularity
+    if (rcond(XtX) < .Machine$double.eps) {
+      # If singular, return zeros
+      Beta_final[, v] <- rep(0, k)
+    } else {
+      Beta_final[, v] <- solve(XtX, XtY)
+    }
   }
   Beta_final
 }

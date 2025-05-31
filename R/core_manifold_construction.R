@@ -75,6 +75,18 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
     sorted_dists <- sort(dist_mat[i, -i])
     # k-th nearest neighbor distance
     sigma_i[i] <- sorted_dists[k_local_nn_for_sigma]
+    
+    # Ensure sigma is not zero (can happen with duplicate HRFs)
+    if (sigma_i[i] == 0) {
+      # Use median of all non-zero distances as fallback
+      non_zero_dists <- sorted_dists[sorted_dists > 0]
+      if (length(non_zero_dists) > 0) {
+        sigma_i[i] <- median(non_zero_dists)
+      } else {
+        # Last resort: use a small positive value
+        sigma_i[i] <- 1e-6
+      }
+    }
   }
   
   # Step 3: Compute affinity matrix W with self-tuning bandwidth
@@ -119,10 +131,16 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
     row_sums <- rowSums(W)
   }
   
-  # Handle potential zero row sums (isolated nodes)
-  if (any(row_sums == 0)) {
-    warning("Some HRFs have zero affinity to all others. Setting their row to uniform distribution.")
-    row_sums[row_sums == 0] <- 1
+  # Handle potential zero row sums (isolated nodes) or NA values
+  if (any(is.na(row_sums)) || any(row_sums == 0)) {
+    if (any(is.na(row_sums))) {
+      warning("Some row sums are NA. Setting to 1.")
+      row_sums[is.na(row_sums)] <- 1
+    }
+    if (any(row_sums == 0)) {
+      warning("Some HRFs have zero affinity to all others. Setting their row to uniform distribution.")
+      row_sums[row_sums == 0] <- 1
+    }
   }
   
   # Create D_inv (inverse degree matrix)

@@ -109,7 +109,7 @@ prepare_lss_fixed_components_core <- function(A_lss_fixed_matrix,
   max_eigval <- max(eigvals)
   condition_number <- max_eigval / max(min_eigval, .Machine$double.eps)
   
-  if (condition_number > 1e12) {
+  if (condition_number > 1e8) {
     # Add small jitter to improve conditioning
     jitter <- 1e-6 * median(diag(AtA_reg))
     AtA_reg <- AtA_reg + jitter * diag(q_lss)
@@ -417,8 +417,9 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
 
 #' Run LSS for All Voxels (Core)
 #'
-#' Main loop for Least Squares Separate (LSS) estimation across all voxels,
-#' with optional memory-efficient precomputation of trial regressors.
+#' Main loop for Least Squares Separate (LSS) estimation across all voxels.
+#' This implementation uses fmrireg's proven LSS implementation when available,
+#' falling back to our Woodbury method if fmrireg is not installed.
 #'
 #' @param Y_proj_matrix The n x V projected data matrix, where n is timepoints 
 #'   and V is number of voxels
@@ -427,11 +428,12 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
 #' @param H_shapes_allvox_matrix The p x V matrix of voxel-specific HRF shapes 
 #'   from reconstruct_hrf_shapes_core
 #' @param A_lss_fixed_matrix The n x q_lss matrix of fixed regressors
-#' @param P_lss_matrix The q_lss x n precomputed projection matrix
-#' @param p_lss_vector The n x 1 precomputed intercept projection vector
+#' @param P_lss_matrix The q_lss x n precomputed projection matrix (for Woodbury only)
+#' @param p_lss_vector The n x 1 precomputed intercept projection vector (for Woodbury only)
 #' @param ram_heuristic_GB_for_Rt Memory threshold in GB for precomputing 
-#'   R_t matrices. If estimated memory usage is below this, precompute all
-#'   trial-voxel regressors for efficiency.
+#'   R_t matrices (for Woodbury only)
+#' @param use_fmrireg Logical. If TRUE and fmrireg is available, use fmrireg's
+#'   optimized LSS implementation. Default is TRUE.
 #'   
 #' @return Beta_trial_allvox_matrix A T x V matrix of trial-wise beta estimates
 #'   
@@ -484,7 +486,8 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
                                    A_lss_fixed_matrix,
                                    P_lss_matrix,
                                    p_lss_vector,
-                                   ram_heuristic_GB_for_Rt = 1.0) {
+                                   ram_heuristic_GB_for_Rt = 1.0,
+                                   use_fmrireg = TRUE) {
   
   # Input validation
   if (!is.matrix(Y_proj_matrix)) {
@@ -548,6 +551,43 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
   
   # Initialize output matrix
   Beta_trial_allvox_matrix <- matrix(0, nrow = T_trials, ncol = V)
+  
+  # Try to use fmrireg implementation if available and requested
+  if (use_fmrireg && requireNamespace("fmrireg", quietly = TRUE)) {
+    # Use fmrireg's lss_compute_r function which works on pre-projected data
+    # This is the same algorithm but potentially more optimized
+    
+    # We need to compute Q_dmat_ran which is the projected trial regressors
+    # Since Y_proj_matrix is already projected by P_confound = I - A(A'A)^{-1}A'
+    # We need to apply the same projection to the trial regressors
+    
+    # First compute the projection matrix if not provided
+    # P_confound = I - A_lss_fixed %*% ginv(A_lss_fixed)
+    P_confound <- diag(n) - A_lss_fixed_matrix %*% MASS::ginv(A_lss_fixed_matrix)
+    
+    # For each voxel
+    for (v in 1:V) {
+      # Compute trial regressors for this voxel
+      dmat_ran <- matrix(0, n, T_trials)
+      for (t in 1:T_trials) {
+        dmat_ran[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_shapes_allvox_matrix[, v]
+      }
+      
+      # Project the trial regressors
+      Q_dmat_ran <- P_confound %*% dmat_ran
+      
+      # Extract residual data for this voxel
+      residual_data <- Y_proj_matrix[, v, drop = FALSE]
+      
+      # Call fmrireg's LSS compute function
+      beta_voxel <- fmrireg:::lss_compute_r(Q_dmat_ran, residual_data)
+      
+      # Store results
+      Beta_trial_allvox_matrix[, v] <- as.vector(beta_voxel)
+    }
+    
+    return(Beta_trial_allvox_matrix)
+  }
   
   # Memory heuristic: Check if we can precompute all R_t matrices
   # Each R_t is n x V, we have T of them

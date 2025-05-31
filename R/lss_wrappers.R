@@ -5,13 +5,14 @@
 #' This function calls \code{hrfals::lss_mode_a}. The \code{hrfals} package must
 #' be installed for this wrapper to work.
 #'
-#' @param design_matrix Numeric design matrix.
-#' @param data_matrix Numeric data matrix.
+#' @param design_matrix Numeric design matrix (n x q).
+#' @param data_matrix Numeric data matrix (n x V).
+#' @param trial_matrix Numeric matrix of trial regressors (n x T).
 #' @param ... Additional arguments passed to \code{hrfals::lss_mode_a}.
-#' @return Numeric matrix of estimated trial coefficients.
+#' @return Numeric matrix of estimated trial coefficients (T x V).
 #' @export
-run_fastlss <- function(design_matrix, data_matrix, ...) {
-  hrfals::lss_mode_a(design_matrix, data_matrix, ...)
+run_fastlss <- function(design_matrix, data_matrix, trial_matrix, ...) {
+  hrfals::lss_mode_a(A = design_matrix, Y = data_matrix, C = trial_matrix, ...)
 }
 
 #' Run stable LSS using hrfals mode B

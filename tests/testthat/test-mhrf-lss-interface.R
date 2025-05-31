@@ -47,7 +47,7 @@ test_that("create_hrf_manifold handles different input types", {
   # Test with custom parameters
   custom_params <- list(
     m_manifold_dim_target = 5,
-    k_local_nn_for_sigma = 10,
+    k_local_nn_for_sigma = 5,  # Reduced for safety
     TR_precision = 0.1
   )
   
