@@ -10,8 +10,9 @@ apply_intrinsic_identifiability_core(
   B_reconstructor_matrix,
   h_ref_shape_vector,
   ident_scale_method = "l2_norm",
-  ident_sign_method = "canonical_correlation"
-)
+  ident_sign_method = "canonical_correlation",
+  zero_tol = 1e-8
+  )
 }
 \arguments{
 \item{Xi_raw_matrix}{The m x V raw manifold coordinates from extract_xi_beta_raw_svd_core}
@@ -27,6 +28,10 @@ apply_intrinsic_identifiability_core(
 
 \item{ident_sign_method}{Sign alignment method: "canonical_correlation" (align with
 reference) or "data_fit_correlation" (requires additional data, not implemented)}
+\item{zero_tol}{Tolerance for treating the reconstructed HRF as zero. If the
+L2 norm (for \code{"l2_norm"}) or maximum absolute value (for \code{"max_abs_val"})
+is below this threshold, both \code{Xi_ident_matrix} and \code{Beta_ident_matrix}
+are set to zero for the voxel.}
 }
 \value{
 A list containing:
@@ -45,6 +50,8 @@ It ensures that HRF estimates are identifiable by:
 \item Aligning sign with a reference HRF (avoiding arbitrary sign flips)
 \item Normalizing scale consistently across voxels
 The beta amplitudes are adjusted inversely to preserve the overall signal.
+Voxels whose reconstructed HRFs have magnitude below \code{zero_tol} are set to
+zero in both returned matrices.
 }
 }
 \examples{

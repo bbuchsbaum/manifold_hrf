@@ -743,6 +743,30 @@ test_that("apply_intrinsic_identifiability_core handles zero voxels", {
   # Zero voxels should remain zero
   expect_equal(result$Xi_ident_matrix[, zero_voxels], matrix(0, m, length(zero_voxels)))
   
-  # Beta can be non-zero for zero Xi (but will be set to 0 if scale is inf)
-  expect_equal(result$Beta_ident_matrix[, zero_voxels], Beta_raw[, zero_voxels])
+  # Both Xi and Beta should be zero for these voxels
+  expect_equal(result$Beta_ident_matrix[, zero_voxels], matrix(0, k, length(zero_voxels)))
+})
+
+test_that("apply_intrinsic_identifiability_core zeros tiny HRFs", {
+  set.seed(987)
+  m <- 3
+  k <- 2
+  V <- 5
+  p <- 10
+
+  Xi_raw <- matrix(rnorm(m * V), m, V)
+  Beta_raw <- matrix(rnorm(k * V), k, V)
+  B_reconstructor <- matrix(rnorm(p * m), p, m)
+  h_ref <- rnorm(p)
+
+  tiny_voxel <- 1
+  Xi_raw[, tiny_voxel] <- 1e-12
+
+  result <- apply_intrinsic_identifiability_core(
+    Xi_raw, Beta_raw, B_reconstructor, h_ref,
+    ident_scale_method = "l2_norm"
+  )
+
+  expect_equal(result$Xi_ident_matrix[, tiny_voxel], rep(0, m))
+  expect_equal(result$Beta_ident_matrix[, tiny_voxel], rep(0, k))
 })
