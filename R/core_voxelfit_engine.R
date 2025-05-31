@@ -69,6 +69,38 @@ project_out_confounds_core <- function(Y_data_matrix,
 #' @export
 transform_designs_to_manifold_basis_core <- function(X_condition_list_proj_matrices,
                                                      B_reconstructor_matrix) {
+
+  if (!is.list(X_condition_list_proj_matrices)) {
+    stop("X_condition_list_proj_matrices must be a list")
+  }
+
+  if (length(X_condition_list_proj_matrices) == 0) {
+    stop("X_condition_list_proj_matrices cannot be empty")
+  }
+
+  if (!is.matrix(B_reconstructor_matrix)) {
+    stop("B_reconstructor_matrix must be a matrix")
+  }
+
+  p <- nrow(B_reconstructor_matrix)
+  m <- ncol(B_reconstructor_matrix)
+
+  n <- nrow(X_condition_list_proj_matrices[[1]])
+
+  for (i in seq_along(X_condition_list_proj_matrices)) {
+    X <- X_condition_list_proj_matrices[[i]]
+    if (!is.matrix(X)) {
+      stop(sprintf("X_condition_list_proj_matrices[[%d]] must be a matrix", i))
+    }
+    if (nrow(X) != n) {
+      stop(sprintf("All X matrices must have %d rows", n))
+    }
+    if (ncol(X) != p) {
+      stop(sprintf("X_condition_list_proj_matrices[[%d]] has %d columns but B_reconstructor_matrix has %d rows",
+                   i, ncol(X), p))
+    }
+  }
+
   lapply(X_condition_list_proj_matrices, function(X) {
     X %*% B_reconstructor_matrix
   })
