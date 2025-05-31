@@ -50,7 +50,7 @@ test_that("Current LSS formula matches reference implementation", {
   
   # Compute p_vec (projection of intercept)
   AtA_inv <- solve(crossprod(A) + lambda * diag(q))
-  p_vec <- A[, 1] * AtA_inv[1, 1]  # Intercept projection
+  p_vec <- A %*% AtA_inv[, 1]  # Intercept projection uses all confounds
   
   # Reference formula
   pc_row <- drop(crossprod(p_vec, C))
@@ -138,7 +138,7 @@ test_that("LSS formula gives correct results for known problem", {
   
   # Apply LSS formula
   V <- woodbury_residualize(C, A, lambda)
-  p_vec <- A[, 1] * AtA_inv[1, 1]
+  p_vec <- A %*% AtA_inv[, 1]
   
   pc_row <- drop(crossprod(p_vec, C))
   cv_row <- colSums(V * V)
