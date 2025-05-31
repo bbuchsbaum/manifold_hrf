@@ -1,6 +1,5 @@
 # Test the corrected LSS implementation
 library(testthat)
-devtools::load_all()
 
 test_that("Corrected LSS implementation matches ground truth", {
   

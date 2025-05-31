@@ -142,6 +142,8 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #' @param zero_tol numeric tolerance for treating a reconstructed HRF as zero.
 #'   Voxels with L2 norm or maximum absolute value below this threshold are
 #'   zeroed in both \code{Xi_ident_matrix} and \code{Beta_ident_matrix}.
+#' @param ident_sign_method Sign alignment method. Only
+#'   "canonical_correlation" is currently supported.
 #' @return list with Xi_ident_matrix and Beta_ident_matrix
 #' @export
 apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
@@ -151,6 +153,8 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                  ident_scale_method = c("l2_norm", "max_abs_val", "none"),
                                                  ident_sign_method = c("first_component", "canonical_correlation"),
                                                  zero_tol = 1e-8) {
+                                                 ident_sign_method = c("canonical_correlation")) {
+
   ident_scale_method <- match.arg(ident_scale_method)
   ident_sign_method <- match.arg(ident_sign_method)
 
@@ -164,13 +168,8 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
     xi_v <- Xi_raw_matrix[, v]
     beta_v <- Beta_raw_matrix[, v]
 
-    if (ident_sign_method == "canonical_correlation") {
-      sgn <- sign(sum(xi_v * xi_ref_coord))
-      if (sgn == 0) sgn <- 1
-    } else { # first_component
-      sgn <- sign(xi_v[1])
-      if (sgn == 0) sgn <- 1
-    }
+    sgn <- sign(sum(xi_v * xi_ref_coord))
+    if (sgn == 0) sgn <- 1
 
     xi_v <- xi_v * sgn
     beta_v <- beta_v * sgn
@@ -200,6 +199,7 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 
   list(Xi_ident_matrix = Xi_ident, Beta_ident_matrix = Beta_ident)
 }
+
 
 #' Construct voxel graph Laplacian
 #'

@@ -4,7 +4,6 @@
 # by working through the algebra step by step
 
 library(testthat)
-devtools::load_all()
 
 # ============================================================================
 # MATHEMATICAL BACKGROUND
