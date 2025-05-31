@@ -138,7 +138,8 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #' @param B_reconstructor_matrix p x m manifold reconstructor
 #' @param h_ref_shape_vector p-length canonical HRF shape
 #' @param ident_scale_method one of "l2_norm", "max_abs_val", "none"
-#' @param ident_sign_method one of "first_component", "canonical_correlation"
+#' @param ident_sign_method Sign alignment method. Only
+#'   "canonical_correlation" is currently supported.
 #' @return list with Xi_ident_matrix and Beta_ident_matrix
 #' @export
 apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
@@ -146,7 +147,7 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                  B_reconstructor_matrix,
                                                  h_ref_shape_vector,
                                                  ident_scale_method = c("l2_norm", "max_abs_val", "none"),
-                                                 ident_sign_method = c("first_component", "canonical_correlation")) {
+                                                 ident_sign_method = c("canonical_correlation")) {
   ident_scale_method <- match.arg(ident_scale_method)
   ident_sign_method <- match.arg(ident_sign_method)
 
@@ -160,13 +161,8 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
     xi_v <- Xi_raw_matrix[, v]
     beta_v <- Beta_raw_matrix[, v]
 
-    if (ident_sign_method == "canonical_correlation") {
-      sgn <- sign(sum(xi_v * xi_ref_coord))
-      if (sgn == 0) sgn <- 1
-    } else { # first_component
-      sgn <- sign(xi_v[1])
-      if (sgn == 0) sgn <- 1
-    }
+    sgn <- sign(sum(xi_v * xi_ref_coord))
+    if (sgn == 0) sgn <- 1
 
     xi_v <- xi_v * sgn
     beta_v <- beta_v * sgn
