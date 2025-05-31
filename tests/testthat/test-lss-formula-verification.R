@@ -102,6 +102,8 @@ test_that("Current LSS formula matches reference implementation", {
   cat("Reference:  ", round(betas_ref, 4), "\n")
   cat("Current:    ", round(betas_current, 4), "\n")
   cat("Difference: ", round(betas_current - betas_ref, 6), "\n")
+
+  expect_equal(betas_current, betas_ref, tolerance = 1e-6)
 })
 
 
