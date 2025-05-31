@@ -1,6 +1,5 @@
 # Debug script for Woodbury LSS implementation
 library(testthat)
-devtools::load_all()
 
 # Simple test case
 set.seed(42)

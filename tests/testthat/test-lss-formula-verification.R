@@ -1,6 +1,5 @@
 # Verify the LSS formula implementation against reference
 library(testthat)
-devtools::load_all()
 
 # Helper function: Solve for A^+ using Cholesky
 cholSolve <- function(A, B) {
