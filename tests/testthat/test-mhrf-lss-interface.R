@@ -34,6 +34,7 @@ test_that("mhrf_lss interface validates inputs correctly", {
 })
 
 test_that("create_hrf_manifold handles different input types", {
+  skip_if_not_installed("fmrireg")
   # Test with preset parameters
   expect_silent(
     manifold1 <- create_hrf_manifold(

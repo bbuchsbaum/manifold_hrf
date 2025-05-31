@@ -242,6 +242,9 @@ create_hrf_manifold <- function(hrf_library, params, TR, verbose = TRUE) {
   # Handle different library sources
   if (is.character(hrf_library) && length(hrf_library) == 1) {
     if (hrf_library == "canonical") {
+      if (!requireNamespace("fmrireg", quietly = TRUE)) {
+        stop("Package 'fmrireg' is required to use the canonical HRF library.")
+      }
       # Use standard fmrireg HRFs
       if (verbose) message("  Using canonical fmrireg HRF library")
       
