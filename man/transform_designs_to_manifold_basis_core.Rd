@@ -28,6 +28,8 @@ This function implements Component 1, Step 2 of the M-HRF-LSS pipeline.
 It transforms each condition's design matrix from the original HRF space
 (p dimensions) to the lower-dimensional manifold space (m dimensions) by
 matrix multiplication with the reconstructor basis.
+Input matrices are validated to ensure consistent dimensions and that
+\code{X_condition_list_proj_matrices} is a non-empty list.
 }
 \examples{
 \dontrun{
