@@ -20,7 +20,8 @@ Imports:
     Matrix,
     MASS,
     RSpectra,
-    RANN
+    RANN,
+    hrfals
 Suggests:
     testthat (>= 3.0.0),
     knitr,
