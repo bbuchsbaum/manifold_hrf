@@ -30,11 +30,43 @@ Gamma <- matrix(rnorm(m * k * V), m * k, V)
    expect_equal(dim(L), c(nrow(coords), nrow(coords)))
  })
 
- test_that("apply_spatial_smoothing_core returns same dimension", {
-   coords <- matrix(seq_len(9), ncol = 3)
-   L <- make_voxel_graph_laplacian_core(coords, num_neighbors_Lsp = 2)
-   Xi <- matrix(rnorm(m * nrow(coords)), m, nrow(coords))
-   Xi_s <- apply_spatial_smoothing_core(Xi, L, 0.1)
-   expect_equal(dim(Xi_s), dim(Xi))
- })
+test_that("apply_spatial_smoothing_core returns same dimension", {
+  coords <- matrix(seq_len(9), ncol = 3)
+  L <- make_voxel_graph_laplacian_core(coords, num_neighbors_Lsp = 2)
+  Xi <- matrix(rnorm(m * nrow(coords)), m, nrow(coords))
+  Xi_s <- apply_spatial_smoothing_core(Xi, L, 0.1)
+  expect_equal(dim(Xi_s), dim(Xi))
+})
+
+test_that("prepare_lss_fixed_components_core returns matrices of correct size", {
+  A <- cbind(1, matrix(rnorm(20), nrow = 5))
+  res <- prepare_lss_fixed_components_core(A, 1, 0.01)
+  expect_equal(dim(res$P_lss_matrix), c(ncol(A), nrow(A)))
+  expect_length(res$p_lss_vector, nrow(A))
+})
+
+test_that("reconstruct_hrf_shapes_core multiplies matrices", {
+  B <- matrix(rnorm(10), 5, 2)
+  Xi <- matrix(rnorm(2 * 3), 2, 3)
+  H <- reconstruct_hrf_shapes_core(B, Xi)
+  expect_equal(dim(H), c(5, 3))
+})
+
+test_that("run_lss_for_voxel_core returns vector of length T", {
+  Y <- rnorm(5)
+  X_list <- list(matrix(1:5, ncol = 1), matrix(5:1, ncol = 1))
+  H <- rnorm(1)
+  A <- cbind(1, matrix(rnorm(10), 5, 2))
+  lss_fix <- prepare_lss_fixed_components_core(A, 1, 0.01)
+  res <- run_lss_for_voxel_core(Y, X_list, H, A, lss_fix$P_lss_matrix, lss_fix$p_lss_vector)
+  expect_length(res, length(X_list))
+})
+
+test_that("estimate_final_condition_betas_core returns matrix of correct dims", {
+  Y <- matrix(rnorm(15), 5, 3)
+  Xc <- list(matrix(1:5, ncol = 1), matrix(5:1, ncol = 1))
+  H <- matrix(rnorm(1 * 3), 1, 3)
+  res <- estimate_final_condition_betas_core(Y, Xc, H)
+  expect_equal(dim(res), c(length(Xc), ncol(Y)))
+})
 
