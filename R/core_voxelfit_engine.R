@@ -181,6 +181,7 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
   list(Xi_ident_matrix = Xi_ident, Beta_ident_matrix = Beta_ident)
 }
 
+
 #' Construct voxel graph Laplacian
 #'
 #' @param voxel_coords_matrix V x 3 matrix of voxel coordinates
