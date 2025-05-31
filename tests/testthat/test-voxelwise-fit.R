@@ -111,6 +111,43 @@ test_that("project_out_confounds_core validates inputs correctly", {
   )
 })
 
+test_that("project_out_confounds_core handles rank deficient confounds with warning", {
+  n <- 40
+  V <- 10
+  p <- 8
+  k <- 2
+
+  Y_data <- matrix(rnorm(n * V), n, V)
+  X_list <- lapply(1:k, function(i) matrix(rnorm(n * p), n, p))
+
+  # Create rank deficient confounds (second column duplicate)
+  Z_confounds <- cbind(1:n, 2 * (1:n))
+
+  expect_warning(
+    res <- project_out_confounds_core(Y_data, X_list, Z_confounds),
+    "rank deficient"
+  )
+
+  expect_equal(dim(res$Y_proj_matrix), dim(Y_data))
+  expect_equal(length(res$X_list_proj_matrices), k)
+})
+
+test_that("project_out_confounds_core errors on NA confounds", {
+  n <- 20
+  V <- 5
+  p <- 4
+  k <- 1
+
+  Y_data <- matrix(rnorm(n * V), n, V)
+  X_list <- list(matrix(rnorm(n * p), n, p))
+  Z_confounds <- cbind(1:n, rep(NA, n))
+
+  expect_error(
+    project_out_confounds_core(Y_data, X_list, Z_confounds),
+    "NA values"
+  )
+})
+
 test_that("project_out_confounds_core preserves data structure after projection", {
   # Create structured test data
   set.seed(789)

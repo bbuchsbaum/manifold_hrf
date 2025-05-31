@@ -10,11 +10,49 @@
 project_out_confounds_core <- function(Y_data_matrix,
                                        X_list_of_matrices,
                                        Z_confounds_matrix = NULL) {
+
+  if (!is.matrix(Y_data_matrix)) {
+    stop("Y_data_matrix must be a matrix")
+  }
+
+  if (!is.list(X_list_of_matrices)) {
+    stop("X_list_of_matrices must be a list")
+  }
+
+  n <- nrow(Y_data_matrix)
+
+  for (i in seq_along(X_list_of_matrices)) {
+    if (!is.matrix(X_list_of_matrices[[i]]) || nrow(X_list_of_matrices[[i]]) != n) {
+      stop("X_list_of_matrices[[", i, "]] must be a matrix with ", n, " rows")
+    }
+  }
+
   if (is.null(Z_confounds_matrix)) {
     return(list(Y_proj_matrix = Y_data_matrix,
                 X_list_proj_matrices = X_list_of_matrices))
   }
-  Qz <- qr.Q(qr(Z_confounds_matrix))
+
+  if (!is.matrix(Z_confounds_matrix)) {
+    stop("Z_confounds_matrix must be a matrix or NULL")
+  }
+
+  if (anyNA(Z_confounds_matrix)) {
+    stop("Z_confounds_matrix must not contain NA values")
+  }
+
+  if (nrow(Z_confounds_matrix) != n) {
+    stop("Z_confounds_matrix must have the same number of rows as Y_data_matrix")
+  }
+
+  if (ncol(Z_confounds_matrix) >= n) {
+    stop("Z_confounds_matrix has too many columns (must be less than number of timepoints)")
+  }
+
+  qr_Z <- qr(Z_confounds_matrix, LAPACK = TRUE)
+  if (qr_Z$rank < ncol(Z_confounds_matrix)) {
+    warning("Z_confounds_matrix is rank deficient; using independent columns only")
+  }
+  Qz <- qr.Q(qr_Z)[, seq_len(qr_Z$rank), drop = FALSE]
   Y_proj <- Y_data_matrix - Qz %*% (t(Qz) %*% Y_data_matrix)
   X_proj <- lapply(X_list_of_matrices, function(X) {
     X - Qz %*% (t(Qz) %*% X)
