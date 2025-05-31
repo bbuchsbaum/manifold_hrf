@@ -3,23 +3,18 @@
 
 library(testthat)
 
-# The wrapper functions are not yet implemented, so they should error
-# with the message "Function not yet implemented" when called.
-
-test_that("construct_hrf_manifold_nim has correct interface", {
-  expect_error(
-    construct_hrf_manifold_nim(NULL, 0.5),
-    "Function not yet implemented"
-  )
+test_that("construct_hrf_manifold_nim returns basis list", {
+  L <- matrix(seq(0, 4, length.out = 6), nrow = 2)
+  res <- construct_hrf_manifold_nim(L, 0.5)
+  expect_type(res, "list")
+  expect_true("B_reconstructor_matrix" %in% names(res))
 })
 
-test_that("process_subject_mhrf_lss_nim and package_mhrf_results_nim have correct interface", {
-  expect_error(
-    process_subject_mhrf_lss_nim(NULL, NULL, NULL, NULL, NULL, list()),
-    "Function not yet implemented"
-  )
-  expect_error(
-    package_mhrf_results_nim(list(), NULL, NULL, list(), list()),
-    "Function not yet implemented"
-  )
+test_that("process_subject_mhrf_lss_nim and package_mhrf_results_nim return lists", {
+  dummy_bold <- matrix(rnorm(20), nrow = 5)
+  manifold <- construct_hrf_manifold_nim(matrix(seq(0, 4, length.out = 6), nrow = 2), 0.5)
+  res_subj <- process_subject_mhrf_lss_nim(dummy_bold, NULL, NULL, NULL, manifold, list())
+  expect_type(res_subj, "list")
+  res_out <- package_mhrf_results_nim(list(), NULL, NULL, list(), list())
+  expect_s3_class(res_out, "mhrf_results")
 })
