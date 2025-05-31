@@ -20,8 +20,10 @@
 #'   
 #' @details This function implements Component 1, Step 1 of the M-HRF-LSS pipeline.
 #'   It uses QR decomposition to efficiently project out confound regressors from
-#'   both the data and design matrices. If Z_confounds_matrix is NULL, the 
-#'   original matrices are returned unchanged.
+#'   both the data and design matrices. If \code{Z_confounds_matrix} is \code{NULL},
+#'   the original matrices are returned unchanged. Rank-deficient confound
+#'   matrices are automatically reduced to their independent columns with a
+#'   warning. Missing values are not allowed.
 #'   
 #' @examples
 #' \dontrun{
@@ -40,8 +42,8 @@
 #' }
 #' 
 #' @export
-project_out_confounds_core <- function(Y_data_matrix, 
-                                      X_list_of_matrices, 
+project_out_confounds_core <- function(Y_data_matrix,
+                                      X_list_of_matrices,
                                       Z_confounds_matrix = NULL) {
   
   # Input validation
@@ -54,6 +56,10 @@ project_out_confounds_core <- function(Y_data_matrix,
   }
   
   n <- nrow(Y_data_matrix)
+
+  if (anyNA(Y_data_matrix)) {
+    stop("Y_data_matrix must not contain NA values")
+  }
   
   # Check that all X matrices have the same number of rows as Y
   for (i in seq_along(X_list_of_matrices)) {
@@ -77,6 +83,10 @@ project_out_confounds_core <- function(Y_data_matrix,
   if (!is.matrix(Z_confounds_matrix)) {
     stop("Z_confounds_matrix must be a matrix or NULL")
   }
+
+  if (anyNA(Z_confounds_matrix)) {
+    stop("Z_confounds_matrix must not contain NA values")
+  }
   
   if (nrow(Z_confounds_matrix) != n) {
     stop("Z_confounds_matrix must have the same number of rows as Y_data_matrix")
@@ -86,11 +96,14 @@ project_out_confounds_core <- function(Y_data_matrix,
   if (ncol(Z_confounds_matrix) >= n) {
     stop("Z_confounds_matrix has too many columns (must be less than number of timepoints)")
   }
-  
+
   # Step 1: Compute QR decomposition of confounds matrix
   # Q_Z is an orthonormal basis for the column space of Z
   qr_Z <- qr(Z_confounds_matrix, LAPACK = TRUE)
-  Q_Z <- qr.Q(qr_Z)
+  if (qr_Z$rank < ncol(Z_confounds_matrix)) {
+    warning("Z_confounds_matrix is rank deficient; using independent columns only")
+  }
+  Q_Z <- qr.Q(qr_Z)[, seq_len(qr_Z$rank), drop = FALSE]
   
   # Step 2: Project out confounds from Y
   # Y_proj = Y - Q_Z * Q_Z' * Y

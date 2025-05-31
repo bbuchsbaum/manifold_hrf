@@ -33,8 +33,10 @@ using QR decomposition.
 \details{
 This function implements Component 1, Step 1 of the M-HRF-LSS pipeline.
 It uses QR decomposition to efficiently project out confound regressors from
-both the data and design matrices. If Z_confounds_matrix is NULL, the
-original matrices are returned unchanged.
+both the data and design matrices. If \code{Z_confounds_matrix} is \code{NULL}, the
+original matrices are returned unchanged. Rank deficient confound matrices are
+reduced to their independent columns with a warning. Missing values are not
+allowed.
 }
 \examples{
 \dontrun{
