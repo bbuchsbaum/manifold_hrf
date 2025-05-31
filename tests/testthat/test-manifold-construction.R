@@ -216,4 +216,4 @@ test_that("get_manifold_basis_reconstructor_core reconstruction works", {
   B_norm <- norm(result$B_reconstructor_matrix, "F")
   expect_true(is.finite(B_norm))
   expect_lt(B_norm, 1000)  # Arbitrary but reasonable upper bound
-}) 
+})

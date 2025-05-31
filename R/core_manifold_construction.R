@@ -43,8 +43,8 @@
 #' }
 #' 
 #' @export
-calculate_manifold_affinity_core <- function(L_library_matrix, 
-                                            k_local_nn_for_sigma, 
+calculate_manifold_affinity_core <- function(L_library_matrix,
+                                            k_local_nn_for_sigma,
                                             use_sparse_W_params = list()) {
   
   # Input validation
@@ -184,8 +184,6 @@ get_manifold_basis_reconstructor_core <- function(S_markov_matrix,
                                                  L_library_matrix,
                                                  m_manifold_dim_target,
                                                  m_manifold_dim_min_variance = 0.95) {
-  
-  # Input validation
   if (!is.matrix(S_markov_matrix) && !inherits(S_markov_matrix, "Matrix")) {
     stop("S_markov_matrix must be a matrix or Matrix object")
   }
@@ -294,4 +292,4 @@ get_manifold_basis_reconstructor_core <- function(S_markov_matrix,
     m_auto_selected_dim = m_auto,
     m_manifold_dim = m_final
   )
-} 
+}

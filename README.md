@@ -39,8 +39,8 @@ This package is currently under active development. The implementation follows t
 ```r
 library(manifold_hrf)
 
-# This package is not yet functional - functions are placeholder stubs
-# Please refer to the sprint plan for implementation roadmap
+# Basic manifold construction functions are implemented. Neuroimaging
+# wrappers currently provide minimal functionality.
 ```
 
 ## Development Roadmap
