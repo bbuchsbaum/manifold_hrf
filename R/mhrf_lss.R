@@ -569,61 +569,55 @@ mhrf_analyze <- function(Y_data,
 #' Prepare HRF library
 #' @keywords internal
 .prepare_hrf_library <- function(hrf_library, p_hrf, TR, params) {
-  
-  if (is.character(hrf_library)) {
-    if (hrf_library == "auto") {
-      # Create gamma grid library
-      time_points <- seq(0, by = TR, length.out = p_hrf)
-      
-      # Parameter ranges
-      shapes1 <- seq(4, 8, length.out = 8)
-      scales1 <- seq(0.8, 1.2, length.out = 6)
-      
-      # Create library
-      grid <- expand.grid(shape1 = shapes1, scale1 = scales1)
-      n_hrfs <- nrow(grid)
-      
-      L_library <- matrix(0, p_hrf, n_hrfs)
-      
-      for (i in 1:n_hrfs) {
-        # Double gamma HRF
-        hrf <- dgamma(time_points, shape = grid$shape1[i], scale = grid$scale1[i]) - 
-               0.35 * dgamma(time_points, shape = grid$shape1[i] * 2.5, scale = grid$scale1[i])
-        
-        # Normalize
-        L_library[, i] <- hrf / sum(abs(hrf))
-      }
-      
-      library_type <- "gamma_grid"
-      
+  time_points <- seq(0, by = TR, length.out = p_hrf)
+
+  if (inherits(hrf_library, "HRF")) {
+    # Single fmrireg HRF object
+    L_library <- matrix(as.numeric(fmrireg::evaluate(hrf_library, time_points)),
+                        ncol = 1)
+    n_hrfs <- 1L
+    library_type <- "hrf_object"
+
+  } else if (is.list(hrf_library) && all(sapply(hrf_library, inherits, "HRF"))) {
+    # List of fmrireg HRF objects
+    L_library <- do.call(cbind, lapply(hrf_library, function(h) {
+      as.numeric(fmrireg::evaluate(h, time_points))
+    }))
+    n_hrfs <- length(hrf_library)
+    library_type <- "hrf_list"
+
+  } else if (is.character(hrf_library)) {
+    # Predefined library names
+    if (hrf_library %in% c("auto", "gamma", "gamma_grid")) {
+      hrf_objs <- create_gamma_grid_library(TR_precision = TR,
+                                            hrf_duration = TR * (p_hrf - 1))
     } else if (hrf_library == "spmg1") {
-      # SPM canonical HRF variants (SPMG1 with derivatives)
-      if (!requireNamespace("fmrireg", quietly = TRUE)) {
-        stop("Package 'fmrireg' is required for spmg1 HRF library")
-      }
-
-      time_points <- seq(0, by = TR, length.out = p_hrf)
-      hrf_main <- fmrireg::HRF_SPMG1(time_points)
-      hrf_td <- c(0, diff(hrf_main)) / TR
-      hrf_dd <- c(0, diff(hrf_td)) / TR
-
-      L_library <- cbind(hrf_main, hrf_td, hrf_dd)
-      L_library <- apply(L_library, 2, function(h) h / sum(abs(h)))
-      n_hrfs <- ncol(L_library)
-      library_type <- "spmg1"
-      
+      hrf_objs <- list(
+        fmrireg::HRF_SPMG1,
+        fmrireg::HRF_SPMG2,
+        fmrireg::HRF_SPMG3
+      )
+    } else if (hrf_library == "flobs") {
+      hrf_objs <- create_flobs_library(TR_precision = TR,
+                                       hrf_duration = TR * (p_hrf - 1))
     } else {
       stop("Unknown HRF library type: ", hrf_library)
     }
-    
+
+    L_library <- do.call(cbind, lapply(hrf_objs, function(h) {
+      as.numeric(fmrireg::evaluate(h, time_points))
+    }))
+    n_hrfs <- length(hrf_objs)
+    library_type <- hrf_library
+
   } else if (is.matrix(hrf_library)) {
-    # User-provided library
+    # User-provided matrix
     L_library <- hrf_library
     n_hrfs <- ncol(L_library)
     library_type <- "custom"
-    
+
   } else {
-    stop("hrf_library must be 'auto', a preset name, or a matrix")
+    stop("hrf_library must be a supported string, HRF object, list of HRF objects, or matrix")
   }
   
   # Quality check
