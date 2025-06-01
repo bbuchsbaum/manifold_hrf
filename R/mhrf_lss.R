@@ -245,12 +245,22 @@ mhrf_analyze <- function(Y_data,
   # Component 0: HRF Manifold Construction
   progress$update("  Component 0: Constructing HRF manifold...", level = 2)
   
-  manifold_result <- .run_manifold_construction(
-    L_library = L_library,
-    params = params,
-    progress = progress,
-    logger = logger
-  )
+  manifold_result <- tryCatch({
+    .run_manifold_construction(
+      L_library = L_library,
+      params = params,
+      progress = progress,
+      logger = logger
+    )
+  }, error = function(e) {
+    logger$add("Manifold construction failed, attempting PCA fallback")
+    .run_manifold_construction_pca(
+      L_library = L_library,
+      params = params,
+      progress = progress,
+      logger = logger
+    )
+  })
 
   error_log <- list()
   
@@ -724,6 +734,30 @@ mhrf_analyze <- function(Y_data,
     m_final = manifold$m_final_dim,
     method_used = manifold$method_used %||% "diffusion_map"
   ))
+}
+
+#' Run manifold construction using PCA fallback
+#' @keywords internal
+.run_manifold_construction_pca <- function(L_library, params, progress, logger = NULL) {
+  manifold <- compute_pca_fallback(
+    L_library_matrix = L_library,
+    m_target = params$m_manifold_dim_target,
+    min_variance = params$m_manifold_dim_min_variance
+  )
+
+  progress$message(sprintf("Manifold constructed via PCA: %d dimensions", manifold$m_final_dim))
+
+  if (!is.null(logger)) {
+    logger$add("PCA fallback manifold used")
+  }
+
+  list(
+    B_reconstructor = manifold$B_reconstructor_matrix,
+    Phi_coords = manifold$Phi_coords_matrix,
+    eigenvalues = manifold$eigenvalues_S_vector,
+    m_final = manifold$m_final_dim,
+    method_used = manifold$method_used
+  )
 }
 
 

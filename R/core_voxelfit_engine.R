@@ -163,6 +163,139 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
   list(Xi_raw_matrix = Xi_raw, Beta_raw_matrix = Beta_raw)
 }
 
+#' Robust SVD Extraction with Conditioning
+#'
+#' Wrapper for extracting Xi and Beta using a numerically stable SVD.
+#' This version includes automatic regularization and fallback strategies.
+#'
+#' @param Gamma_coeffs_matrix (k*m) x V matrix of gamma coefficients
+#' @param m_manifold_dim Integer manifold dimension m
+#' @param k_conditions Integer number of conditions k
+#' @param regularization_factor Multiplier for diagonal regularization
+#' @param max_condition_number Threshold for conditioning warning
+#' @param use_randomized_svd Logical, use randomized SVD if available
+#' @param logger Optional logger object
+#' @return list with Xi_raw_matrix, Beta_raw_matrix, and quality metrics
+#' @export
+extract_xi_beta_raw_svd_robust <- function(Gamma_coeffs_matrix,
+                                           m_manifold_dim,
+                                           k_conditions,
+                                           regularization_factor = 10,
+                                           max_condition_number = 1e8,
+                                           use_randomized_svd = FALSE,
+                                           logger = NULL) {
+
+  km <- nrow(Gamma_coeffs_matrix)
+  V <- ncol(Gamma_coeffs_matrix)
+
+  if (km != k_conditions * m_manifold_dim) {
+    stop("Gamma_coeffs_matrix has incorrect number of rows")
+  }
+
+  Xi_raw <- matrix(0, m_manifold_dim, V)
+  Beta_raw <- matrix(0, k_conditions, V)
+
+  quality_metrics <- list(
+    condition_numbers = numeric(V),
+    svd_method = character(V),
+    regularization_applied = logical(V),
+    singular_value_gaps = numeric(V)
+  )
+
+  for (v in 1:V) {
+    gamma_v <- Gamma_coeffs_matrix[, v]
+    Gamma_mat <- matrix(gamma_v, nrow = k_conditions, ncol = m_manifold_dim, byrow = TRUE)
+
+    if (all(abs(gamma_v) < .Machine$double.eps)) {
+      Xi_raw[, v] <- 0
+      Beta_raw[, v] <- 0
+      quality_metrics$svd_method[v] <- "zero"
+      next
+    }
+
+    gamma_scale <- max(abs(Gamma_mat))
+    if (gamma_scale > 0) {
+      Gamma_scaled <- Gamma_mat / gamma_scale
+      cn <- kappa(Gamma_scaled)
+      quality_metrics$condition_numbers[v] <- cn
+      if (cn > max_condition_number) {
+        reg_amount <- (cn / max_condition_number) * regularization_factor * .Machine$double.eps
+        diag(Gamma_mat) <- diag(Gamma_mat) + reg_amount
+        quality_metrics$regularization_applied[v] <- TRUE
+        warning(sprintf("Voxel %d: Applied regularization due to condition number %.2e", v, cn))
+      }
+    }
+
+    svd_result <- tryCatch({
+      if (use_randomized_svd && k_conditions > 10 && m_manifold_dim > 10) {
+        quality_metrics$svd_method[v] <- "randomized"
+        if (requireNamespace("rsvd", quietly = TRUE)) {
+          rsvd::rsvd(Gamma_mat, k = min(k_conditions, m_manifold_dim))
+        } else {
+          svd(Gamma_mat)
+        }
+      } else {
+        quality_metrics$svd_method[v] <- "standard"
+        svd(Gamma_mat)
+      }
+    }, error = function(e) {
+      warning(sprintf("SVD failed for voxel %d: %s. Using fallback.", v, e$message))
+      quality_metrics$svd_method[v] <- "fallback"
+      if (all(is.finite(Gamma_mat)) && sum(Gamma_mat^2) > 0) {
+        list(
+          u = matrix(1/sqrt(k_conditions), k_conditions, 1),
+          v = matrix(1/sqrt(m_manifold_dim), m_manifold_dim, 1),
+          d = sqrt(sum(Gamma_mat^2))
+        )
+      } else {
+        list(
+          u = matrix(0, k_conditions, 1),
+          v = matrix(0, m_manifold_dim, 1),
+          d = 0
+        )
+      }
+    })
+
+    d <- svd_result$d
+
+    if (length(d) > 1) {
+      gaps <- diff(d) / d[-length(d)]
+      quality_metrics$singular_value_gaps[v] <- max(abs(gaps))
+      weights <- d / (d[1] + .Machine$double.eps)
+      weights[weights < 0.01] <- 0
+    } else {
+      weights <- 1
+    }
+
+    if (length(d) > 0 && d[1] > .Machine$double.eps) {
+      Xi_raw[, v] <- svd_result$v[, 1] * sqrt(d[1]) * weights[1]
+      Beta_raw[, v] <- svd_result$u[, 1] * sqrt(d[1]) * weights[1]
+    } else {
+      Xi_raw[, v] <- 0
+      Beta_raw[, v] <- 0
+      quality_metrics$svd_method[v] <- "degenerate"
+    }
+  }
+
+  n_regularized <- sum(quality_metrics$regularization_applied)
+  if (n_regularized > 0) {
+    msg <- sprintf("Applied regularization to %d/%d voxels", n_regularized, V)
+    if (!is.null(logger)) logger$add(msg) else message(msg)
+  }
+
+  n_fallback <- sum(quality_metrics$svd_method == "fallback")
+  if (n_fallback > 0) {
+    msg <- sprintf("Used fallback SVD for %d/%d voxels", n_fallback, V)
+    if (!is.null(logger)) logger$add(msg) else message(msg)
+  }
+
+  list(
+    Xi_raw_matrix = Xi_raw,
+    Beta_raw_matrix = Beta_raw,
+    quality_metrics = quality_metrics
+  )
+}
+
 #' Apply intrinsic identifiability constraints
 #'
 #' @param Xi_raw_matrix m x V matrix of raw manifold coordinates
