@@ -9,7 +9,8 @@ compute_pipeline_diagnostics(
   Y_proj,
   H_shapes,
   Beta_condition,
-  Xi_smoothed
+  Xi_smoothed,
+  TR_precision = 1
 )
 }
 \description{
