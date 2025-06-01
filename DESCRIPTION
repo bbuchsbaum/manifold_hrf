@@ -20,10 +20,12 @@ LinkingTo:
     Rcpp,
     RcppArmadillo
 Imports:
-    stats,
-    utils,
-    Matrix,
+    Matrix (>= 1.5-0),
     MASS,
+    stats,
+    methods,
+    parallel,
+    utils,
     RSpectra,
     RANN,
     Rcpp,
