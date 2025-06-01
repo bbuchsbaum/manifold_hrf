@@ -432,6 +432,7 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
 #'   for precomputing components (default 1.0).
 #' @param use_fmrireg Logical; if \code{TRUE}, uses \pkg{fmrireg} internals
 #'   for model fitting (default \code{TRUE}).
+#' @param n_jobs Number of parallel jobs for voxel processing (default 1).
 #' @return A T x V matrix of trial-level beta estimates, where T is the number
 #'   of trials and V is the number of voxels.
 #' @export
@@ -442,7 +443,8 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
                                    P_lss_matrix,
                                    p_lss_vector,
                                    ram_heuristic_GB_for_Rt = 1.0,
-                                   use_fmrireg = TRUE) {
+                                   use_fmrireg = TRUE,
+                                   n_jobs = 1) {
   
   # Input validation
   if (!is.matrix(Y_proj_matrix)) {
@@ -520,27 +522,19 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
     # P_confound = I - A_lss_fixed %*% ginv(A_lss_fixed)
     P_confound <- diag(n) - A_lss_fixed_matrix %*% MASS::ginv(A_lss_fixed_matrix)
     
-    # For each voxel
-    for (v in 1:V) {
-      # Compute trial regressors for this voxel
+    voxel_fun <- function(v) {
       dmat_ran <- matrix(0, n, T_trials)
       for (t in 1:T_trials) {
         dmat_ran[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_shapes_allvox_matrix[, v]
       }
-      
-      # Project the trial regressors
       Q_dmat_ran <- P_confound %*% dmat_ran
-      
-      # Extract residual data for this voxel
       residual_data <- Y_proj_matrix[, v, drop = FALSE]
-      
-      # Call fmrireg's LSS compute function
-      beta_voxel <- fmrireg:::lss_compute_r(Q_dmat_ran, residual_data)
-      
-      # Store results
-      Beta_trial_allvox_matrix[, v] <- as.vector(beta_voxel)
+      as.vector(fmrireg:::lss_compute_r(Q_dmat_ran, residual_data))
     }
-    
+
+    res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
+    Beta_trial_allvox_matrix <- do.call(cbind, res_list)
+
     return(Beta_trial_allvox_matrix)
   }
   
@@ -562,34 +556,16 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
     }
   }
   
-  # Main voxel loop
-  # This could be parallelized in future versions
-  for (v in 1:V) {
-    # Extract data for current voxel
+  voxel_fun <- function(v) {
     Y_voxel <- Y_proj_matrix[, v]
     H_voxel <- H_shapes_allvox_matrix[, v]
-    
-    # If we precomputed R_t, we can skip the matrix multiplication
+
     if (precompute_R_t) {
-      # Extract precomputed trial regressors for this voxel
-      X_trial_modified <- lapply(R_t_allvox_list, function(R_t) {
-        # Create a dummy matrix that will give us R_t[,v] when multiplied by H_voxel
-        # Since R_t[,v] = X_t %*% H_voxel, we can just return R_t[,v] as n x 1
-        # But run_lss_for_voxel_core expects n x p matrices, so we need a workaround
-        # Instead, we'll modify the function call below
-        R_t[, v, drop = FALSE]
-      })
-      
-      # Special handling for precomputed case
-      # We need to bypass the matrix multiplication in run_lss_for_voxel_core
-      # So we'll compute C_v directly here
       C_v <- matrix(0, nrow = n, ncol = T_trials)
       for (t in 1:T_trials) {
         C_v[, t] <- R_t_allvox_list[[t]][, v]
       }
-      
-      # Now do the Woodbury computation directly
-      # (This duplicates code from run_lss_for_voxel_core but avoids redundant computation)
+
       U_v <- P_lss_matrix %*% C_v
       V_regressors_v <- C_v - A_lss_fixed_matrix %*% U_v
       pc_v_row <- as.vector(crossprod(p_lss_vector, C_v))
@@ -597,11 +573,9 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
       alpha_v_row <- (1 - pc_v_row) / pmax(cv_v_row, .Machine$double.eps)
       S_effective_regressors_v <- sweep(V_regressors_v, MARGIN = 2, STATS = alpha_v_row, FUN = "*")
       S_effective_regressors_v <- sweep(S_effective_regressors_v, MARGIN = 1, STATS = p_lss_vector, FUN = "+")
-      beta_voxel <- as.vector(crossprod(S_effective_regressors_v, Y_voxel))
-      
+      as.vector(crossprod(S_effective_regressors_v, Y_voxel))
     } else {
-      # Compute on the fly using the single voxel function
-      beta_voxel <- run_lss_for_voxel_core(
+      run_lss_for_voxel_core(
         Y_voxel,
         X_trial_onset_list_of_matrices,
         H_voxel,
@@ -610,10 +584,10 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
         p_lss_vector
       )
     }
-    
-    # Store results
-    Beta_trial_allvox_matrix[, v] <- beta_voxel
   }
+
+  res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
+  Beta_trial_allvox_matrix <- do.call(cbind, res_list)
   
   return(Beta_trial_allvox_matrix)
 }
