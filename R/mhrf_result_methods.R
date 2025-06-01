@@ -454,3 +454,46 @@ as.data.frame.mhrf_result <- function(x, what = "amplitudes", ...) {
   
   return(df)
 }
+
+
+#' Convert estimated HRFs to \pkg{fmrireg} objects
+#'
+#' Creates a list of `fmrireg::empirical_hrf` objects from either an
+#' `mhrf_result` object or a raw matrix of HRF shapes.
+#'
+#' @param x An object containing HRF estimates. Currently methods are
+#'   implemented for `mhrf_result` and matrix inputs.
+#' @param ... Additional arguments passed to methods.
+#' @return A list of `fmrireg::HRF` objects.
+#' @export
+as_fmrireg_hrfs <- function(x, ...) {
+  UseMethod("as_fmrireg_hrfs")
+}
+
+#' @rdname as_fmrireg_hrfs
+#' @param prefix Character prefix for naming the HRF objects.
+#' @export
+as_fmrireg_hrfs.mhrf_result <- function(x, prefix = "voxel", ...) {
+  TR <- x$metadata$parameters$TR
+  as_fmrireg_hrfs.matrix(x$hrf_shapes, TR = TR, prefix = prefix)
+}
+
+#' @rdname as_fmrireg_hrfs
+#' @param TR Numeric sampling interval for the HRF time axis.
+#' @export
+as_fmrireg_hrfs.matrix <- function(x, TR, prefix = "voxel", ...) {
+  if (!requireNamespace("fmrireg", quietly = TRUE)) {
+    stop("Package 'fmrireg' is required for conversion", call. = FALSE)
+  }
+  if (!is.matrix(x)) {
+    stop("Input must be a matrix of HRF shapes", call. = FALSE)
+  }
+
+  p <- nrow(x)
+  time_points <- seq(0, by = TR, length.out = p)
+
+  lapply(seq_len(ncol(x)), function(v) {
+    fmrireg::empirical_hrf(time_points, x[, v],
+                           name = sprintf("%s_%d_mhrf", prefix, v))
+  })
+}
