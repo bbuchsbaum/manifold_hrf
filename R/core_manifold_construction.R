@@ -115,7 +115,7 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
       w_vec <- exp(-(d_vec^2) / sigma_prod_vec)
       W <- Matrix::sparseMatrix(i = i_vec, j = j_vec, x = w_vec,
                                 dims = c(N, N))
-      W <- pmax(W, Matrix::t(W))
+      W <- Matrix::pmax(W, Matrix::t(W))
     } else {
       W <- matrix(0, N, N)
       for (i in seq_len(N)) {
@@ -161,7 +161,7 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
       W_sparse[i, !mask] <- 0
     }
     # Symmetrize the sparse matrix (take maximum of W_ij and W_ji)
-    W <- pmax(W_sparse, t(W_sparse))
+    W <- Matrix::pmax(W_sparse, Matrix::t(W_sparse))
     
     # Convert to sparse matrix format
     if (requireNamespace("Matrix", quietly = TRUE)) {

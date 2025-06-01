@@ -49,7 +49,7 @@ test_that("calculate_manifold_affinity_core handles sparse matrix parameters", {
   # Check if Matrix package is available
   if (requireNamespace("Matrix", quietly = TRUE)) {
     # Should return a sparse matrix
-    expect_true(inherits(S_markov_sparse, "Matrix"))
+    expect_true(inherits(S_markov_sparse, "sparseMatrix"))
   }
   
   # Check basic properties still hold
