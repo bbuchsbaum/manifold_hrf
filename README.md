@@ -48,6 +48,19 @@ library(manifold_hrf)
 # plot_qc_summary(result)
 ```
 
+## Diagnostics and QC
+
+After running the pipeline, inspect the resulting object with
+`summary(result)` to view QC metrics such as mean R² and HRF statistics.
+Visual diagnostics can be produced with:
+
+```r
+plot(result, type = "diagnostic")
+```
+
+For a comprehensive HTML report of all metrics and plots, call
+`generate_qc_report()`.
+
 ## Development Roadmap
 
 See the detailed sprint plan in `data-raw/Manifold_hrf_sprint.md` for the complete development roadmap, including:

@@ -191,9 +191,9 @@ test_that("S3 methods work for mhrf_lss_result", {
   expect_equal(dim(hrfs), c(20, 100))
   
   # Test plot method (just check it doesn't error)
-  expect_message(
+  expect_error(
     plot(mock_fit, type = "hrfs", voxels = 1:3),
-    "Plotting HRFs"
+    NA
   )
 })
 

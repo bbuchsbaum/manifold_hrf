@@ -663,22 +663,51 @@ coef.mhrf_lss_result <- function(object, type = c("condition", "trial", "hrf"), 
 #' @export
 plot.mhrf_lss_result <- function(x, type = c("hrfs", "manifold", "diagnostics"),
                                  voxels = NULL, ...) {
-  
+
   type <- match.arg(type)
-  
-  if (type == "hrfs") {
-    # Plot HRF shapes for selected voxels
-    if (is.null(voxels)) {
-      # Select representative voxels
-      voxels <- sample(1:ncol(x$hrf$smoothed), min(9, ncol(x$hrf$smoothed)))
-    }
-    
-    # Would create actual plots here
-    message(sprintf("Plotting HRFs for voxels: %s",
-                   paste(voxels, collapse = ", ")))
+
+  # Build a minimal object compatible with plotting helpers from
+  # mhrf_result_methods.R
+  plot_obj <- list(
+    hrf_shapes = x$hrf$smoothed,
+    amplitudes = x$beta$condition_final,
+    manifold_coords = NULL,
+    qc_metrics = x$qc,
+    metadata = list(parameters = list(
+      TR = x$parameters$manifold$TR_precision %||% 1
+    ))
+  )
+
+  if (!is.null(x$diagnostics$Xi_smoothed)) {
+    plot_obj$manifold_coords <- x$diagnostics$Xi_smoothed
   }
-  
-  # Other plot types...
+
+  if (type == "hrfs") {
+    .plot_hrf_shapes(plot_obj, voxels = voxels, ...)
+
+  } else if (type == "manifold") {
+    if (is.null(plot_obj$manifold_coords)) {
+      message("Manifold coordinates not available for plotting")
+    } else {
+      .plot_manifold_coords(plot_obj, ...)
+    }
+
+  } else if (type == "diagnostics") {
+    oldpar <- par(no.readonly = TRUE)
+    on.exit(par(oldpar))
+    par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))
+    .plot_hrf_shapes(plot_obj, voxels = voxels)
+    .plot_amplitude_distribution(plot_obj)
+    if (!is.null(plot_obj$manifold_coords)) {
+      .plot_manifold_coords(plot_obj)
+    } else {
+      plot.new(); title("Manifold Coordinates")
+      text(0.5, 0.5, "Not available")
+    }
+    .plot_quality_metrics(plot_obj)
+  }
+
+  invisible(x)
 }
 
 
