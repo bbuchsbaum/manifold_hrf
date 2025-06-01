@@ -61,7 +61,8 @@ Set to -1 to use all available cores.}
 debugging (default: FALSE)}
 
 \item{output_dir}{Directory for saving results and intermediate files
-(default: temporary directory)}
+(default: temporary directory). If the directory does not exist, it will be
+created automatically.}
 
 \item{...}{Additional parameters to override preset values. See
 \code{\link{get_preset_params}} for available options.}
