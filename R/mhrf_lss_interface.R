@@ -519,9 +519,8 @@ run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
       X_trial_onset_list_of_matrices = design_info$X_trial_list,
       H_shapes_allvox_matrix = H_shapes,
       A_lss_fixed_matrix = Z_confounds,
-      P_lss_matrix = lss_prep$P_lss_matrix,
-      p_lss_vector = lss_prep$p_lss_vector,
-      ram_heuristic_GB_for_Rt = 1.0
+      lambda_ridge = params$lambda_ridge_Alss %||% 1e-6,
+      n_jobs = params$n_jobs %||% 1
     )
   }
   

@@ -199,19 +199,17 @@ prepare_projection_matrix <- function(Z_confounds, lambda = 1e-6) {
 #' @param X_trial_onset_list_of_matrices List of length T with n x p design matrices.
 #' @param H_shapes_allvox_matrix p x V matrix of HRF shapes.
 #' @param A_lss_fixed_matrix n x q matrix of fixed regressors.
-#' @param P_lss_matrix Deprecated; retained for compatibility.
-#' @param p_lss_vector Deprecated; retained for compatibility.
-#' @param ram_heuristic_GB_for_Rt Ignored memory heuristic.
-#'
+#' @param lambda_ridge Ridge regularization applied when projecting out confounds.
+#' @param n_jobs Number of parallel workers for voxel-wise computation.
+#' 
 #' @return A T x V matrix of trial-wise beta estimates.
 #' @export
 run_lss_voxel_loop_core <- function(Y_proj_matrix,
                                    X_trial_onset_list_of_matrices,
                                    H_shapes_allvox_matrix,
                                    A_lss_fixed_matrix,
-                                   P_lss_matrix,
-                                   p_lss_vector,
-                                   ram_heuristic_GB_for_Rt = 1.0) {
+                                   lambda_ridge = 1e-6,
+                                   n_jobs = 1) {
 
   if (!is.matrix(Y_proj_matrix)) {
     stop("Y_proj_matrix must be a matrix")
@@ -232,7 +230,7 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
     n_voxels = V
   )
 
-  P_confound <- prepare_projection_matrix(A_lss_fixed_matrix)
+  P_confound <- prepare_projection_matrix(A_lss_fixed_matrix, lambda_ridge)
 
   voxel_fun <- function(v) {
     run_lss_for_voxel_corrected_full(
@@ -240,11 +238,11 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
       X_trial_onset_list_of_matrices = X_trial_onset_list_of_matrices,
       H_shape_voxel_vector = H_shapes_allvox_matrix[, v],
       P_confound = P_confound,
-      lambda_ridge = 1e-6
+      lambda_ridge = lambda_ridge
     )
   }
 
-  res_list <- lapply(seq_len(V), voxel_fun)
+  res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
   Beta_trial_allvox_matrix <- do.call(cbind, res_list)
 
   return(Beta_trial_allvox_matrix)
