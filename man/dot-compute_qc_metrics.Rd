@@ -4,7 +4,8 @@
 \alias{.compute_qc_metrics}
 \title{Compute QC metrics}
 \usage{
-.compute_qc_metrics(Y_data, hrf_shapes, amplitudes, manifold_coords, params)
+.compute_qc_metrics(Y_data, X_condition_list, hrf_shapes, amplitudes,
+  manifold_coords, params)
 }
 \description{
 Compute QC metrics
