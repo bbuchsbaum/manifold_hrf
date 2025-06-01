@@ -16,6 +16,9 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2.9000
+LinkingTo:
+    Rcpp,
+    RcppArmadillo
 Imports:
     stats,
     utils,
@@ -23,6 +26,8 @@ Imports:
     MASS,
     RSpectra,
     RANN,
+    Rcpp,
+    RcppArmadillo,
     hrfals,
     rsvd,
     fmrireg

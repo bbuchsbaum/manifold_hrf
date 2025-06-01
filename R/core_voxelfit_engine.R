@@ -243,7 +243,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 #' @param num_neighbors_Lsp number of nearest neighbours
 #' @return sparse V x V graph Laplacian matrix
 #' @export
-make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, num_neighbors_Lsp = 6) {
+make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, num_neighbors_Lsp = 6,
+                                            distance_engine = c("euclidean", "ann_euclidean"),
+                                            ann_threshold = 10000) {
   # Input validation
   if (!is.matrix(voxel_coords_matrix)) {
     stop("voxel_coords_matrix must be a matrix")
@@ -271,9 +273,18 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, num_neighbors_L
     # Create fully connected graph
     W <- Matrix::Matrix(1, n_voxels, n_voxels) - Matrix::Diagonal(n_voxels)
   } else {
-    nn <- RANN::nn2(voxel_coords_matrix, k = min(num_neighbors_Lsp + 1, n_voxels))
-    i_idx <- rep(seq_len(n_voxels), each = ncol(nn$nn.idx) - 1)
-    j_idx <- as.vector(nn$nn.idx[, -1])
+    distance_engine <- match.arg(distance_engine)
+    if (distance_engine == "ann_euclidean" ||
+        (distance_engine == "euclidean" && n_voxels > ann_threshold &&
+         requireNamespace("RcppHNSW", quietly = TRUE))) {
+      ann_res <- RcppHNSW::hnsw_knn(voxel_coords_matrix, k = num_neighbors_Lsp + 1)
+      idx_mat <- ann_res$idx[, -1, drop = FALSE]
+    } else {
+      res <- knn_search_cpp(t(voxel_coords_matrix), t(voxel_coords_matrix), num_neighbors_Lsp + 1)
+      idx_mat <- t(res$idx)[, -1, drop = FALSE]
+    }
+    i_idx <- rep(seq_len(n_voxels), each = ncol(idx_mat))
+    j_idx <- as.vector(idx_mat)
     W <- Matrix::sparseMatrix(i = i_idx, j = j_idx, x = 1,
                               dims = c(n_voxels, n_voxels))
     W <- (W + Matrix::t(W)) / 2
