@@ -497,7 +497,10 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                 ident_scale_method = "l2_norm",
                                                 ident_sign_method = "canonical_correlation",
                                                 zero_tol = 1e-8,
+                                                Y_proj_matrix = NULL,
+                                                X_condition_list_proj_matrices = NULL) {
                                                 n_jobs = 1) {
+
   
   # Input validation
   if (!is.matrix(Xi_raw_matrix)) {
@@ -546,7 +549,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
   }
   
   if (ident_sign_method == "data_fit_correlation") {
-    stop("data_fit_correlation method requires additional data inputs and is not yet implemented")
+    if (is.null(Y_proj_matrix) || is.null(X_condition_list_proj_matrices)) {
+      stop("data_fit_correlation method requires Y_proj_matrix and X_condition_list_proj_matrices")
+    }
   }
   
   # Compute reference manifold coordinates
@@ -571,8 +576,28 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
     if (ident_sign_method == "canonical_correlation") {
       # Align sign based on correlation with reference
       sgn <- sign(sum(xi_vx * xi_ref_coord))
-      # Handle case where correlation is exactly zero
       if (sgn == 0) sgn <- 1
+    } else if (ident_sign_method == "data_fit_correlation") {
+      best_r2 <- -Inf
+      best_sgn <- 1
+      for (sg in c(1, -1)) {
+        xi_tmp <- xi_vx * sg
+        beta_tmp <- beta_vx * sg
+        h_tmp <- B_reconstructor_matrix %*% xi_tmp
+        k <- length(X_condition_list_proj_matrices)
+        X_design <- matrix(0, nrow(Y_proj_matrix), k)
+        for (c in 1:k) {
+          X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp
+        }
+        y_pred <- X_design %*% beta_tmp
+        y_true <- Y_proj_matrix[, vx]
+        r2 <- suppressWarnings(cor(y_pred, y_true))^2
+        if (!is.na(r2) && r2 > best_r2) {
+          best_r2 <- r2
+          best_sgn <- sg
+        }
+      }
+      sgn <- best_sgn
     }
     
     # Apply sign

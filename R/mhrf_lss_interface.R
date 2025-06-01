@@ -495,7 +495,9 @@ run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
     B_reconstructor_matrix = manifold$B_reconstructor_matrix,
     h_ref_shape_vector = h_ref,
     ident_scale_method = "l2_norm",
-    ident_sign_method = "canonical_correlation"
+    ident_sign_method = params$ident_sign_method %||% "canonical_correlation",
+    Y_proj_matrix = proj_result$Y_proj_matrix,
+    X_condition_list_proj_matrices = proj_result$X_list_proj_matrices
   )
   
   # 6. Spatial smoothing if coordinates provided

@@ -383,11 +383,27 @@ coef.mhrf_result <- function(object, type = "amplitudes", ...) {
 #' @param ... Additional arguments (ignored)
 #' @export
 fitted.mhrf_result <- function(object, ...) {
-  # This would require storing design matrices and doing convolution
-  # For now, return a message
-  message("Fitted values computation not yet implemented")
-  message("This requires design matrices which are not stored by default")
-  invisible(NULL)
+  if (is.null(object$design_matrices)) {
+    stop("Design matrices not available in mhrf_result object")
+  }
+
+  X_list <- object$design_matrices
+  H <- object$hrf_shapes
+  B <- object$amplitudes
+  n <- nrow(X_list[[1]])
+  V <- ncol(H)
+  k <- length(X_list)
+
+  fitted_mat <- matrix(0, n, V)
+  for (vx in seq_len(V)) {
+    y_hat <- rep(0, n)
+    for (c in seq_len(k)) {
+      y_hat <- y_hat + (X_list[[c]] %*% H[, vx]) * B[c, vx]
+    }
+    fitted_mat[, vx] <- y_hat
+  }
+
+  return(fitted_mat)
 }
 
 

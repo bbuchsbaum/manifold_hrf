@@ -338,6 +338,7 @@ mhrf_analyze <- function(Y_data,
       manifold_coords = smoothing_result$Xi_smooth,
       qc_metrics = qc_metrics,
       metadata = metadata,
+      design_matrices = X_condition_list,
       voxel_indices = voxel_indices,
       data_info = data_info,
       call = mc
@@ -628,8 +629,20 @@ mhrf_analyze <- function(Y_data,
       library_type <- "gamma_grid"
       
     } else if (hrf_library == "spmg1") {
-      # SPM canonical HRF variants
-      stop("SPM HRF library not yet implemented")
+      # SPM canonical HRF variants (SPMG1 with derivatives)
+      if (!requireNamespace("fmrireg", quietly = TRUE)) {
+        stop("Package 'fmrireg' is required for spmg1 HRF library")
+      }
+
+      time_points <- seq(0, by = TR, length.out = p_hrf)
+      hrf_main <- fmrireg::HRF_SPMG1(time_points)
+      hrf_td <- c(0, diff(hrf_main)) / TR
+      hrf_dd <- c(0, diff(hrf_td)) / TR
+
+      L_library <- cbind(hrf_main, hrf_td, hrf_dd)
+      L_library <- apply(L_library, 2, function(h) h / sum(abs(h)))
+      n_hrfs <- ncol(L_library)
+      library_type <- "spmg1"
       
     } else {
       stop("Unknown HRF library type: ", hrf_library)
