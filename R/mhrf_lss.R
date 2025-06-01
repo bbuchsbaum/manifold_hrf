@@ -257,7 +257,8 @@ mhrf_analyze <- function(Y_data,
     Xi_matrix = voxelwise_result$Xi_ident,
     voxel_coords = data_info$voxel_coords,
     params = params,
-    progress = progress
+    progress = progress,
+    Y_data = Y_matrix
   )
   
   # Component 3: HRF Reconstruction
@@ -734,8 +735,15 @@ mhrf_analyze <- function(Y_data,
 
 
 #' Run spatial smoothing
+#'
+#' @param Xi_matrix m x V matrix of manifold coordinates
+#' @param voxel_coords V x 3 matrix of voxel coordinates
+#' @param params List of smoothing parameters
+#' @param progress Progress reporter object
+#' @param Y_data Optional n x V data matrix for computing local SNR
 #' @keywords internal
-.run_spatial_smoothing <- function(Xi_matrix, voxel_coords, params, progress) {
+.run_spatial_smoothing <- function(Xi_matrix, voxel_coords, params, progress,
+                                   Y_data = NULL) {
   
   n_voxels <- ncol(Xi_matrix)
   
@@ -761,12 +769,19 @@ mhrf_analyze <- function(Y_data,
   # Apply smoothing
   if (params$adaptive_smoothing && exists("compute_local_snr")) {
     # Adaptive smoothing based on SNR
+    local_snr <- if (!is.null(Y_data)) {
+      compute_local_snr(Y_data)
+    } else {
+      rep(1, n_voxels)
+    }
+
     Xi_smooth <- apply_spatial_smoothing_adaptive(
       Xi_ident_matrix = Xi_matrix,
       L_sp_sparse_matrix = L_spatial,
       lambda_spatial_smooth = params$lambda_spatial_smooth,
-      local_snr = rep(1, n_voxels),  # Placeholder
-      edge_preserve = params$edge_preserve %||% FALSE
+      local_snr = local_snr,
+      edge_preserve = params$edge_preserve %||% FALSE,
+      voxel_coords = voxel_coords
     )
   } else {
     # Standard smoothing

@@ -317,6 +317,39 @@ test_that("Adaptive spatial smoothing works", {
   expect_false(any(is.infinite(Xi_smooth)))
 })
 
+test_that("Adaptive smoothing uses varying lambdas when SNR varies", {
+  set.seed(777)
+  m <- 2
+  V <- 4
+
+  Xi <- matrix(rnorm(m * V), m, V)
+
+  L <- diag(V)
+  for (i in 1:(V - 1)) {
+    L[i, i + 1] <- L[i + 1, i] <- -0.5
+  }
+  diag(L) <- -rowSums(L)
+
+  snr <- c(1, 4, 16, 4)
+
+  Xi_smooth <- apply_spatial_smoothing_adaptive(
+    Xi_ident_matrix = Xi,
+    L_sp_sparse_matrix = L,
+    lambda_spatial_smooth = 1,
+    local_snr = snr,
+    edge_preserve = FALSE
+  )
+
+  snr_factor <- 1 / sqrt(snr)
+  snr_factor <- snr_factor / median(snr_factor)
+  lambda_vec <- 1 * snr_factor
+
+  expect_gt(max(lambda_vec) - min(lambda_vec), 0)
+
+  diff_mag <- colSums((Xi_smooth - Xi)^2)
+  expect_gt(diff_mag[1], diff_mag[3])
+})
+
 test_that("Outlier detection works correctly", {
   set.seed(987)
   n <- 100
