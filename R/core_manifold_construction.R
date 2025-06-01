@@ -15,6 +15,14 @@
 #'     \item \code{sparse_if_N_gt}: Threshold for N to switch to sparse matrix (e.g., 5000)
 #'     \item \code{k_nn_for_W_sparse}: Number of nearest neighbors to keep in sparse W
 #'   }
+#' @param distance_engine Character string specifying the distance computation
+#'   method. Options are \code{"euclidean"} for exact distances or
+#'   \code{"ann_euclidean"} for approximate nearest neighbors via RcppHNSW.
+#'   If \code{"ann_euclidean"} is requested but the RcppHNSW package is not
+#'   installed, the function falls back to exact distances with a warning.
+#' @param ann_threshold Integer. When \code{distance_engine = "euclidean"} and
+#'   the number of HRFs exceeds this threshold, the function will attempt to use
+#'   RcppHNSW for approximate neighbors if available.
 #' 
 #' @return S_markov_matrix An N x N Markov transition matrix (regular or sparse 
 #'   Matrix format depending on parameters). Each row sums to 1.
@@ -64,8 +72,17 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
   # Extract parameters for sparse matrix handling
   sparse_threshold <- use_sparse_W_params$sparse_if_N_gt
   k_nn_sparse <- use_sparse_W_params$k_nn_for_W_sparse
-  
+
   distance_engine <- match.arg(distance_engine)
+
+  if (distance_engine == "ann_euclidean" &&
+      !requireNamespace("RcppHNSW", quietly = TRUE)) {
+    warning(
+      "distance_engine 'ann_euclidean' requires the RcppHNSW package. ",
+      "Falling back to exact Euclidean distances."
+    )
+    distance_engine <- "euclidean"
+  }
 
   # Step 1: compute pairwise distances or nearest neighbors
   if (distance_engine == "ann_euclidean" ||
