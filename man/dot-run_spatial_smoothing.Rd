@@ -4,7 +4,7 @@
 \alias{.run_spatial_smoothing}
 \title{Run spatial smoothing}
 \usage{
-.run_spatial_smoothing(Xi_matrix, voxel_coords, params, progress)
+.run_spatial_smoothing(Xi_matrix, voxel_coords, params, progress, Y_data = NULL)
 }
 \description{
 Run spatial smoothing
