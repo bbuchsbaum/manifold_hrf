@@ -62,13 +62,14 @@ test_that("reconstruct_hrf_shapes_core multiplies matrices", {
   expect_equal(dim(H), c(5, 3))
 })
 
-test_that("run_lss_for_voxel_core returns vector of length T", {
+test_that("run_lss_for_voxel_corrected_full returns vector of length T", {
   Y <- rnorm(5)
   X_list <- list(matrix(1:5, ncol = 1), matrix(5:1, ncol = 1))
   H <- rnorm(1)
   A <- cbind(1, matrix(rnorm(10), 5, 2))
-  lss_fix <- prepare_lss_fixed_components_core(A, 1, 0.01)
-  res <- run_lss_for_voxel_core(Y, X_list, H, A, lss_fix$P_lss_matrix, lss_fix$p_lss_vector)
+  P <- prepare_projection_matrix(A, 0.01)
+  Y_proj <- as.vector(P %*% Y)
+  res <- run_lss_for_voxel_corrected_full(Y_proj, X_list, H, P, lambda_ridge = 0.01)
   expect_length(res, length(X_list))
 })
 

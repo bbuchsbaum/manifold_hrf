@@ -328,12 +328,15 @@ reconstruct_hrf_shapes_core <- function(B_reconstructor_matrix,
 #' }
 #' 
 #' @export
+#' @deprecated Use \code{run_lss_for_voxel_corrected_full()} instead.
 run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
                                   X_trial_onset_list_of_matrices,
                                   H_shape_voxel_vector,
                                   A_lss_fixed_matrix,
                                   P_lss_matrix,
                                   p_lss_vector) {
+
+  .Deprecated("run_lss_for_voxel_corrected_full")
   
   # Accept single-column matrices for vector input
   if (is.matrix(Y_proj_voxel_vector) && ncol(Y_proj_voxel_vector) == 1) {
@@ -448,6 +451,7 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
 #' @return A T x V matrix of trial-level beta estimates, where T is the number
 #'   of trials and V is the number of voxels.
 #' @export
+#' @deprecated Use \code{run_lss_for_voxel_corrected_full()} in a loop instead.
 run_lss_voxel_loop_core <- function(Y_proj_matrix,
                                    X_trial_onset_list_of_matrices,
                                    H_shapes_allvox_matrix,
@@ -457,6 +461,8 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
                                    ram_heuristic_GB_for_Rt = 1.0,
                                    use_fmrireg = TRUE,
                                    n_jobs = 1) {
+
+  .Deprecated("run_lss_for_voxel_corrected_full")
   
   # Input validation
   if (!is.matrix(Y_proj_matrix)) {
