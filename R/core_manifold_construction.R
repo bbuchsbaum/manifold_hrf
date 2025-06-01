@@ -197,8 +197,36 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
     D_inv <- diag(1 / row_sums)
   }
   S_markov_matrix <- D_inv %*% W
-  
+
   return(S_markov_matrix)
+}
+
+#' Calculate Manifold Affinity Safely
+#'
+#' Wrapper around \code{calculate_manifold_affinity_core} that catches
+#' errors and falls back to a simple Euclidean distance affinity matrix.
+#'
+#' @inheritParams calculate_manifold_affinity_core
+#' @return Markov transition matrix
+#' @export
+calculate_manifold_affinity_core_safe <- function(L_library_matrix,
+                                                  k_local_nn_for_sigma,
+                                                  use_sparse_W_params = list(),
+                                                  distance_engine = c("euclidean", "ann_euclidean"),
+                                                  ann_threshold = 10000) {
+  tryCatch({
+    calculate_manifold_affinity_core(
+      L_library_matrix = L_library_matrix,
+      k_local_nn_for_sigma = k_local_nn_for_sigma,
+      use_sparse_W_params = use_sparse_W_params,
+      distance_engine = distance_engine,
+      ann_threshold = ann_threshold
+    )
+  }, error = function(e) {
+    warning("Manifold affinity failed, using simple distance matrix: ", e$message)
+    dist_mat <- as.matrix(dist(t(L_library_matrix)))
+    exp(-dist_mat^2 / median(dist_mat)^2)
+  })
 }
 
 #' Get Manifold Basis Reconstructor (Core)
