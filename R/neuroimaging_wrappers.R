@@ -390,7 +390,6 @@ summary.mhrf_manifold <- function(object, ...) {
 #' @param manifold_objects Manifold objects from construct_hrf_manifold_nim
 #' @param params_list All pipeline parameters
 #' @return List of R matrices plus processing metadata
-#' @export
 process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
                                         confound_input = NULL, manifold_objects,
                                         params_list) {
@@ -401,7 +400,7 @@ process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
   # - Calling all core pipeline functions
   # - Returning results
   
-  stop("Function not yet implemented - requires neuroim2/fmrireg integration")
+  stop("Not yet implemented")
 }
 
 #' Enhanced Results Packaging & Visualization (Neuroimaging Layer)
@@ -412,7 +411,6 @@ process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
 #' @param original_inputs Original input specifications
 #' @param processing_metadata Metadata from processing
 #' @return mhrf_results S3 object with neuroim2 integration
-#' @export
 package_mhrf_results_nim <- function(core_results_list, reference_space, mask_vol,
                                     original_inputs, processing_metadata) {
   # TODO: Implement MHRF-NIM-OUTPUT-01
@@ -421,5 +419,5 @@ package_mhrf_results_nim <- function(core_results_list, reference_space, mask_vo
   # - Create S3 class with print/plot/summary methods
   # - Enable writing results to NIfTI
   
-  stop("Function not yet implemented - requires neuroim2 integration")
+  stop("Not yet implemented")
 }
