@@ -13,7 +13,7 @@ test_that("make_voxel_graph_laplacian_core works for simple grid", {
   expect_equal(dim(L_sparse), c(9, 9))
   
   # Check that it's sparse
-  expect_true(inherits(L_sparse, "Matrix"))
+  expect_true(inherits(L_sparse, "sparseMatrix"))
   
   # Check Laplacian properties
   # Row sums should be zero (or very close due to numerical precision)
@@ -274,5 +274,13 @@ test_that("spatial smoothing integration test", {
   for (j in 1:m) {
     # Variance should be very small
     expect_lt(var(Xi_very_smooth[j, ]), 0.01)
+  }
+})
+
+test_that("symmetrization step retains sparse class", {
+  if (requireNamespace("Matrix", quietly = TRUE)) {
+    M <- Matrix::sparseMatrix(i = c(1, 2), j = c(2, 3), x = 1, dims = c(3, 3))
+    M_sym <- Matrix::pmax(M, Matrix::t(M))
+    expect_true(inherits(M_sym, "sparseMatrix"))
   }
 })
