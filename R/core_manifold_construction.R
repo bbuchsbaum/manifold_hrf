@@ -13,7 +13,8 @@
 #' @param use_sparse_W_params List with optional parameters for sparse W matrix:
 #'   \itemize{
 #'     \item \code{sparse_if_N_gt}: Threshold for N to switch to sparse matrix (e.g., 5000)
-#'     \item \code{k_nn_for_W_sparse}: Number of nearest neighbors to keep in sparse W
+#'     \item \code{k_nn_for_W_sparse}: Number of nearest neighbors to keep in sparse W. Must be less
+#'       than the number of HRFs (N); values \code{>= N} are truncated to \code{N - 1}.
 #'   }
 #' 
 #' @return S_markov_matrix An N x N Markov transition matrix (regular or sparse 
@@ -64,6 +65,12 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
   # Extract parameters for sparse matrix handling
   sparse_threshold <- use_sparse_W_params$sparse_if_N_gt
   k_nn_sparse <- use_sparse_W_params$k_nn_for_W_sparse
+
+  if (!is.null(k_nn_sparse)) {
+    if (k_nn_sparse >= N) {
+      k_nn_sparse <- N - 1
+    }
+  }
   
   distance_engine <- match.arg(distance_engine)
 
