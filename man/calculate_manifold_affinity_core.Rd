@@ -14,7 +14,7 @@ calculate_manifold_affinity_core(
 \item{L_library_matrix}{A p x N matrix of HRF shapes, where p is the number
 of time points and N is the number of HRFs in the library}
 
-\item{k_local_nn_for_sigma}{Integer, k-nearest neighbors for self-tuning
+\item{k_local_nn_for_sigma}{Positive integer (\< N), k-nearest neighbors for self-tuning
 bandwidth calculation (e.g., 7)}
 
 \item{use_sparse_W_params}{List with optional parameters for sparse W matrix:

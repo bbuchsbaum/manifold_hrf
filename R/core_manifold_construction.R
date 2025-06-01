@@ -8,8 +8,8 @@
 #'
 #' @param L_library_matrix A p x N matrix of HRF shapes, where p is the number 
 #'   of time points and N is the number of HRFs in the library
-#' @param k_local_nn_for_sigma Integer, k-nearest neighbors for self-tuning 
-#'   bandwidth calculation (e.g., 7)
+#' @param k_local_nn_for_sigma Positive integer (< N), k-nearest neighbors for
+#'   self-tuning bandwidth calculation (e.g., 7)
 #' @param use_sparse_W_params List with optional parameters for sparse W matrix:
 #'   \itemize{
 #'     \item \code{sparse_if_N_gt}: Threshold for N to switch to sparse matrix (e.g., 5000)
@@ -56,7 +56,12 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
   
   N <- ncol(L_library_matrix)
   p <- nrow(L_library_matrix)
-  
+
+  if (!is.numeric(k_local_nn_for_sigma) || length(k_local_nn_for_sigma) != 1 ||
+      k_local_nn_for_sigma < 1 || k_local_nn_for_sigma != round(k_local_nn_for_sigma)) {
+    stop("k_local_nn_for_sigma must be a positive integer")
+  }
+
   if (k_local_nn_for_sigma >= N) {
     stop("k_local_nn_for_sigma must be less than the number of HRFs (N)")
   }
