@@ -730,9 +730,8 @@ run_pipeline_on_simulated_data <- function(bold_data, design_info, ground_truth_
     X_trial_onset_list_of_matrices = design_info$X_trial_list,
     H_shapes_allvox_matrix = H_shapes,
     A_lss_fixed_matrix = bold_data$Z_confounds,
-    P_lss_matrix = lss_prep$P_lss_matrix,
-    p_lss_vector = lss_prep$p_lss_vector,
-    ram_heuristic_GB_for_Rt = 1.0
+    lambda_ridge = pipeline_params$lambda_ridge_Alss,
+    n_jobs = pipeline_params$n_jobs %||% 1
   )
   
   # Step 5: Component 4 - Final condition betas
