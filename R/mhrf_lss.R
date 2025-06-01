@@ -497,97 +497,65 @@ mhrf_analyze <- function(Y_data,
 #' Create design matrices from events
 #' @keywords internal
 .create_design_matrices <- function(events, n_timepoints, TR, hrf_length = 25) {
-  
-  # Ensure events is a data frame
+
   if (!is.data.frame(events)) {
     stop("events must be a data frame")
   }
-  
-  # Check required columns
+
   required_cols <- c("onset", "condition")
   missing_cols <- setdiff(required_cols, names(events))
   if (length(missing_cols) > 0) {
-    stop("events data frame missing required columns: ", 
+    stop("events data frame missing required columns: ",
          paste(missing_cols, collapse = ", "))
   }
-  
-  # Add duration if missing
+
   if (!"duration" %in% names(events)) {
     events$duration <- 0
   }
-  
-  # Get conditions
-  conditions <- unique(events$condition)
+
+  events$condition <- as.factor(events$condition)
+  conditions <- levels(events$condition)
   n_conditions <- length(conditions)
-  
-  # Initialize design matrices
-  X_condition_list <- list()
-  X_trial_list <- list()
-  
-  # Create condition-wise design matrices
+  n_trials <- nrow(events)
+
+  # Use fmrireg to generate raw design matrices
+  sframe <- fmrireg::sampling_frame(blocklens = n_timepoints, TR = TR)
+  raw_basis <- HRF_RAW_EVENT_BASIS(hrf_length, TR)
+
+  ev_model <- fmrireg::event_model(
+    formula = ~ hrf(onset, basis = raw_basis, by = condition),
+    data = events,
+    sampling_frame = sframe,
+    drop_empty = TRUE
+  )
+
+  X_full <- fmrireg::design_matrix(ev_model)
+
+  term_tag <- names(ev_model$terms)[1]
+  X_condition_list <- vector("list", n_conditions)
   for (i in seq_along(conditions)) {
-    cond <- conditions[i]
-    cond_events <- events[events$condition == cond, ]
-    
-    # Initialize design matrix
-    X_cond <- matrix(0, n_timepoints, hrf_length)
-    
-    # Add events
-    for (j in 1:nrow(cond_events)) {
-      onset_time <- cond_events$onset[j]
-      duration <- cond_events$duration[j]
-      
-      # Convert to samples
-      onset_idx <- round(onset_time / TR) + 1
-      duration_idx <- max(1, round(duration / TR))
-      
-      # Create impulse for convolution
-      for (d in 0:(duration_idx - 1)) {
-        if (onset_idx + d <= n_timepoints) {
-          # Shift for HRF convolution
-          end_idx <- min(onset_idx + d + hrf_length - 1, n_timepoints)
-          actual_length <- end_idx - onset_idx - d + 1
-          if (actual_length > 0) {
-            X_cond[(onset_idx + d):end_idx, 1:actual_length] <- 
-              X_cond[(onset_idx + d):end_idx, 1:actual_length] + 
-              diag(actual_length)
-          }
-        }
-      }
-    }
-    
-    X_condition_list[[i]] <- X_cond
+    token <- fmrireg:::level_token("condition", conditions[i])
+    prefix <- paste0(term_tag, "_", token)
+    cols <- grep(paste0("^", prefix, "_b"), colnames(X_full))
+    X_condition_list[[i]] <- X_full[, cols, drop = FALSE]
   }
-  
-  # Create trial-wise matrices if requested
-  n_trials <- 0
-  if ("trial_type" %in% names(events) || "trial_id" %in% names(events)) {
-    # Trial-wise estimation requested
-    trial_col <- if ("trial_type" %in% names(events)) "trial_type" else "trial_id"
-    
-    for (j in 1:nrow(events)) {
-      X_trial <- matrix(0, n_timepoints, hrf_length)
-      
-      onset_time <- events$onset[j]
-      duration <- events$duration[j]
-      onset_idx <- round(onset_time / TR) + 1
-      duration_idx <- max(1, round(duration / TR))
-      
-      for (d in 0:(duration_idx - 1)) {
-        if (onset_idx + d <= n_timepoints) {
-          end_idx <- min(onset_idx + d + hrf_length - 1, n_timepoints)
-          actual_length <- end_idx - onset_idx - d + 1
-          if (actual_length > 0) {
-            X_trial[(onset_idx + d):end_idx, 1:actual_length] <- diag(actual_length)
-          }
-        }
-      }
-      
-      X_trial_list[[j]] <- X_trial
-      n_trials <- n_trials + 1
-    }
+  names(X_condition_list) <- conditions
+
+  # Trial-wise design matrices using regressor evaluation
+  times <- sframe$time
+  X_trial_list <- vector("list", n_trials)
+  for (j in seq_len(n_trials)) {
+    reg <- fmrireg::regressor(
+      onsets = events$onset[j],
+      hrf = raw_basis,
+      duration = events$duration[j],
+      amplitude = 1,
+      span = raw_basis$span
+    )
+    vals <- fmrireg::evaluate(reg, times)
+    X_trial_list[[j]] <- matrix(vals, ncol = hrf_length)
   }
-  
+
   return(list(
     X_condition_list = X_condition_list,
     X_trial_list = X_trial_list,
