@@ -258,9 +258,7 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
     stop("Y_proj_matrix must be a matrix")
   }
   
-  if (!is.numeric(lambda_gamma) || length(lambda_gamma) != 1 || lambda_gamma < 0) {
-    stop("lambda_gamma must be a non-negative scalar")
-  }
+  lambda_gamma <- .validate_and_standardize_lambda(lambda_gamma, "lambda_gamma")
   
   if (!is.logical(orthogonal_approx_flag) || length(orthogonal_approx_flag) != 1) {
     stop("orthogonal_approx_flag must be a single logical value")
@@ -341,19 +339,23 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
 #' @param m_manifold_dim Manifold dimensionality (m)
 #' @param k_conditions Number of conditions (k)
 #' @param n_jobs Number of parallel jobs for voxel processing (default 1).
-#' 
+#' @param log_fun Optional logging function to report quality metrics. If NULL,
+#'   no logging is performed.
+#'
 #' @return A list containing:
 #'   \itemize{
 #'     \item \code{Xi_raw_matrix}: m x V matrix of raw manifold coordinates
 #'     \item \code{Beta_raw_matrix}: k x V matrix of raw condition amplitudes
+#'     \item \code{quality_metrics}: Diagnostics from the robust SVD
 #'   }
 #'   
 #' @details This function implements Component 1, Step 4 of the M-HRF-LSS pipeline.
-#'   For each voxel, it reshapes the gamma coefficients into an m x k matrix and
-#'   performs SVD to extract the dominant pattern. The first singular value and
-#'   vectors are used to decompose gamma into Xi (HRF shape) and Beta (amplitude)
-#'   components. Near-zero singular values are handled by setting the corresponding
-#'   Xi and Beta values to zero.
+#'   It now delegates the SVD step to \code{extract_xi_beta_raw_svd_robust}, which
+#'   adds condition number checks and fallback strategies. The first singular
+#'   value and associated vectors are used to decompose gamma into Xi (HRF shape)
+#'   and Beta (amplitude) components. Near-zero singular values are handled by
+#'   setting the corresponding Xi and Beta values to zero. Quality metrics from
+#'   the robust SVD can optionally be logged via \code{log_fun}.
 #'   
 #' @examples
 #' \dontrun{
@@ -375,7 +377,8 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
 extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
                                         m_manifold_dim,
                                         k_conditions,
-                                        n_jobs = 1) {
+                                        n_jobs = 1,
+                                        log_fun = NULL) {
   
   # Input validation
   if (!is.matrix(Gamma_coeffs_matrix)) {
@@ -402,36 +405,28 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
   }
   
   V <- ncol(Gamma_coeffs_matrix)
-  
-  # Initialize output matrices
-  Xi_raw_matrix <- matrix(0, nrow = m_manifold_dim, ncol = V)
-  Beta_raw_matrix <- matrix(0, nrow = k_conditions, ncol = V)
-  
-  # Threshold for near-zero singular values
-  svd_threshold <- sqrt(.Machine$double.eps)
-  
-  voxel_fun <- function(vx) {
-    gamma_vx <- Gamma_coeffs_matrix[, vx]
-    G_vx <- matrix(gamma_vx, nrow = m_manifold_dim, ncol = k_conditions)
-    svd_result <- svd(G_vx)
-    if (svd_result$d[1] > svd_threshold) {
-      sqrt_s1 <- sqrt(svd_result$d[1])
-      list(xi = svd_result$u[, 1] * sqrt_s1,
-           beta = svd_result$v[, 1] * sqrt_s1)
-    } else {
-      list(xi = rep(0, m_manifold_dim),
-           beta = rep(0, k_conditions))
-    }
+
+  # Use robust SVD decomposition
+  svd_result <- extract_xi_beta_raw_svd_robust(
+    Gamma_coeffs_matrix = Gamma_coeffs_matrix,
+    m_manifold_dim = m_manifold_dim,
+    k_conditions = k_conditions
+  )
+
+  Xi_raw_matrix <- svd_result$Xi_raw_matrix
+  Beta_raw_matrix <- svd_result$Beta_raw_matrix
+
+  # Optional logging of quality metrics
+  if (!is.null(log_fun) && is.function(log_fun)) {
+    gap_mean <- mean(svd_result$quality_metrics$singular_value_gaps, na.rm = TRUE)
+    log_fun(sprintf("Mean singular value gap: %.4f", gap_mean))
   }
 
-  res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
-  Xi_raw_matrix <- do.call(cbind, lapply(res_list, "[[", "xi"))
-  Beta_raw_matrix <- do.call(cbind, lapply(res_list, "[[", "beta"))
-  
-  # Return results
+  # Return results with metrics
   list(
     Xi_raw_matrix = Xi_raw_matrix,
-    Beta_raw_matrix = Beta_raw_matrix
+    Beta_raw_matrix = Beta_raw_matrix,
+    quality_metrics = svd_result$quality_metrics
   )
 }
 
@@ -452,6 +447,10 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #'   maximum absolute value (for "max_abs_val") of a voxel's HRF is below this
 #'   threshold, both \code{Xi_ident_matrix} and \code{Beta_ident_matrix} are set
 #'   to zero for that voxel.
+#' @param consistency_check Logical; if TRUE, the reconstructed HRF is
+#'   re-projected after sign/scale alignment and verified against the
+#'   canonical shape. Voxels failing the check are flipped to ensure
+#'   consistent orientation.
 #' @param n_jobs Number of parallel jobs for voxel processing (default 1).
 #'   
 #' @return A list containing:
@@ -464,6 +463,11 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #'   It ensures that HRF estimates are identifiable by:
 #'   1. Aligning sign with a reference HRF (avoiding arbitrary sign flips)
 #'   2. Normalizing scale consistently across voxels
+#'   The chosen sign alignment method is reported via \code{message()}.
+#'   If the correlation with the canonical HRF is near zero, a warning is
+#'   issued and a fallback RMS-based alignment is attempted. When
+#'   \code{consistency_check = TRUE}, each voxel's HRF is reprojected and the
+#'   alignment with the canonical shape is reverified.
 #'   The beta amplitudes are adjusted inversely to preserve the overall signal.
 #'   Voxels whose reconstructed HRFs fall below \code{zero_tol} are zeroed in
 #'   both returned matrices.
@@ -498,7 +502,8 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                 ident_sign_method = "canonical_correlation",
                                                 zero_tol = 1e-8,
                                                 Y_proj_matrix = NULL,
-                                                X_condition_list_proj_matrices = NULL) {
+                                                X_condition_list_proj_matrices = NULL,
+                                                consistency_check = FALSE,
                                                 n_jobs = 1) {
 
   
@@ -547,6 +552,8 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
   if (!ident_sign_method %in% valid_sign_methods) {
     stop("ident_sign_method must be one of: ", paste(valid_sign_methods, collapse = ", "))
   }
+
+  message(sprintf("Using '%s' for sign alignment", ident_sign_method))
   
   if (ident_sign_method == "data_fit_correlation") {
     if (is.null(Y_proj_matrix) || is.null(X_condition_list_proj_matrices)) {
@@ -572,11 +579,48 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
       return(list(xi = xi_vx, beta = rep(0, k)))
     }
     
-    # Step 1: Sign alignment
+    # Step 1: Sign alignment with fallback strategies
+    sgn <- 1
+    method_used <- ident_sign_method
     if (ident_sign_method == "canonical_correlation") {
-      # Align sign based on correlation with reference
-      sgn <- sign(sum(xi_vx * xi_ref_coord))
+      h_tmp <- B_reconstructor_matrix %*% xi_vx
+      corr_ref <- suppressWarnings(cor(h_tmp, h_ref_shape_vector))
+      if (is.na(corr_ref)) corr_ref <- 0
+      if (abs(corr_ref) < 1e-3) {
+        warning(sprintf("Voxel %d: canonical correlation near zero (%.3f)", vx, corr_ref))
+      }
+      sgn <- sign(corr_ref)
       if (sgn == 0) sgn <- 1
+      if (abs(corr_ref) < 1e-3 && !is.null(Y_proj_matrix) &&
+          !is.null(X_condition_list_proj_matrices)) {
+        best_r2 <- -Inf
+        best_sgn <- 1
+        for (sg in c(1, -1)) {
+          xi_tmp <- xi_vx * sg
+          beta_tmp <- beta_vx * sg
+          h_tmp2 <- B_reconstructor_matrix %*% xi_tmp
+          k2 <- length(X_condition_list_proj_matrices)
+          X_design <- matrix(0, nrow(Y_proj_matrix), k2)
+          for (c in 1:k2) {
+            X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp2
+          }
+          y_pred <- X_design %*% beta_tmp
+          y_true <- Y_proj_matrix[, vx]
+          r2 <- suppressWarnings(cor(y_pred, y_true))^2
+          if (!is.na(r2) && r2 > best_r2) {
+            best_r2 <- r2
+            best_sgn <- sg
+          }
+        }
+        if (best_r2 > 0) {
+          sgn <- best_sgn
+          method_used <- "data_fit_correlation_fallback"
+        } else {
+          sgn <- sign(sum(h_tmp))
+          if (sgn == 0) sgn <- 1
+          method_used <- "rms_fallback"
+        }
+      }
     } else if (ident_sign_method == "data_fit_correlation") {
       best_r2 <- -Inf
       best_sgn <- 1
@@ -584,9 +628,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
         xi_tmp <- xi_vx * sg
         beta_tmp <- beta_vx * sg
         h_tmp <- B_reconstructor_matrix %*% xi_tmp
-        k <- length(X_condition_list_proj_matrices)
-        X_design <- matrix(0, nrow(Y_proj_matrix), k)
-        for (c in 1:k) {
+        k2 <- length(X_condition_list_proj_matrices)
+        X_design <- matrix(0, nrow(Y_proj_matrix), k2)
+        for (c in 1:k2) {
           X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp
         }
         y_pred <- X_design %*% beta_tmp
@@ -598,7 +642,20 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
         }
       }
       sgn <- best_sgn
+      if (!(best_r2 > 0)) {
+        h_tmp <- B_reconstructor_matrix %*% xi_vx
+        corr_ref <- suppressWarnings(cor(h_tmp, h_ref_shape_vector))
+        if (!is.na(corr_ref) && abs(corr_ref) >= 1e-3) {
+          sgn <- sign(corr_ref)
+          method_used <- "canonical_correlation_fallback"
+        } else {
+          sgn <- sign(sum(h_tmp))
+          if (sgn == 0) sgn <- 1
+          method_used <- "rms_fallback"
+        }
+      }
     }
+    message(sprintf("Voxel %d sign method: %s", vx, method_used))
     
     # Apply sign
     xi_vx_signed <- xi_vx * sgn
@@ -632,6 +689,15 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 
     if (scl > 1 / sqrt(.Machine$double.eps)) {
       beta_out <- rep(0, k)
+    }
+
+    if (consistency_check) {
+      hr_check <- B_reconstructor_matrix %*% xi_out
+      corr_check <- suppressWarnings(cor(hr_check, h_ref_shape_vector))
+      if (!is.na(corr_check) && corr_check < 0) {
+        xi_out <- -xi_out
+        beta_out <- -beta_out
+      }
     }
 
     list(xi = xi_out, beta = beta_out)

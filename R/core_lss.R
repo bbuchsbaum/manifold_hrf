@@ -91,10 +91,8 @@ prepare_lss_fixed_components_core <- function(A_lss_fixed_matrix,
     }
   }
   
-  if (!is.numeric(lambda_ridge_Alss) || length(lambda_ridge_Alss) != 1 || 
-      lambda_ridge_Alss < 0) {
-    stop("lambda_ridge_Alss must be a non-negative scalar")
-  }
+  lambda_ridge_Alss <- .validate_and_standardize_lambda(lambda_ridge_Alss,
+                                                        "lambda_ridge_Alss")
   
   # Step 1: Compute A'A
   AtA <- crossprod(A_lss_fixed_matrix)  # q_lss x q_lss
