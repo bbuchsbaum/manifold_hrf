@@ -55,6 +55,7 @@ export(run_lss_for_voxel_corrected_full)
 export(run_lss_woodbury_corrected)
 # run_lss_for_voxel_core and run_lss_voxel_loop_core are deprecated and no longer exported
 export(run_mhrf_lss_simulation)
+export(simulate_mhrf_dataset)
 export(run_with_fallback_cascade)
 export(screen_voxels)
 export(smart_initialize)
