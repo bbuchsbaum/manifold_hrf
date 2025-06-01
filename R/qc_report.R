@@ -270,7 +270,6 @@ create_qc_flags <- function(results,
     }
   }
 
-## fix merge <<<<<<< codex/add-trial-wise-glm-collinearity-check
   # Check trial regressor collinearity
   if (!is.null(results$core_matrices$Beta_trial)) {
     rank_flags <- attr(results$core_matrices$Beta_trial, "rank_deficient_voxels")
@@ -285,7 +284,8 @@ create_qc_flags <- function(results,
         )
       }
     }
-## =======
+  }
+
   # Check for truncated HRFs
   if (!is.null(results$n_truncated_hrfs) && results$n_truncated_hrfs > 0) {
     qc_flags$hrf_truncation <- list(
@@ -293,7 +293,6 @@ create_qc_flags <- function(results,
       message = sprintf("%d HRFs truncated due to end of run", results$n_truncated_hrfs),
       severity = 1
     )
-## fix merge >>>>>>> main
   }
   
   # Overall QC status
