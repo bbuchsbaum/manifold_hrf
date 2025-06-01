@@ -258,9 +258,7 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
     stop("Y_proj_matrix must be a matrix")
   }
   
-  if (!is.numeric(lambda_gamma) || length(lambda_gamma) != 1 || lambda_gamma < 0) {
-    stop("lambda_gamma must be a non-negative scalar")
-  }
+  lambda_gamma <- .validate_and_standardize_lambda(lambda_gamma, "lambda_gamma")
   
   if (!is.logical(orthogonal_approx_flag) || length(orthogonal_approx_flag) != 1) {
     stop("orthogonal_approx_flag must be a single logical value")
