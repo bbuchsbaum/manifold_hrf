@@ -77,6 +77,17 @@ test_that("calculate_manifold_affinity_core validates inputs correctly", {
     calculate_manifold_affinity_core(L_small, 4),
     "k_local_nn_for_sigma must be less than the number of HRFs"
   )
+
+  # Test with non-positive or non-integer k
+  expect_error(
+    calculate_manifold_affinity_core(L_small, 0),
+    "k_local_nn_for_sigma must be a positive integer"
+  )
+
+  expect_error(
+    calculate_manifold_affinity_core(L_small, 2.5),
+    "k_local_nn_for_sigma must be a positive integer"
+  )
 })
 
 test_that("calculate_manifold_affinity_core produces symmetric affinities", {
