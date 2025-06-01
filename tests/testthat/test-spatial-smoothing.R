@@ -122,7 +122,7 @@ test_that("apply_spatial_smoothing_core works correctly", {
   
   # Create manifold coordinates with spatial structure
   Xi_ident <- matrix(0, m, V)
-  for (j in 1:m) {
+  for (j in seq_len(m)) {
     # Add smooth spatial pattern
     Xi_ident[j, ] <- sin(coords$x / 2) + cos(coords$y / 2)
     # Add noise
@@ -136,13 +136,13 @@ test_that("apply_spatial_smoothing_core works correctly", {
   expect_equal(dim(Xi_smoothed), c(m, V))
   
   # Smoothed should have less variance than original
-  for (j in 1:m) {
+  for (j in seq_len(m)) {
     expect_lt(var(Xi_smoothed[j, ]), var(Xi_ident[j, ]))
   }
   
   # Smoothed coordinates should be spatially smoother
   # Check by computing Laplacian quadratic form: x'Lx
-  for (j in 1:m) {
+  for (j in seq_len(m)) {
     roughness_original <- as.numeric(t(Xi_ident[j, ]) %*% L_sparse %*% Xi_ident[j, ])
     roughness_smoothed <- as.numeric(t(Xi_smoothed[j, ]) %*% L_sparse %*% Xi_smoothed[j, ])
     expect_lt(roughness_smoothed, roughness_original)
@@ -204,6 +204,22 @@ test_that("apply_spatial_smoothing_core validates inputs", {
   )
 })
 
+test_that("apply_spatial_smoothing_core handles zero dimensions", {
+  # Case 1: zero manifold dimensions
+  V <- 5
+  Xi_zero_m <- matrix(numeric(0), nrow = 0, ncol = V)
+  coords <- matrix(rnorm(V * 3), V, 3)
+  L_sparse <- make_voxel_graph_laplacian_core(coords, num_neighbors_Lsp = 3)
+  result_m0 <- apply_spatial_smoothing_core(Xi_zero_m, L_sparse, lambda_spatial_smooth = 0.1)
+  expect_equal(result_m0, Xi_zero_m)
+
+  # Case 2: zero voxels
+  Xi_zero_v <- matrix(numeric(0), nrow = 3, ncol = 0)
+  L_empty <- Matrix::Matrix(0, 0, 0, sparse = TRUE)
+  result_v0 <- apply_spatial_smoothing_core(Xi_zero_v, L_empty, lambda_spatial_smooth = 0.1)
+  expect_equal(result_v0, Xi_zero_v)
+})
+
 test_that("apply_spatial_smoothing_core preserves mean", {
   # Smoothing should approximately preserve the mean of each manifold dimension
   set.seed(789)
@@ -220,7 +236,7 @@ test_that("apply_spatial_smoothing_core preserves mean", {
   Xi_smoothed <- apply_spatial_smoothing_core(Xi_ident, L_sparse, lambda_spatial_smooth = 0.2)
   
   # Check that means are preserved (approximately)
-  for (j in 1:m) {
+  for (j in seq_len(m)) {
     mean_original <- mean(Xi_ident[j, ])
     mean_smoothed <- mean(Xi_smoothed[j, ])
     expect_equal(mean_smoothed, mean_original, tolerance = 0.01)
@@ -257,7 +273,7 @@ test_that("spatial smoothing integration test", {
     Xi_smoothed <- apply_spatial_smoothing_core(Xi_ident, L_sparse, lambdas[i])
     
     # Compute roughness for each dimension
-    for (j in 1:m) {
+    for (j in seq_len(m)) {
       roughness_by_lambda[j, i] <- as.numeric(
         t(Xi_smoothed[j, ]) %*% L_sparse %*% Xi_smoothed[j, ]
       )
@@ -265,13 +281,13 @@ test_that("spatial smoothing integration test", {
   }
   
   # Roughness should decrease with increasing lambda
-  for (j in 1:m) {
+  for (j in seq_len(m)) {
     expect_true(all(diff(roughness_by_lambda[j, ]) <= 0))
   }
   
   # Very high smoothing should make coordinates nearly constant
   Xi_very_smooth <- apply_spatial_smoothing_core(Xi_ident, L_sparse, lambda_spatial_smooth = 100)
-  for (j in 1:m) {
+  for (j in seq_len(m)) {
     # Variance should be very small
     expect_lt(var(Xi_very_smooth[j, ]), 0.01)
   }

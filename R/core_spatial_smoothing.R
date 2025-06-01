@@ -84,7 +84,7 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
   
   # Create triplet form (i, j, value) for sparse matrix construction
   # Each voxel i is connected to its k nearest neighbors
-  i_indices <- rep(1:V, each = k_actual)
+  i_indices <- rep(seq_len(V), each = k_actual)
   j_indices <- as.vector(t(nn_indices))
   
   # For now, use binary weights (1 for connected, 0 for not connected)
@@ -150,7 +150,7 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
 #' 
 #' # Create simple grid coordinates
 #' coords <- expand.grid(x = 1:10, y = 1:10, z = 1)
-#' voxel_coords <- as.matrix(coords[1:V, ])
+#' voxel_coords <- as.matrix(coords[seq_len(V), ])
 #' 
 #' # Create Laplacian
 #' L_sparse <- make_voxel_graph_laplacian_core(voxel_coords, num_neighbors_Lsp = 8)
@@ -200,7 +200,7 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
   
   # Solve for each manifold dimension independently
   # For each dimension j: solve (I + lambda*L) * xi_j_smooth = xi_j_ident
-  for (j in 1:m) {
+  for (j in seq_len(m)) {
     # Extract the j-th manifold coordinate across all voxels
     xi_j_ident <- Xi_ident_matrix[j, ]
     
