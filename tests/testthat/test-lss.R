@@ -499,3 +499,8 @@ test_that("LSS integration test with known signal", {
   # At least one voxel should show some correlation
   expect_gt(max(cors_active), 0.3)
 })
+test_that("check_ram_feasibility enforces RAM limit", {
+  expect_true(manifoldhrf:::check_ram_feasibility(5, 10, 1))
+  expect_false(manifoldhrf:::check_ram_feasibility(1000, 1000, 0.0001))
+  expect_message(manifoldhrf:::check_ram_feasibility(1000, 1000, 0.0001), "exceeds limit")
+})
