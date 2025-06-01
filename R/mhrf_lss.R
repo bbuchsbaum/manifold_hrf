@@ -486,11 +486,10 @@ mhrf_analyze <- function(Y_data,
 #' Determine number of jobs
 #' @keywords internal
 .determine_n_jobs <- function(n_jobs) {
-  if (n_jobs == -1) {
-    parallel::detectCores()
-  } else {
-    min(n_jobs, parallel::detectCores())
-  }
+  cores <- parallel::detectCores()
+  if (is.null(n_jobs) || n_jobs <= 0) return(1L)
+  if (n_jobs == -1) return(cores)
+  min(n_jobs, cores)
 }
 
 
