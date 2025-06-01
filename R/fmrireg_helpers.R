@@ -36,3 +36,14 @@ HRF_RAW_EVENT_BASIS <- function(p_length, TR_sample, name = NULL) {
   fmrireg::as_hrf(basis_fun, name = hrf_name, nbasis = nbasis, span = span,
                   params = list(p_length = p_length, TR_sample = TR_sample))
 }
+
+#' Create a token for a factor level following fmrireg conventions
+#'
+#' @param factor_name Name of the factor variable
+#' @param level Level value
+#'
+#' @return Character string combining the factor name and level
+#' @keywords internal
+private_level_token <- function(factor_name, level) {
+  paste0(make.names(factor_name), ".", make.names(level))
+}
