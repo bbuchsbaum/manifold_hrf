@@ -210,6 +210,9 @@ plot(fit, type = "hrfs", voxels = c(100, 500, 1000))
 
 # Plot manifold diagnostics
 plot(fit, type = "manifold")
+
+# QC summary of HRF metrics
+plot_qc_summary(fit)
 ```
 
 ### Generate QC Report

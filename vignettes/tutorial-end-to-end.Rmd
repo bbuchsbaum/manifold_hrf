@@ -61,4 +61,5 @@ lss_results <- run_mhrf_lss_standard(
 )
 summary(lss_results)
 plot(lss_results)
+plot_qc_summary(lss_results)
 ```
