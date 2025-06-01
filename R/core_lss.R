@@ -128,14 +128,11 @@ prepare_lss_fixed_components_core <- function(A_lss_fixed_matrix,
   
   # Step 5: Compute p_lss_vector for intercept handling
   if (!is.null(intercept_col_index_in_Alss)) {
-    # Extract the intercept column
-    intercept_col <- A_lss_fixed_matrix[, intercept_col_index_in_Alss, drop = FALSE]
-    
     # Compute pseudoinverse of A_lss_fixed_matrix
     # Using the already computed components for efficiency
     # A+ = (A'A)^(-1) * A' when A has full column rank
     # We already have this as P_lss_matrix
-    
+
     # Extract the row corresponding to the intercept
     p_lss_vector <- P_lss_matrix[intercept_col_index_in_Alss, , drop = TRUE]
   } else {
