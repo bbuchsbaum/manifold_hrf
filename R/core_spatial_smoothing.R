@@ -33,8 +33,10 @@
 #' }
 #' 
 #' @export
-make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, 
-                                           num_neighbors_Lsp) {
+make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
+                                           num_neighbors_Lsp,
+                                           distance_engine = c("euclidean", "ann_euclidean"),
+                                           ann_threshold = 10000) {
   
   # Input validation
   if (!is.matrix(voxel_coords_matrix)) {
@@ -66,18 +68,16 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
     ))
   }
   
-  # Step 1: Find k-nearest neighbors using RANN
-  # nn2 returns indices (including self as first neighbor) and distances
-  # We request k+1 to account for self-neighbor
-  nn_result <- RANN::nn2(
-    data = voxel_coords_matrix,
-    query = voxel_coords_matrix,
-    k = k_actual + 1,
-    eps = 0  # Exact search
-  )
-  
-  # Extract neighbor indices (excluding self, which is always first)
-  nn_indices <- nn_result$nn.idx[, -1, drop = FALSE]  # V x k matrix
+  distance_engine <- match.arg(distance_engine)
+  if (distance_engine == "ann_euclidean" ||
+      (distance_engine == "euclidean" && V > ann_threshold &&
+       requireNamespace("RcppHNSW", quietly = TRUE))) {
+    ann_res <- RcppHNSW::hnsw_knn(voxel_coords_matrix, k = k_actual + 1)
+    nn_indices <- ann_res$idx[, -1, drop = FALSE]
+  } else {
+    nn_res <- knn_search_cpp(t(voxel_coords_matrix), t(voxel_coords_matrix), k_actual + 1)
+    nn_indices <- t(nn_res$idx)[, -1, drop = FALSE]
+  }
   
   # Step 2: Construct sparse adjacency matrix W
   # For undirected graph, we need to ensure symmetry
