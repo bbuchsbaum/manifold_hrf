@@ -297,17 +297,7 @@
   # Validate common user parameters
   if ("lambda_gamma" %in% names(user_params)) {
     lambda_gamma <- user_params$lambda_gamma
-    if (!is.numeric(lambda_gamma) || lambda_gamma < 0) {
-      stop(
-        "lambda_gamma must be a non-negative number\n",
-        "  Received: ", lambda_gamma, "\n",
-        "  Hint: Use values between 0.001 and 0.1",
-        call. = FALSE
-      )
-    }
-    if (lambda_gamma > 1) {
-      warning("lambda_gamma is very large: ", lambda_gamma, ". This may cause over-regularization.")
-    }
+    lambda_gamma <- .validate_and_standardize_lambda(lambda_gamma, "lambda_gamma")
   }
   
   if ("m_manifold_dim_target" %in% names(user_params)) {

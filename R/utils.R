@@ -42,6 +42,7 @@
   }
 }
 
+
 #' Select manifold dimensionality based on eigenvalues
 #'
 #' Determines the number of diffusion map dimensions needed to explain a
@@ -106,4 +107,53 @@ select_manifold_dim <- function(eigenvalues, min_var = 0.95) {
   }
 
   list(m_auto = m_auto, cum_var = cum_var, gaps = gaps)
+}
+
+#' Check RAM feasibility for trial precomputation
+#'
+#' Estimates expected memory usage for storing trial-by-voxel matrices and
+#' compares it to a user-provided limit.
+#'
+#' @param T_trials Number of trials.
+#' @param V Number of voxels.
+#' @param ram_limit_GB Memory limit in gigabytes.
+#'
+#' @return Logical indicating whether precomputation is feasible.
+#' @keywords internal
+check_ram_feasibility <- function(T_trials, V, ram_limit_GB) {
+  expected_GB <- (T_trials * V * 8) / 1e9
+  feasible <- expected_GB < ram_limit_GB
+  if (!feasible) {
+    message(sprintf(
+      "Estimated memory %.2f GB exceeds limit %.2f GB - using lazy evaluation for trial regressors.",
+      expected_GB, ram_limit_GB
+    ))
+  }
+  feasible
+}
+
+#' Validate and standardize ridge penalty parameter
+#'
+#' Ensures a lambda parameter is a non-negative scalar and applies
+#' consistent tolerance-based adjustments. Small values below a fixed
+#' threshold are coerced to zero with a warning. Unusually large values
+#' trigger a warning about potential over-regularization.
+#'
+#' @param lambda Numeric value provided by the user.
+#' @param name Character name of the parameter (for error messages).
+#' @return Sanitized lambda value.
+#' @keywords internal
+.validate_and_standardize_lambda <- function(lambda, name) {
+  tol <- 1e-8
+  if (!is.numeric(lambda) || length(lambda) != 1 || is.na(lambda) || lambda < 0) {
+    stop(sprintf("%s must be a non-negative scalar", name))
+  }
+  if (lambda < tol && lambda > 0) {
+    warning(sprintf("%s is near zero (%.2e); treating as 0", name, lambda))
+    lambda <- 0
+  } else if (lambda > 1) {
+    warning(sprintf("%s is large (%.2e); may cause over-regularization", name, lambda))
+  }
+  lambda
+
 }

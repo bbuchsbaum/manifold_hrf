@@ -91,10 +91,8 @@ prepare_lss_fixed_components_core <- function(A_lss_fixed_matrix,
     }
   }
   
-  if (!is.numeric(lambda_ridge_Alss) || length(lambda_ridge_Alss) != 1 || 
-      lambda_ridge_Alss < 0) {
-    stop("lambda_ridge_Alss must be a non-negative scalar")
-  }
+  lambda_ridge_Alss <- .validate_and_standardize_lambda(lambda_ridge_Alss,
+                                                        "lambda_ridge_Alss")
   
   # Step 1: Compute A'A
   AtA <- crossprod(A_lss_fixed_matrix)  # q_lss x q_lss
@@ -540,12 +538,11 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
     return(Beta_trial_allvox_matrix)
   }
   
-  # Memory heuristic: Check if we can precompute all R_t matrices
-  # Each R_t is n x V, we have T of them
-  # Memory in bytes: T * n * V * 8 (assuming double precision)
-  estimated_memory_GB <- (T_trials * n * V * 8) / (1024^3)
-  
-  precompute_R_t <- (estimated_memory_GB < ram_heuristic_GB_for_Rt)
+  # Memory heuristic: check if we can precompute all R_t matrices.
+  # The helper estimates memory as T * V * 8 / 1e9 GB.
+  precompute_R_t <- check_ram_feasibility(
+    T_trials, V, ram_heuristic_GB_for_Rt
+  )
   
   if (precompute_R_t) {
     # Precompute all R_t matrices for efficiency

@@ -175,6 +175,8 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #'   zeroed in both \code{Xi_ident_matrix} and \code{Beta_ident_matrix}.
 #' @param ident_sign_method Sign alignment method. Only
 #'   "canonical_correlation" is currently supported.
+#' @param consistency_check Logical; if TRUE, reprojection is used to verify
+#'   alignment with the canonical HRF and voxels are flipped if necessary.
 #' @return list with Xi_ident_matrix and Beta_ident_matrix
 #' @export
 apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
@@ -185,10 +187,13 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                  ident_sign_method = c("first_component", "canonical_correlation", "data_fit_correlation"),
                                                  zero_tol = 1e-8,
                                                  Y_proj_matrix = NULL,
-                                                 X_condition_list_proj_matrices = NULL) {
+                                                 X_condition_list_proj_matrices = NULL,
+                                                 consistency_check = FALSE) {
 
   ident_scale_method <- match.arg(ident_scale_method)
   ident_sign_method <- match.arg(ident_sign_method)
+
+  message(sprintf("Using '%s' for sign alignment", ident_sign_method))
 
   if (ident_sign_method == "data_fit_correlation") {
     if (is.null(Y_proj_matrix) || is.null(X_condition_list_proj_matrices)) {
@@ -213,8 +218,42 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
     }
 
     if (ident_sign_method == "canonical_correlation" || ident_sign_method == "first_component") {
-      sgn <- sign(sum(xi_v * xi_ref_coord))
+      h_tmp <- B_reconstructor_matrix %*% xi_v
+      corr_ref <- suppressWarnings(cor(h_tmp, h_ref_shape_vector))
+      if (is.na(corr_ref)) corr_ref <- 0
+      if (abs(corr_ref) < 1e-3) {
+        warning(sprintf("Voxel %d: canonical correlation near zero (%.3f)", v, corr_ref))
+      }
+      sgn <- sign(corr_ref)
       if (sgn == 0) sgn <- 1
+      if (abs(corr_ref) < 1e-3 && !is.null(Y_proj_matrix) &&
+          !is.null(X_condition_list_proj_matrices)) {
+        best_r2 <- -Inf
+        best_sgn <- 1
+        for (sg in c(1, -1)) {
+          xi_tmp <- xi_v * sg
+          beta_tmp <- beta_v * sg
+          h_tmp2 <- B_reconstructor_matrix %*% xi_tmp
+          k2 <- length(X_condition_list_proj_matrices)
+          X_design <- matrix(0, nrow(Y_proj_matrix), k2)
+          for (c in 1:k2) {
+            X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp2
+          }
+          y_pred <- X_design %*% beta_tmp
+          y_true <- Y_proj_matrix[, v]
+          r2 <- suppressWarnings(cor(y_pred, y_true))^2
+          if (!is.na(r2) && r2 > best_r2) {
+            best_r2 <- r2
+            best_sgn <- sg
+          }
+        }
+        if (best_r2 > 0) {
+          sgn <- best_sgn
+        } else {
+          sgn <- sign(sum(h_tmp))
+          if (sgn == 0) sgn <- 1
+        }
+      }
     } else if (ident_sign_method == "data_fit_correlation") {
       best_r2 <- -Inf
       best_sgn <- 1
@@ -222,9 +261,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
         xi_tmp <- xi_v * sg
         beta_tmp <- beta_v * sg
         h_tmp <- B_reconstructor_matrix %*% xi_tmp
-        k <- length(X_condition_list_proj_matrices)
-        X_design <- matrix(0, nrow(Y_proj_matrix), k)
-        for (c in 1:k) {
+        k2 <- length(X_condition_list_proj_matrices)
+        X_design <- matrix(0, nrow(Y_proj_matrix), k2)
+        for (c in 1:k2) {
           X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp
         }
         y_pred <- X_design %*% beta_tmp
@@ -236,6 +275,16 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
         }
       }
       sgn <- best_sgn
+      if (!(best_r2 > 0)) {
+        h_tmp <- B_reconstructor_matrix %*% xi_v
+        corr_ref <- suppressWarnings(cor(h_tmp, h_ref_shape_vector))
+        if (!is.na(corr_ref) && abs(corr_ref) >= 1e-3) {
+          sgn <- sign(corr_ref)
+        } else {
+          sgn <- sign(sum(h_tmp))
+          if (sgn == 0) sgn <- 1
+        }
+      }
     }
 
     xi_v <- xi_v * sgn
@@ -260,8 +309,20 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
       }
       scale_val <- 1 / pmax(max_abs, .Machine$double.eps)
     }
-    Xi_ident[, v] <- xi_v * scale_val
-    Beta_ident[, v] <- beta_v / scale_val
+    xi_out <- xi_v * scale_val
+    beta_out <- beta_v / scale_val
+
+    if (consistency_check) {
+      hr_check <- B_reconstructor_matrix %*% xi_out
+      corr_check <- suppressWarnings(cor(hr_check, h_ref_shape_vector))
+      if (!is.na(corr_check) && corr_check < 0) {
+        xi_out <- -xi_out
+        beta_out <- -beta_out
+      }
+    }
+
+    Xi_ident[, v] <- xi_out
+    Beta_ident[, v] <- beta_out
   }
 
   list(Xi_ident_matrix = Xi_ident, Beta_ident_matrix = Beta_ident)
