@@ -121,11 +121,23 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
   k <- length(Z_list_of_matrices)
   n <- nrow(Y_proj_matrix)
   m <- ncol(Z_list_of_matrices[[1]])
+
   Xt <- do.call(cbind, Z_list_of_matrices)
   XtX <- crossprod(Xt)
+
+  if (orthogonal_approx_flag) {
+    XtX_approx <- matrix(0, nrow = k * m, ncol = k * m)
+    for (i in seq_len(k)) {
+      idx <- ((i - 1) * m + 1):(i * m)
+      XtX_approx[idx, idx] <- XtX[idx, idx]
+    }
+    XtX <- XtX_approx
+  }
+
   if (lambda_gamma > 0) {
     XtX <- XtX + diag(lambda_gamma, k * m)
   }
+
   XtY <- crossprod(Xt, Y_proj_matrix)
   beta <- solve(XtX, XtY)
   beta
@@ -189,6 +201,31 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 
   ident_scale_method <- match.arg(ident_scale_method)
   ident_sign_method <- match.arg(ident_sign_method)
+
+  if (!is.matrix(Xi_raw_matrix)) {
+    stop("Xi_raw_matrix must be a matrix")
+  }
+
+  if (!is.matrix(Beta_raw_matrix)) {
+    stop("Beta_raw_matrix must be a matrix")
+  }
+
+  if (!is.matrix(B_reconstructor_matrix)) {
+    stop("B_reconstructor_matrix must be a matrix")
+  }
+
+  if (!is.numeric(h_ref_shape_vector) ||
+      length(h_ref_shape_vector) != nrow(B_reconstructor_matrix)) {
+    stop("h_ref_shape_vector must be a numeric vector with length equal to nrow(B_reconstructor_matrix)")
+  }
+
+  if (ncol(Beta_raw_matrix) != ncol(Xi_raw_matrix)) {
+    stop("Xi_raw_matrix and Beta_raw_matrix must have the same number of columns")
+  }
+
+  if (ncol(B_reconstructor_matrix) != nrow(Xi_raw_matrix)) {
+    stop("B_reconstructor_matrix must have the same number of columns as rows of Xi_raw_matrix")
+  }
 
   if (ident_sign_method == "data_fit_correlation") {
     if (is.null(Y_proj_matrix) || is.null(X_condition_list_proj_matrices)) {
@@ -359,10 +396,12 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
   }
   
   A <- Matrix::Diagonal(V) + lambda_spatial_smooth * L_sp_sparse_matrix
-  Xi_smoothed <- Xi_ident_matrix
-  for (j in seq_len(nrow(Xi_ident_matrix))) {
-    Xi_smoothed[j, ] <- as.vector(Matrix::solve(A, Xi_ident_matrix[j, ]))
+
+  if (lambda_spatial_smooth == 0) {
+    return(Xi_ident_matrix)
   }
+
+  Xi_smoothed <- t(Matrix::solve(A, t(Xi_ident_matrix)))
   Xi_smoothed
 }
 
