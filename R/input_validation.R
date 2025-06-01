@@ -452,3 +452,117 @@
     estimated_time_minutes = if (n_voxels > 10000) n_voxels / 1000 else 1
   ))
 }
+
+
+#' Validate a list of design matrices
+#'
+#' Ensures that each design matrix is numeric with consistent dimensions and
+#' aligned with the expected number of timepoints.
+#'
+#' @param X_list List of design matrices
+#' @param n_timepoints Expected number of rows for each matrix (optional)
+#' @return List with dimension information
+#' @keywords internal
+validate_design_matrix_list <- function(X_list, n_timepoints = NULL) {
+  if (!is.list(X_list) || length(X_list) == 0) {
+    stop("Design matrices must be provided as a non-empty list", call. = FALSE)
+  }
+
+  for (i in seq_along(X_list)) {
+    X <- X_list[[i]]
+    if (!is.matrix(X) || !is.numeric(X)) {
+      stop(sprintf("Design matrix %d must be a numeric matrix", i), call. = FALSE)
+    }
+    if (!is.null(n_timepoints) && nrow(X) != n_timepoints) {
+      stop(sprintf(
+        "Design matrix %d has %d rows but expected %d",
+        i, nrow(X), n_timepoints
+      ), call. = FALSE)
+    }
+    if (any(!is.finite(X))) {
+      stop(sprintf("Design matrix %d contains non-finite values", i), call. = FALSE)
+    }
+  }
+
+  p <- ncol(X_list[[1]])
+  if (any(sapply(X_list, ncol) != p)) {
+    stop("All design matrices must have the same number of columns", call. = FALSE)
+  }
+
+  list(
+    n_timepoints = if (is.null(n_timepoints)) nrow(X_list[[1]]) else n_timepoints,
+    p = p,
+    k = length(X_list)
+  )
+}
+
+
+#' Validate HRF shape matrix
+#'
+#' Checks that the HRF shape matrix has numeric type and expected dimensions.
+#'
+#' @param H_matrix HRF shape matrix
+#' @param n_timepoints Expected number of rows (optional)
+#' @param n_voxels Expected number of columns (optional)
+#' @return TRUE if validation passes
+#' @keywords internal
+validate_hrf_shape_matrix <- function(H_matrix,
+                                     n_timepoints = NULL,
+                                     n_voxels = NULL) {
+  if (!is.matrix(H_matrix) || !is.numeric(H_matrix)) {
+    stop("HRF shape matrix must be a numeric matrix", call. = FALSE)
+  }
+
+  if (!is.null(n_timepoints) && nrow(H_matrix) != n_timepoints) {
+    stop(sprintf(
+      "HRF shape matrix must have %d rows, not %d",
+      n_timepoints, nrow(H_matrix)
+    ), call. = FALSE)
+  }
+
+  if (!is.null(n_voxels) && ncol(H_matrix) != n_voxels) {
+    stop(sprintf(
+      "HRF shape matrix must have %d columns, not %d",
+      n_voxels, ncol(H_matrix)
+    ), call. = FALSE)
+  }
+
+  if (any(!is.finite(H_matrix))) {
+    stop("HRF shape matrix contains non-finite values", call. = FALSE)
+  }
+
+  TRUE
+}
+
+
+#' Validate confounds matrix
+#'
+#' Ensures the confounds matrix is numeric, properly dimensioned and free of NA
+#' values. A NULL input is also accepted.
+#'
+#' @param Z_matrix Confounds matrix or NULL
+#' @param n_timepoints Expected number of rows if not NULL
+#' @return TRUE if validation passes or matrix is NULL
+#' @keywords internal
+validate_confounds_matrix <- function(Z_matrix, n_timepoints) {
+  if (is.null(Z_matrix)) {
+    return(TRUE)
+  }
+
+  if (!is.matrix(Z_matrix) || !is.numeric(Z_matrix)) {
+    stop("confounds matrix must be a numeric matrix or NULL", call. = FALSE)
+  }
+
+  if (nrow(Z_matrix) != n_timepoints) {
+    stop(sprintf(
+      "confounds matrix must have %d rows to match data",
+      n_timepoints
+    ), call. = FALSE)
+  }
+
+  if (any(!is.finite(Z_matrix))) {
+    stop("confounds matrix contains non-finite values", call. = FALSE)
+  }
+
+  TRUE
+}

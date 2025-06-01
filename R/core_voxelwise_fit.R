@@ -50,26 +50,14 @@ project_out_confounds_core <- function(Y_data_matrix,
   if (!is.matrix(Y_data_matrix)) {
     stop("Y_data_matrix must be a matrix")
   }
-  
-  if (!is.list(X_list_of_matrices)) {
-    stop("X_list_of_matrices must be a list")
-  }
-  
-  n <- nrow(Y_data_matrix)
 
   if (anyNA(Y_data_matrix)) {
     stop("Y_data_matrix must not contain NA values")
   }
-  
-  # Check that all X matrices have the same number of rows as Y
-  for (i in seq_along(X_list_of_matrices)) {
-    if (!is.matrix(X_list_of_matrices[[i]])) {
-      stop(sprintf("X_list_of_matrices[[%d]] must be a matrix", i))
-    }
-    if (nrow(X_list_of_matrices[[i]]) != n) {
-      stop(sprintf("X_list_of_matrices[[%d]] must have %d rows to match Y_data_matrix", i, n))
-    }
-  }
+
+  n <- nrow(Y_data_matrix)
+
+  validate_design_matrix_list(X_list_of_matrices, n_timepoints = n)
   
   # If no confounds, return original matrices
   if (is.null(Z_confounds_matrix)) {
@@ -80,17 +68,7 @@ project_out_confounds_core <- function(Y_data_matrix,
   }
   
   # Validate confounds matrix
-  if (!is.matrix(Z_confounds_matrix)) {
-    stop("Z_confounds_matrix must be a matrix or NULL")
-  }
-
-  if (anyNA(Z_confounds_matrix)) {
-    stop("Z_confounds_matrix must not contain NA values")
-  }
-  
-  if (nrow(Z_confounds_matrix) != n) {
-    stop("Z_confounds_matrix must have the same number of rows as Y_data_matrix")
-  }
+  validate_confounds_matrix(Z_confounds_matrix, n_timepoints = n)
   
   # Check for rank deficiency in confounds
   if (ncol(Z_confounds_matrix) >= n) {
