@@ -63,44 +63,33 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
   sparse_threshold <- use_sparse_W_params$sparse_if_N_gt
   k_nn_sparse <- use_sparse_W_params$k_nn_for_W_sparse
   
-  # Step 1: Compute pairwise Euclidean distances
-  # Using dist() for efficiency, then convert to matrix
-  dist_mat <- as.matrix(dist(t(L_library_matrix)))
+  # Step 1: Compute pairwise Euclidean distances more efficiently
+  # Use crossprod to avoid the O(N^2) loop in dist()
+  ss <- colSums(L_library_matrix ^ 2)
+  gram <- crossprod(L_library_matrix)
+  dist2 <- outer(ss, ss, "+") - 2 * gram
+  dist2[dist2 < 0] <- 0  # numerical safety
+  dist_mat <- sqrt(dist2)
+  diag(dist_mat) <- 0
   
   # Step 2: Find k-th nearest neighbor distance for each HRF (self-tuning bandwidth)
   # For each HRF, sort distances and take the k-th smallest (excluding self)
-  sigma_i <- numeric(N)
-  for (i in 1:N) {
-    # Sort distances from HRF i (excluding self-distance which is 0)
-    sorted_dists <- sort(dist_mat[i, -i])
-    # k-th nearest neighbor distance
-    sigma_i[i] <- sorted_dists[k_local_nn_for_sigma]
-    
-    # Ensure sigma is not zero (can happen with duplicate HRFs)
-    if (sigma_i[i] == 0) {
-      # Use median of all non-zero distances as fallback
-      non_zero_dists <- sorted_dists[sorted_dists > 0]
-      if (length(non_zero_dists) > 0) {
-        sigma_i[i] <- median(non_zero_dists)
-      } else {
-        # Last resort: use a small positive value
-        sigma_i[i] <- 1e-6
-      }
+  dist_no_self <- dist_mat + diag(Inf, N)
+  sigma_i <- apply(dist_no_self, 1, function(row) {
+    val <- sort(row)[k_local_nn_for_sigma]
+    if (val == 0 || is.na(val)) {
+      nz <- row[row > 0]
+      if (length(nz) > 0) median(nz) else 1e-6
+    } else {
+      val
     }
-  }
-  
+  })
+
   # Step 3: Compute affinity matrix W with self-tuning bandwidth
   # W_ij = exp(-dist_ij^2 / (sigma_i * sigma_j))
-  W <- matrix(0, N, N)
-  for (i in 1:N) {
-    for (j in 1:N) {
-      if (i != j) {
-        W[i, j] <- exp(-dist_mat[i, j]^2 / (sigma_i[i] * sigma_i[j]))
-      }
-    }
-  }
-  # Set diagonal to 0 (no self-loops)
-  diag(W) <- 0
+  sigma_prod <- outer(sigma_i, sigma_i)
+  W <- exp(-(dist_mat ^ 2) / sigma_prod)
+  diag(W) <- 0  # remove self-loops
   
   # Step 4: Optional sparsification for large N
   if (!is.null(sparse_threshold) && N > sparse_threshold && !is.null(k_nn_sparse)) {
