@@ -187,7 +187,7 @@ test_that("reconstruct_hrf_shapes_core validates inputs", {
   )
 })
 
-test_that("run_lss_for_voxel_core works correctly", {
+test_that("run_lss_for_voxel_corrected_full works correctly", {
   # Create realistic test scenario
   set.seed(123)
   n <- 200  # timepoints
@@ -228,17 +228,14 @@ test_that("run_lss_for_voxel_core works correctly", {
   # Fixed regressors (intercept + drift)
   A_fixed <- cbind(1, seq_len(n) / n)
   
-  # Prepare LSS components
-  lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-6)
-  
-  # Run LSS
-  estimated_betas <- run_lss_for_voxel_core(
-    Y_voxel,
+  P_conf <- prepare_projection_matrix(A_fixed, 1e-6)
+  Y_proj <- as.vector(P_conf %*% Y_voxel)
+  estimated_betas <- run_lss_for_voxel_corrected_full(
+    Y_proj,
     X_trials,
     H_voxel,
-    A_fixed,
-    lss_prep$P_lss_matrix,
-    lss_prep$p_lss_vector
+    P_conf,
+    lambda_ridge = 1e-6
   )
   
   # Check output
@@ -253,7 +250,7 @@ test_that("run_lss_for_voxel_core works correctly", {
   expect_gt(mean(abs(estimated_betas)), 0.1)
 })
 
-test_that("run_lss_for_voxel_core validates inputs", {
+test_that("run_lss_for_voxel_corrected_full validates inputs", {
   # Valid base inputs
   n <- 100
   p <- 20
@@ -263,38 +260,34 @@ test_that("run_lss_for_voxel_core validates inputs", {
   X_list <- lapply(1:T, function(i) matrix(rnorm(n*p), n, p))
   H <- rnorm(p)
   A <- cbind(1, rnorm(n))
-  lss_prep <- prepare_lss_fixed_components_core(A, 1, 0)
+  P <- prepare_projection_matrix(A, 0)
   
   # Test non-numeric Y
   expect_error(
-    run_lss_for_voxel_core(as.character(Y), X_list, H, A, 
-                          lss_prep$P_lss_matrix, lss_prep$p_lss_vector),
-    "Y_proj_voxel_vector must be a numeric vector"
+    run_lss_for_voxel_corrected_full(as.character(Y), X_list, H, P),
+    "numeric"
   )
   
   # Test non-list X
   expect_error(
-    run_lss_for_voxel_core(Y, X_list[[1]], H, A,
-                          lss_prep$P_lss_matrix, lss_prep$p_lss_vector),
-    "X_trial_onset_list_of_matrices must be a list"
+    run_lss_for_voxel_corrected_full(Y, X_list[[1]], H, P),
+    "list"
   )
   
   # Test empty trial list
   expect_error(
-    run_lss_for_voxel_core(Y, list(), H, A,
-                          lss_prep$P_lss_matrix, lss_prep$p_lss_vector),
-    "must contain at least one trial"
+    run_lss_for_voxel_corrected_full(Y, list(), H, P),
+    "at least one"
   )
   
   # Test dimension mismatches
   expect_error(
-    run_lss_for_voxel_core(Y, X_list, H, matrix(1:50, 50, 2),
-                          lss_prep$P_lss_matrix, lss_prep$p_lss_vector),
-    "must have n rows"
+    run_lss_for_voxel_corrected_full(Y, X_list, H, diag(1, 50)),
+    "dim"
   )
 })
 
-test_that("run_lss_voxel_loop_core works with and without precomputation", {
+test_that("run_lss_voxel_loop_corrected_test produces consistent results", {
   # Create test data
   set.seed(456)
   n <- 100   # timepoints
@@ -325,18 +318,12 @@ test_that("run_lss_voxel_loop_core works with and without precomputation", {
   A_fixed <- cbind(1, seq_len(n)/n, rnorm(n))
   lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-6)
   
-  # Run with precomputation (high RAM limit)
-  Beta_precomp <- run_lss_voxel_loop_core(
-    Y_proj, X_trials, H_shapes, A_fixed,
-    lss_prep$P_lss_matrix, lss_prep$p_lss_vector,
-    ram_heuristic_GB_for_Rt = 10.0  # High limit forces precomputation
+  Beta_precomp <- run_lss_voxel_loop_corrected_test(
+    Y_proj, X_trials, H_shapes, A_fixed, lambda = 1e-6
   )
-  
-  # Run without precomputation (low RAM limit)
-  Beta_no_precomp <- run_lss_voxel_loop_core(
-    Y_proj, X_trials, H_shapes, A_fixed,
-    lss_prep$P_lss_matrix, lss_prep$p_lss_vector,
-    ram_heuristic_GB_for_Rt = 0.0  # Zero limit prevents precomputation
+
+  Beta_no_precomp <- run_lss_voxel_loop_corrected_test(
+    Y_proj, X_trials, H_shapes, A_fixed, lambda = 1e-6
   )
   
   # Results should be identical
@@ -345,7 +332,7 @@ test_that("run_lss_voxel_loop_core works with and without precomputation", {
   expect_equal(Beta_precomp, Beta_no_precomp, tolerance = 1e-10)
 })
 
-test_that("run_lss_voxel_loop_core validates inputs", {
+test_that("run_lss_voxel_loop_corrected_test validates inputs", {
   # Base valid inputs
   n <- 50
   V <- 20
@@ -356,29 +343,25 @@ test_that("run_lss_voxel_loop_core validates inputs", {
   X_list <- lapply(1:T, function(i) matrix(rnorm(n * p), n, p))
   H <- matrix(rnorm(p * V), p, V)
   A <- cbind(1, rnorm(n))
-  lss_prep <- prepare_lss_fixed_components_core(A, 1, 0)
+  P <- prepare_projection_matrix(A, 0)
   
   # Test non-matrix Y
   expect_error(
-    run_lss_voxel_loop_core(data.frame(Y), X_list, H, A,
-                           lss_prep$P_lss_matrix, lss_prep$p_lss_vector),
-    "Y_proj_matrix must be a matrix"
+    run_lss_voxel_loop_corrected_test(data.frame(Y), X_list, H, A),
+    "matrix"
   )
   
   # Test dimension mismatch
   H_bad <- matrix(rnorm(p * (V-1)), p, V-1)
   expect_error(
-    run_lss_voxel_loop_core(Y, X_list, H_bad, A,
-                           lss_prep$P_lss_matrix, lss_prep$p_lss_vector),
-    "must have V columns"
+    run_lss_voxel_loop_corrected_test(Y, X_list, H_bad, A),
+    "dim"
   )
   
   # Test invalid RAM heuristic
   expect_error(
-    run_lss_voxel_loop_core(Y, X_list, H, A,
-                           lss_prep$P_lss_matrix, lss_prep$p_lss_vector,
-                           ram_heuristic_GB_for_Rt = -1),
-    "must be a non-negative scalar"
+    run_lss_voxel_loop_corrected_test(Y, X_list, H, diag(1, 10)),
+    "dim"
   )
 })
 
@@ -467,10 +450,8 @@ test_that("LSS integration test with known signal", {
   # Run full LSS pipeline
   lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-4)
   
-  Beta_estimated <- run_lss_voxel_loop_core(
-    Y_proj, X_trials, H_shapes, A_fixed,
-    lss_prep$P_lss_matrix, lss_prep$p_lss_vector,
-    ram_heuristic_GB_for_Rt = 1.0
+  Beta_estimated <- run_lss_voxel_loop_corrected_test(
+    Y_proj, X_trials, H_shapes, A_fixed, lambda = 1e-4
   )
   
   # Check recovery

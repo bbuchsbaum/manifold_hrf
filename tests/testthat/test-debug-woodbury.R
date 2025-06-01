@@ -51,13 +51,11 @@ lss_prep <- prepare_lss_fixed_components_core(
 trial <- 1
 
 # Woodbury
-beta_wood <- run_lss_for_voxel_core(
+beta_wood <- run_lss_woodbury_corrected(
   Y_proj_voxel_vector = as.vector(y_proj),
   X_trial_onset_list_of_matrices = X_trials,
   H_shape_voxel_vector = hrf,
-  A_lss_fixed_matrix = Z,
-  P_lss_matrix = lss_prep$P_lss_matrix,
-  p_lss_vector = lss_prep$p_lss_vector
+  lambda_ridge = 1e-6
 )[trial]
 
 # Naive

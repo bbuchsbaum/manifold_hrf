@@ -9,7 +9,10 @@ This package provides manifold learning methods for analyzing hemodynamic respon
 ## Key Features
 
 - **Manifold-guided HRF estimation** using diffusion maps
-- **Trial-wise deconvolution** with Least Squares Separate (LSS) 
+- **Trial-wise deconvolution** with Least Squares Separate (LSS)
+- The function `run_lss_for_voxel_corrected()` now provides the
+  reference implementation replacing the former Woodbury variant
+  `run_lss_for_voxel_core()`.
 - **Spatial smoothing** of manifold coordinates
 - **Comprehensive QC reporting** with diagnostic plots
 - **Integration** with `neuroim2` and `fmrireg` packages

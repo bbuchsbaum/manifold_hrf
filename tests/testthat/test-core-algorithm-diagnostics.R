@@ -410,13 +410,12 @@ test_that("M-HRF-LSS trial-wise estimation is unbiased and efficient compared to
   test_voxel <- 5
   h_v <- hrf_true
   
-  beta_single <- run_lss_for_voxel_core(
-    Y_proj_voxel_vector = Y_proj[, test_voxel],
+  beta_single <- run_lss_for_voxel_corrected_full(
+    Y_proj_voxel_vector = as.vector(Y_proj[, test_voxel]),
     X_trial_onset_list_of_matrices = X_trials,
     H_shape_voxel_vector = h_v,
-    A_lss_fixed_matrix = A_fixed,
-    P_lss_matrix = lss_prep$P_lss_matrix,
-    p_lss_vector = lss_prep$p_lss_vector
+    P_confound = prepare_projection_matrix(A_fixed, 1e-6),
+    lambda_ridge = 1e-6
   )
   
   # Check that we get reasonable values
@@ -427,14 +426,12 @@ test_that("M-HRF-LSS trial-wise estimation is unbiased and efficient compared to
   # TEST 1b: Full voxel loop produces consistent results
   H_shapes <- matrix(rep(hrf_true, n_voxels), p_hrf, n_voxels)
   
-  beta_all <- run_lss_voxel_loop_core(
-    Y_proj_matrix = Y_proj,
-    X_trial_onset_list_of_matrices = X_trials,
-    H_shapes_allvox_matrix = H_shapes,
-    A_lss_fixed_matrix = A_fixed,
-    P_lss_matrix = lss_prep$P_lss_matrix,
-    p_lss_vector = lss_prep$p_lss_vector,
-    use_fmrireg = FALSE  # Test our implementation
+  beta_all <- run_lss_voxel_loop_corrected_test(
+    Y_matrix = Y_proj,
+    X_trial_onset_list = X_trials,
+    H_shapes_matrix = H_shapes,
+    confounds_matrix = A_fixed,
+    lambda = 1e-6
   )
   
   # Check dimensions
@@ -454,13 +451,12 @@ test_that("M-HRF-LSS trial-wise estimation is unbiased and efficient compared to
   # Run LSS with correct data flow:
   # - Y_proj_matrix should be projected Y
   # - X_trial_onset_list should be UNPROJECTED
-  beta_lss <- run_lss_voxel_loop_core(
-    Y_proj_matrix = Y_proj,  # Already computed above
-    X_trial_onset_list_of_matrices = X_trials,  # UNPROJECTED
-    H_shapes_allvox_matrix = H_shapes,
-    A_lss_fixed_matrix = Z_confounds,
-    P_lss_matrix = lss_prep$P_lss_matrix,
-    p_lss_vector = lss_prep$p_lss_vector
+  beta_lss <- run_lss_voxel_loop_corrected_test(
+    Y_matrix = Y_proj,
+    X_trial_onset_list = X_trials,
+    H_shapes_matrix = H_shapes,
+    confounds_matrix = Z_confounds,
+    lambda = 1e-6
   )
   
   # Compute recovery metrics

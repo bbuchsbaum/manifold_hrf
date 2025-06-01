@@ -28,4 +28,5 @@ List with beta_trials vector
 }
 \description{
 Simplified interface for trial-wise LSS that handles projection internally
+and replaces the previous Woodbury-based implementation.
 }

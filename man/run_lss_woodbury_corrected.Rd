@@ -25,4 +25,5 @@ Vector of trial-wise betas
 }
 \description{
 Memory-efficient implementation using Woodbury matrix identity
+that supersedes the deprecated \code{run_lss_for_voxel_core} function.
 }

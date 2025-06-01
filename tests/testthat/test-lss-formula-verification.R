@@ -84,16 +84,14 @@ test_that("Current LSS formula matches reference implementation", {
   # Now run the full current implementation
   betas_current <- numeric(T_trials)
   for (t in 1:T_trials) {
-    # Single trial at a time (as in run_lss_for_voxel_core)
-    beta_t <- run_lss_for_voxel_core(
+    beta_t <- run_lss_for_voxel_corrected_full(
       Y_proj_voxel_vector = y_proj,
       X_trial_onset_list_of_matrices = lapply(1:T_trials, function(i) {
         if (i == t) matrix(C[, i], ncol = 1) else matrix(0, n, 1)
       }),
-      H_shape_voxel_vector = 1,  # Simple case
-      A_lss_fixed_matrix = A,
-      P_lss_matrix = lss_prep$P_lss_matrix,
-      p_lss_vector = lss_prep$p_lss_vector
+      H_shape_voxel_vector = rep(1, 1),
+      P_confound = prepare_projection_matrix(A, lambda),
+      lambda_ridge = lambda
     )
     betas_current[t] <- beta_t[t]
   }
