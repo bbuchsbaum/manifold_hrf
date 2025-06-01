@@ -190,28 +190,16 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
     ))
   }
   
-  # Initialize output matrix
-  Xi_smoothed_matrix <- matrix(0, nrow = m, ncol = V)
-  
   # Create system matrix: (I + lambda * L)
   # I_V is the identity matrix of size V x V
   I_V <- Matrix::Diagonal(n = V)
   A_system <- I_V + lambda_spatial_smooth * L_sp_sparse_matrix
-  
-  # Solve for each manifold dimension independently
-  # For each dimension j: solve (I + lambda*L) * xi_j_smooth = xi_j_ident
-  for (j in 1:m) {
-    # Extract the j-th manifold coordinate across all voxels
-    xi_j_ident <- Xi_ident_matrix[j, ]
-    
-    # Solve the linear system
-    # Using Matrix::solve which handles sparse matrices efficiently
-    xi_j_smooth <- Matrix::solve(A_system, xi_j_ident)
-    
-    # Store the smoothed coordinates
-    # Convert back to regular vector if needed
-    Xi_smoothed_matrix[j, ] <- as.vector(xi_j_smooth)
-  }
-  
+
+  # Solve the system for all manifold dimensions at once
+  Xi_smoothed_t <- Matrix::solve(A_system, t(Xi_ident_matrix))
+
+  # Convert back to regular matrix and transpose to m x V
+  Xi_smoothed_matrix <- t(as.matrix(Xi_smoothed_t))
+
   return(Xi_smoothed_matrix)
 }
