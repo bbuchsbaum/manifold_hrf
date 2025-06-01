@@ -199,10 +199,11 @@ create_qc_flags <- function(results,
                            thresholds = list(
                              min_trials = 20,
                              min_r2 = 0.1,
-                             max_poor_fit_fraction = 0.3,
-                             min_hrf_peak = 2,
-                             max_hrf_peak = 10,
-                             max_motion_dvars = 1.5
+                           max_poor_fit_fraction = 0.3,
+                           min_hrf_peak = 2,
+                           max_hrf_peak = 10,
+                           max_motion_dvars = 1.5,
+                           max_trial_collinearity_fraction = 0.1
                            )) {
   
   qc_flags <- list()
@@ -265,6 +266,22 @@ create_qc_flags <- function(results,
                          high_motion_frames, thresholds$max_motion_dvars),
         severity = 2
       )
+    }
+  }
+
+  # Check trial regressor collinearity
+  if (!is.null(results$core_matrices$Beta_trial)) {
+    rank_flags <- attr(results$core_matrices$Beta_trial, "rank_deficient_voxels")
+    if (!is.null(rank_flags)) {
+      frac_def <- mean(rank_flags)
+      if (frac_def > thresholds$max_trial_collinearity_fraction) {
+        qc_flags$trial_regressor_collinearity <- list(
+          status = "warning",
+          message = sprintf("%.1f%% voxels have rank deficient trial regressors",
+                           100 * frac_def),
+          severity = 3
+        )
+      }
     }
   }
   
