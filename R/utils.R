@@ -41,3 +41,27 @@
     lapply(X, FUN)
   }
 }
+
+#' Adjust HRF Vector for Data Bounds
+#'
+#' Truncates or pads an HRF vector so that its length does not exceed the
+#' available number of time points.
+#'
+#' @param hrf Numeric vector representing the HRF shape.
+#' @param max_timepoints Maximum allowed length.
+#' @return HRF vector of length \code{max_timepoints}.
+#' @export
+adjust_hrf_for_bounds <- function(hrf, max_timepoints) {
+  if (!is.numeric(hrf)) {
+    stop("hrf must be numeric")
+  }
+
+  if (length(hrf) > max_timepoints) {
+    warning("HRF truncated to fit within available timepoints")
+    hrf[seq_len(max_timepoints)]
+  } else if (length(hrf) < max_timepoints) {
+    c(hrf, rep(0, max_timepoints - length(hrf)))
+  } else {
+    hrf
+  }
+}

@@ -311,6 +311,7 @@ mhrf_analyze <- function(Y_data,
     manifold_coords = smoothing_result$Xi_smooth,
     params = params
   )
+  qc_metrics$n_truncated_hrfs <- design_info$n_truncated_hrfs
   
   # Step 8: Package results
   progress$update("Packaging results...")
@@ -328,7 +329,8 @@ mhrf_analyze <- function(Y_data,
     preset_used = preset,
     parameters = params,
     runtime_seconds = as.numeric(difftime(Sys.time(), start_time, units = "secs")),
-    version = packageVersion("manifoldhrf")
+    version = packageVersion("manifoldhrf"),
+    n_truncated_hrfs = design_info$n_truncated_hrfs
   )
   
   # Add condition names to amplitudes matrix
@@ -525,6 +527,14 @@ mhrf_analyze <- function(Y_data,
   n_conditions <- length(conditions)
   n_trials <- nrow(events)
 
+  # Check for HRFs extending beyond available data
+  onset_idx <- floor(events$onset / TR) + 1
+  trunc_flag <- onset_idx + hrf_length - 1 > n_timepoints
+  n_truncated_hrfs <- sum(trunc_flag)
+  if (n_truncated_hrfs > 0) {
+    warning(sprintf("%d event HRFs truncated at end of run", n_truncated_hrfs))
+  }
+
   # Use fmrireg to generate raw design matrices
   sframe <- fmrireg::sampling_frame(blocklens = n_timepoints, TR = TR)
   raw_basis <- HRF_RAW_EVENT_BASIS(hrf_length, TR)
@@ -568,7 +578,8 @@ mhrf_analyze <- function(Y_data,
     X_trial_list = X_trial_list,
     n_conditions = n_conditions,
     n_trials = n_trials,
-    conditions = conditions
+    conditions = conditions,
+    n_truncated_hrfs = n_truncated_hrfs
   ))
 }
 
