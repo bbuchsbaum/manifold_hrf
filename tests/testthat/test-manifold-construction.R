@@ -64,6 +64,32 @@ test_that("calculate_manifold_affinity_core handles sparse matrix parameters", {
   expect_equal(row_sums, rep(1, N), tolerance = 1e-10)
 })
 
+test_that("k_nn_for_W_sparse larger than N is truncated", {
+  set.seed(999)
+  p <- 5
+  N <- 10
+  L_library_matrix <- matrix(rnorm(p * N), nrow = p, ncol = N)
+
+  sparse_params <- list(
+    sparse_if_N_gt = 1,
+    k_nn_for_W_sparse = N + 5
+  )
+
+  S_markov <- calculate_manifold_affinity_core(
+    L_library_matrix,
+    k_local_nn_for_sigma = 2,
+    use_sparse_W_params = sparse_params
+  )
+
+  expect_equal(dim(S_markov), c(N, N))
+  if (inherits(S_markov, "Matrix")) {
+    row_sums <- Matrix::rowSums(S_markov)
+  } else {
+    row_sums <- rowSums(S_markov)
+  }
+  expect_equal(row_sums, rep(1, N), tolerance = 1e-10)
+})
+
 test_that("calculate_manifold_affinity_core validates inputs correctly", {
   # Test with non-matrix input
   expect_error(
