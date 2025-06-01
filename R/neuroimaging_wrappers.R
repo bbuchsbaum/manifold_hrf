@@ -105,28 +105,38 @@ construct_hrf_manifold_nim <- function(hrf_library_source,
       }
     )
   } else if (is.list(hrf_library_source)) {
-    # List of HRF objects - check if they're fmrireg HRFs
+    # List input - may be fmrireg HRF objects or generic structures
     library_info$name <- "custom_list"
     library_info$n_hrfs <- length(hrf_library_source)
-    
-    # Check if these are fmrireg HRF objects
-    if (length(hrf_library_source) > 0) {
-      # For now, create a simple matrix representation
-      # In full implementation, would use fmrireg::evaluate() on each HRF
-      time_points <- seq(0, hrf_duration, by = TR_precision)
-      p <- length(time_points)
-      N <- length(hrf_library_source)
-      
+
+    if (length(hrf_library_source) == 0) {
+      stop("hrf_library_source list cannot be empty")
+    }
+
+    time_points <- seq(0, hrf_duration, by = TR_precision)
+    p <- length(time_points)
+    N <- length(hrf_library_source)
+
+    if (all(sapply(hrf_library_source, inherits, "HRF"))) {
+      # Evaluate each fmrireg HRF object
+      if (!requireNamespace("fmrireg", quietly = TRUE)) {
+        stop("Package 'fmrireg' is required to evaluate HRF objects")
+      }
+
+      L_library_list <- lapply(hrf_library_source, function(hrf_obj) {
+        as.numeric(fmrireg::evaluate(hrf_obj, time_points))
+      })
+      L_library_matrix <- do.call(cbind, L_library_list)
+    } else {
+      # Fallback: treat as generic list and generate dummy HRFs (backwards compatibility)
       L_library_matrix <- matrix(0, p, N)
-      for (i in 1:N) {
-        # Placeholder: would call fmrireg::evaluate(hrf_library_source[[i]], time_points)
-        # For now, create dummy HRFs
+      for (i in seq_len(N)) {
         L_library_matrix[, i] <- dgamma(time_points, shape = 6 + i, rate = 1)
       }
-      
-      # Normalize each HRF
-      L_library_matrix <- apply(L_library_matrix, 2, function(h) h / sum(abs(h)))
     }
+
+    # Normalize each HRF
+    L_library_matrix <- apply(L_library_matrix, 2, function(h) h / sum(abs(h)))
   } else if (is.matrix(hrf_library_source)) {
     # Already in matrix format
     library_info$name <- "custom_matrix"
