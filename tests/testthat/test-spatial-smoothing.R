@@ -107,6 +107,28 @@ test_that("make_voxel_graph_laplacian_core handles edge cases", {
   expect_true(all(abs(Matrix::rowSums(L)) < 1e-10))
 })
 
+test_that("ann_euclidean falls back when RcppHNSW absent", {
+  coords <- matrix(runif(30), 10, 3)
+
+  if (!requireNamespace("RcppHNSW", quietly = TRUE)) {
+    expect_warning(
+      L_ann <- make_voxel_graph_laplacian_core(
+        coords, num_neighbors_Lsp = 3, distance_engine = "ann_euclidean"
+      ),
+      "falling back"
+    )
+    L_exact <- make_voxel_graph_laplacian_core(
+      coords, num_neighbors_Lsp = 3, distance_engine = "euclidean"
+    )
+    expect_equal(L_ann, L_exact)
+  } else {
+    L_ann <- make_voxel_graph_laplacian_core(
+      coords, num_neighbors_Lsp = 3, distance_engine = "ann_euclidean"
+    )
+    expect_true(inherits(L_ann, "Matrix"))
+  }
+})
+
 test_that("apply_spatial_smoothing_core works correctly", {
   # Create test data
   set.seed(123)
@@ -131,9 +153,10 @@ test_that("apply_spatial_smoothing_core works correctly", {
   
   # Apply smoothing
   Xi_smoothed <- apply_spatial_smoothing_core(Xi_ident, L_sparse, lambda_spatial_smooth = 0.5)
-  
+
   # Check dimensions
   expect_equal(dim(Xi_smoothed), c(m, V))
+  expect_true(is.matrix(Xi_smoothed))
   
   # Smoothed should have less variance than original
   for (j in seq_len(m)) {
@@ -165,6 +188,27 @@ test_that("apply_spatial_smoothing_core with lambda=0 returns original", {
   
   # Should be identical to original
   expect_equal(Xi_smoothed, Xi_ident, tolerance = 1e-10)
+})
+
+test_that("apply_spatial_smoothing_core matches column-wise solve", {
+  set.seed(42)
+  m <- 3
+  V <- 15
+  Xi_ident <- matrix(rnorm(m * V), m, V)
+  coords <- matrix(rnorm(V * 3), V, 3)
+  L <- make_voxel_graph_laplacian_core(coords, num_neighbors_Lsp = 5)
+  lambda <- 0.2
+
+  Xi_new <- apply_spatial_smoothing_core(Xi_ident, L, lambda)
+
+  A <- Matrix::Diagonal(V) + lambda * L
+  Xi_expected <- matrix(0, m, V)
+  for (j in 1:m) {
+    Xi_expected[j, ] <- as.vector(Matrix::solve(A, Xi_ident[j, ]))
+  }
+
+  expect_equal(Xi_new, Xi_expected)
+  expect_true(is.matrix(Xi_new))
 })
 
 test_that("apply_spatial_smoothing_core validates inputs", {

@@ -8,8 +8,16 @@
 #'
 #' @param voxel_coords_matrix A V x 3 matrix of voxel coordinates, where V is 
 #'   the number of voxels and columns are x, y, z coordinates
-#' @param num_neighbors_Lsp Number of nearest neighbors for graph construction 
+#' @param num_neighbors_Lsp Number of nearest neighbors for graph construction
 #'   (e.g., 6 for face-connected, 18 for edge-connected, 26 for corner-connected)
+#' @param distance_engine Choice of distance computation engine. "euclidean"
+#'   performs an exact search while "ann_euclidean" uses approximate nearest
+#'   neighbors via the \pkg{RcppHNSW} package. If the package is not available
+#'   and this option is selected, the function falls back to the exact search
+#'   with a warning.
+#' @param ann_threshold When \code{distance_engine = "euclidean"}, use the
+#'   approximate search for datasets larger than this threshold if
+#'   \pkg{RcppHNSW} is installed.
 #'   
 #' @return L_sp_sparse_matrix A V x V sparse Laplacian matrix (Matrix::sparseMatrix)
 #'   
@@ -18,7 +26,10 @@
 #'   the normalized graph Laplacian L = D - W, where W is the adjacency matrix
 #'   and D is the degree matrix. The resulting Laplacian is used for spatial
 #'   smoothing of manifold coordinates.
-#'   
+#'   If \code{distance_engine = "ann_euclidean"} but the required
+#'   \pkg{RcppHNSW} package is missing, the function silently falls back to the
+#'   exact search and issues a warning.
+#'
 #' @examples
 #' \dontrun{
 #' # Create example 3D grid of voxels
@@ -69,9 +80,21 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
   }
   
   distance_engine <- match.arg(distance_engine)
-  if (distance_engine == "ann_euclidean" ||
-      (distance_engine == "euclidean" && V > ann_threshold &&
-       requireNamespace("RcppHNSW", quietly = TRUE))) {
+  use_ann <- FALSE
+  if (distance_engine == "ann_euclidean") {
+    if (requireNamespace("RcppHNSW", quietly = TRUE)) {
+      use_ann <- TRUE
+    } else {
+      warning(
+        "distance_engine='ann_euclidean' requires the RcppHNSW package; falling back to exact search"
+      )
+    }
+  } else if (distance_engine == "euclidean" && V > ann_threshold &&
+             requireNamespace("RcppHNSW", quietly = TRUE)) {
+    use_ann <- TRUE
+  }
+
+  if (use_ann) {
     ann_res <- RcppHNSW::hnsw_knn(voxel_coords_matrix, k = k_actual + 1)
     nn_indices <- ann_res$idx[, -1, drop = FALSE]
   } else {
@@ -190,13 +213,11 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
     ))
   }
   
-  # Initialize output matrix
-  Xi_smoothed_matrix <- matrix(0, nrow = m, ncol = V)
-  
   # Create system matrix: (I + lambda * L)
   # I_V is the identity matrix of size V x V
   I_V <- Matrix::Diagonal(n = V)
   A_system <- I_V + lambda_spatial_smooth * L_sp_sparse_matrix
+## fix merge conflict <<<<<<< codex/update-1-m-and-1-v-with-seq_len
   
   # Solve for each manifold dimension independently
   # For each dimension j: solve (I + lambda*L) * xi_j_smooth = xi_j_ident
@@ -213,5 +234,14 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
     Xi_smoothed_matrix[j, ] <- as.vector(xi_j_smooth)
   }
   
+## fix merge conflict =======
+
+  # Solve the system for all manifold dimensions at once
+  Xi_smoothed_t <- Matrix::solve(A_system, t(Xi_ident_matrix))
+
+  # Convert back to regular matrix and transpose to m x V
+  Xi_smoothed_matrix <- t(as.matrix(Xi_smoothed_t))
+
+## fix merge conflict >>>>>>> main
   return(Xi_smoothed_matrix)
 }
