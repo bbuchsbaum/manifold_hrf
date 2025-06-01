@@ -8,13 +8,22 @@
 #'
 #' @param L_library_matrix A p x N matrix of HRF shapes, where p is the number 
 #'   of time points and N is the number of HRFs in the library
-#' @param k_local_nn_for_sigma Integer, k-nearest neighbors for self-tuning 
-#'   bandwidth calculation (e.g., 7)
+#' @param k_local_nn_for_sigma Positive integer (< N), k-nearest neighbors for
+#'   self-tuning bandwidth calculation (e.g., 7)
 #' @param use_sparse_W_params List with optional parameters for sparse W matrix:
 #'   \itemize{
 #'     \item \code{sparse_if_N_gt}: Threshold for N to switch to sparse matrix (e.g., 5000)
-#'     \item \code{k_nn_for_W_sparse}: Number of nearest neighbors to keep in sparse W
+#'     \item \code{k_nn_for_W_sparse}: Number of nearest neighbors to keep in sparse W. Must be less
+#'       than the number of HRFs (N); values \code{>= N} are truncated to \code{N - 1}.
 #'   }
+#' @param distance_engine Character string specifying the distance computation
+#'   method. Options are \code{"euclidean"} for exact distances or
+#'   \code{"ann_euclidean"} for approximate nearest neighbors via RcppHNSW.
+#'   If \code{"ann_euclidean"} is requested but the RcppHNSW package is not
+#'   installed, the function falls back to exact distances with a warning.
+#' @param ann_threshold Integer. When \code{distance_engine = "euclidean"} and
+#'   the number of HRFs exceeds this threshold, the function will attempt to use
+#'   RcppHNSW for approximate neighbors if available.
 #' 
 #' @return S_markov_matrix An N x N Markov transition matrix (regular or sparse 
 #'   Matrix format depending on parameters). Each row sums to 1.
@@ -56,7 +65,12 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
   
   N <- ncol(L_library_matrix)
   p <- nrow(L_library_matrix)
-  
+
+  if (!is.numeric(k_local_nn_for_sigma) || length(k_local_nn_for_sigma) != 1 ||
+      k_local_nn_for_sigma < 1 || k_local_nn_for_sigma != round(k_local_nn_for_sigma)) {
+    stop("k_local_nn_for_sigma must be a positive integer")
+  }
+
   if (k_local_nn_for_sigma >= N) {
     stop("k_local_nn_for_sigma must be less than the number of HRFs (N)")
   }
@@ -64,8 +78,24 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
   # Extract parameters for sparse matrix handling
   sparse_threshold <- use_sparse_W_params$sparse_if_N_gt
   k_nn_sparse <- use_sparse_W_params$k_nn_for_W_sparse
+
+  if (!is.null(k_nn_sparse)) {
+    if (k_nn_sparse >= N) {
+      k_nn_sparse <- N - 1
+    }
+  }
   
+
   distance_engine <- match.arg(distance_engine)
+
+  if (distance_engine == "ann_euclidean" &&
+      !requireNamespace("RcppHNSW", quietly = TRUE)) {
+    warning(
+      "distance_engine 'ann_euclidean' requires the RcppHNSW package. ",
+      "Falling back to exact Euclidean distances."
+    )
+    distance_engine <- "euclidean"
+  }
 
   # Step 1: compute pairwise distances or nearest neighbors
   if (distance_engine == "ann_euclidean" ||
@@ -159,17 +189,14 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
     }
   }
   
-  # Create D_inv (inverse degree matrix)
-  D_inv <- diag(1 / row_sums)
-  
   # Compute Markov matrix S
   if (inherits(W, "Matrix")) {
     # If W is sparse, keep S sparse
     D_inv <- Matrix::Diagonal(x = 1 / row_sums)
-    S_markov_matrix <- D_inv %*% W
   } else {
-    S_markov_matrix <- D_inv %*% W
+    D_inv <- diag(1 / row_sums)
   }
+  S_markov_matrix <- D_inv %*% W
   
   return(S_markov_matrix)
 }

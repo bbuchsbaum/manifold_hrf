@@ -64,6 +64,32 @@ test_that("calculate_manifold_affinity_core handles sparse matrix parameters", {
   expect_equal(row_sums, rep(1, N), tolerance = 1e-10)
 })
 
+test_that("k_nn_for_W_sparse larger than N is truncated", {
+  set.seed(999)
+  p <- 5
+  N <- 10
+  L_library_matrix <- matrix(rnorm(p * N), nrow = p, ncol = N)
+
+  sparse_params <- list(
+    sparse_if_N_gt = 1,
+    k_nn_for_W_sparse = N + 5
+  )
+
+  S_markov <- calculate_manifold_affinity_core(
+    L_library_matrix,
+    k_local_nn_for_sigma = 2,
+    use_sparse_W_params = sparse_params
+  )
+
+  expect_equal(dim(S_markov), c(N, N))
+  if (inherits(S_markov, "Matrix")) {
+    row_sums <- Matrix::rowSums(S_markov)
+  } else {
+    row_sums <- rowSums(S_markov)
+  }
+  expect_equal(row_sums, rep(1, N), tolerance = 1e-10)
+})
+
 test_that("calculate_manifold_affinity_core validates inputs correctly", {
   # Test with non-matrix input
   expect_error(
@@ -76,6 +102,17 @@ test_that("calculate_manifold_affinity_core validates inputs correctly", {
   expect_error(
     calculate_manifold_affinity_core(L_small, 4),
     "k_local_nn_for_sigma must be less than the number of HRFs"
+  )
+
+  # Test with non-positive or non-integer k
+  expect_error(
+    calculate_manifold_affinity_core(L_small, 0),
+    "k_local_nn_for_sigma must be a positive integer"
+  )
+
+  expect_error(
+    calculate_manifold_affinity_core(L_small, 2.5),
+    "k_local_nn_for_sigma must be a positive integer"
   )
 })
 
@@ -218,6 +255,7 @@ test_that("get_manifold_basis_reconstructor_core reconstruction works", {
   expect_lt(B_norm, 1000)  # Arbitrary but reasonable upper bound
 })
 
+
 test_that("get_manifold_basis_reconstructor_core handles large N with RSpectra", {
   skip_if_not_installed("RSpectra")
   set.seed(101)
@@ -234,4 +272,20 @@ test_that("get_manifold_basis_reconstructor_core handles large N with RSpectra",
 
   expect_equal(nrow(result$Phi_coords_matrix), N)
   expect_true(ncol(result$Phi_coords_matrix) < N)
+})
+test_that("ann_euclidean distance falls back when RcppHNSW missing", {
+  skip_if(requireNamespace("RcppHNSW", quietly = TRUE),
+          "RcppHNSW installed; cannot test fallback")
+  p <- 5
+  N <- 10
+  L_library <- matrix(rnorm(p * N), nrow = p, ncol = N)
+  expect_warning(
+    calculate_manifold_affinity_core(
+      L_library,
+      k_local_nn_for_sigma = 2,
+      distance_engine = "ann_euclidean"
+    ),
+    "RcppHNSW"
+  )
+
 })

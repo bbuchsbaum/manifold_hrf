@@ -120,22 +120,19 @@ prepare_lss_fixed_components_core <- function(A_lss_fixed_matrix,
   }
   
   # Step 4: Compute P_lss = (A'A + lambda*I)^(-1) * A'
-  # First solve for (A'A + lambda*I)^(-1)
-  AtA_reg_inv <- solve(AtA_reg)
-  
+  # Use Cholesky decomposition for stable inversion
+  AtA_reg_inv <- chol2inv(chol(AtA_reg))
+
   # Then multiply by A'
   P_lss_matrix <- AtA_reg_inv %*% t(A_lss_fixed_matrix)  # q_lss x n
   
   # Step 5: Compute p_lss_vector for intercept handling
   if (!is.null(intercept_col_index_in_Alss)) {
-    # Extract the intercept column
-    intercept_col <- A_lss_fixed_matrix[, intercept_col_index_in_Alss, drop = FALSE]
-    
     # Compute pseudoinverse of A_lss_fixed_matrix
     # Using the already computed components for efficiency
     # A+ = (A'A)^(-1) * A' when A has full column rank
     # We already have this as P_lss_matrix
-    
+
     # Extract the row corresponding to the intercept
     p_lss_vector <- P_lss_matrix[intercept_col_index_in_Alss, , drop = TRUE]
   } else {
@@ -238,6 +235,35 @@ reconstruct_hrf_shapes_core <- function(B_reconstructor_matrix,
   
   return(H_shapes_allvox_matrix)
 }
+
+#' Compute trial-wise betas using the Woodbury identity
+#'
+#' Internal helper used by LSS functions to compute single-trial betas
+#' given the voxel-specific trial regressor matrix.
+#'
+#' @param C_v Matrix of convolved trial regressors (n x T)
+#' @param Y_v Numeric vector of length n with projected voxel data
+#' @param A_fixed Fixed regressors matrix used during projection (n x q)
+#' @param P_lss Precomputed matrix from `prepare_lss_fixed_components_core`
+#'              with dimensions q x n
+#' @param p_lss Precomputed intercept projection vector of length n
+#'
+#' @return Numeric vector of length T containing LSS beta estimates
+#' @keywords internal
+.compute_lss_betas <- function(C_v, Y_v, A_fixed, P_lss, p_lss) {
+  U_v <- P_lss %*% C_v
+  V_regressors_v <- C_v - A_fixed %*% U_v
+  pc_v_row <- as.vector(crossprod(p_lss, C_v))
+  cv_v_row <- colSums(V_regressors_v * V_regressors_v)
+  alpha_v_row <- (1 - pc_v_row) / pmax(cv_v_row, .Machine$double.eps)
+  S_effective_regressors_v <- sweep(V_regressors_v, MARGIN = 2,
+                                    STATS = alpha_v_row, FUN = "*")
+  S_effective_regressors_v <- sweep(S_effective_regressors_v, MARGIN = 1,
+                                    STATS = p_lss, FUN = "+")
+  as.vector(crossprod(S_effective_regressors_v, Y_v))
+}
+
+#' Run LSS for Single Voxel (Core)
 
 #' Run LSS for Single Voxel (Core)
 #'
@@ -383,39 +409,15 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
     C_v[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_shape_voxel_vector
   }
   
-  # Step 2: Woodbury LSS computation
-  # Following the algorithm from the proposal
-  
-  # 2a. U_v = P_lss %*% C_v (q_lss x T)
-  U_v <- P_lss_matrix %*% C_v
-  
-  # 2b. V_regressors_v = C_v - A_lss_fixed %*% U_v (n x T)
-  V_regressors_v <- C_v - A_lss_fixed_matrix %*% U_v
-  
-  # 2c. pc_v_row = p_lss_vec' * C_v (1 x T)
-  pc_v_row <- crossprod(p_lss_vector, C_v)  # Returns 1 x T matrix
-  pc_v_row <- as.vector(pc_v_row)  # Convert to vector for easier handling
-  
-  # 2d. cv_v_row = colSums(V_regressors_v^2) (1 x T)
-  cv_v_row <- colSums(V_regressors_v * V_regressors_v)
-  
-  # 2e. alpha_v_row = (1 - pc_v_row) / max(cv_v_row, eps)
-  alpha_v_row <- (1 - pc_v_row) / pmax(cv_v_row, .Machine$double.eps)
-  
-  # 2f. S_effective_regressors_v = V_regressors_v * alpha_v_row (element-wise by column)
-  # sweep multiplies each column by corresponding alpha
-  S_effective_regressors_v <- sweep(V_regressors_v, MARGIN = 2, STATS = alpha_v_row, FUN = "*")
-  
-  # 2g. S_effective_regressors_v = S_effective_regressors_v + p_lss_vec (add to each column)
-  S_effective_regressors_v <- sweep(S_effective_regressors_v, MARGIN = 1, STATS = p_lss_vector, FUN = "+")
-  
-  # Step 3: Compute betas
-  # beta_trial_voxel = S_effective_regressors_v' * Y_proj_voxel
-  beta_trial_voxel_vector <- crossprod(S_effective_regressors_v, Y_proj_voxel_vector)
-  
-  # Convert to vector (from T x 1 matrix)
-  beta_trial_voxel_vector <- as.vector(beta_trial_voxel_vector)
-  
+  # Step 2: Woodbury LSS computation via helper
+  beta_trial_voxel_vector <- .compute_lss_betas(
+    C_v,
+    Y_proj_voxel_vector,
+    A_lss_fixed_matrix,
+    P_lss_matrix,
+    p_lss_vector
+  )
+
   return(beta_trial_voxel_vector)
 }
 
@@ -566,14 +568,8 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
         C_v[, t] <- R_t_allvox_list[[t]][, v]
       }
 
-      U_v <- P_lss_matrix %*% C_v
-      V_regressors_v <- C_v - A_lss_fixed_matrix %*% U_v
-      pc_v_row <- as.vector(crossprod(p_lss_vector, C_v))
-      cv_v_row <- colSums(V_regressors_v * V_regressors_v)
-      alpha_v_row <- (1 - pc_v_row) / pmax(cv_v_row, .Machine$double.eps)
-      S_effective_regressors_v <- sweep(V_regressors_v, MARGIN = 2, STATS = alpha_v_row, FUN = "*")
-      S_effective_regressors_v <- sweep(S_effective_regressors_v, MARGIN = 1, STATS = p_lss_vector, FUN = "+")
-      as.vector(crossprod(S_effective_regressors_v, Y_voxel))
+      .compute_lss_betas(C_v, Y_voxel, A_lss_fixed_matrix,
+                         P_lss_matrix, p_lss_vector)
     } else {
       run_lss_for_voxel_core(
         Y_voxel,
