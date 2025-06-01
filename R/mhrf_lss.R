@@ -56,14 +56,14 @@
 #' @examples
 #' \dontrun{
 #' # Basic usage with data frame events
-#' result <- mhrf_lss(
+#' result <- mhrf_analyze(
 #'   Y_data = fmri_matrix,
 #'   events = event_df,
 #'   TR = 2
 #' )
 #' 
 #' # Use robust preset for noisy data
-#' result <- mhrf_lss(
+#' result <- mhrf_analyze(
 #'   Y_data = fmri_matrix,
 #'   events = event_df,
 #'   TR = 2,
@@ -71,7 +71,7 @@
 #' )
 #' 
 #' # Parallel processing with custom parameters
-#' result <- mhrf_lss(
+#' result <- mhrf_analyze(
 #'   Y_data = fmri_matrix,
 #'   events = event_df,
 #'   TR = 2,
@@ -81,7 +81,7 @@
 #' )
 #' 
 #' # With brain mask
-#' result <- mhrf_lss(
+#' result <- mhrf_analyze(
 #'   Y_data = fmri_matrix,
 #'   events = event_df,
 #'   TR = 2,
