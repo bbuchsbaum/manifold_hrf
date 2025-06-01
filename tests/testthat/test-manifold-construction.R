@@ -103,6 +103,17 @@ test_that("calculate_manifold_affinity_core validates inputs correctly", {
     calculate_manifold_affinity_core(L_small, 4),
     "k_local_nn_for_sigma must be less than the number of HRFs"
   )
+
+  # Test with non-positive or non-integer k
+  expect_error(
+    calculate_manifold_affinity_core(L_small, 0),
+    "k_local_nn_for_sigma must be a positive integer"
+  )
+
+  expect_error(
+    calculate_manifold_affinity_core(L_small, 2.5),
+    "k_local_nn_for_sigma must be a positive integer"
+  )
 })
 
 test_that("calculate_manifold_affinity_core produces symmetric affinities", {
@@ -242,4 +253,20 @@ test_that("get_manifold_basis_reconstructor_core reconstruction works", {
   B_norm <- norm(result$B_reconstructor_matrix, "F")
   expect_true(is.finite(B_norm))
   expect_lt(B_norm, 1000)  # Arbitrary but reasonable upper bound
+})
+
+test_that("ann_euclidean distance falls back when RcppHNSW missing", {
+  skip_if(requireNamespace("RcppHNSW", quietly = TRUE),
+          "RcppHNSW installed; cannot test fallback")
+  p <- 5
+  N <- 10
+  L_library <- matrix(rnorm(p * N), nrow = p, ncol = N)
+  expect_warning(
+    calculate_manifold_affinity_core(
+      L_library,
+      k_local_nn_for_sigma = 2,
+      distance_engine = "ann_euclidean"
+    ),
+    "RcppHNSW"
+  )
 })
