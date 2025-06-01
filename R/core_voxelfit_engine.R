@@ -359,11 +359,12 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
   }
   
   A <- Matrix::Diagonal(V) + lambda_spatial_smooth * L_sp_sparse_matrix
-  Xi_smoothed <- Xi_ident_matrix
-  for (j in seq_len(nrow(Xi_ident_matrix))) {
-    Xi_smoothed[j, ] <- as.vector(Matrix::solve(A, Xi_ident_matrix[j, ]))
-  }
-  Xi_smoothed
+
+  # Solve for all dimensions at once
+  Xi_s_t <- Matrix::solve(A, t(Xi_ident_matrix))
+
+  # Return regular matrix in m x V order
+  t(as.matrix(Xi_s_t))
 }
 
 
