@@ -538,12 +538,11 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
     return(Beta_trial_allvox_matrix)
   }
   
-  # Memory heuristic: Check if we can precompute all R_t matrices
-  # Each R_t is n x V, we have T of them
-  # Memory in bytes: T * n * V * 8 (assuming double precision)
-  estimated_memory_GB <- (T_trials * n * V * 8) / (1024^3)
-  
-  precompute_R_t <- (estimated_memory_GB < ram_heuristic_GB_for_Rt)
+  # Memory heuristic: check if we can precompute all R_t matrices.
+  # The helper estimates memory as T * V * 8 / 1e9 GB.
+  precompute_R_t <- check_ram_feasibility(
+    T_trials, V, ram_heuristic_GB_for_Rt
+  )
   
   if (precompute_R_t) {
     # Precompute all R_t matrices for efficiency
