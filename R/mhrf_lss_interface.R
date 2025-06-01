@@ -236,7 +236,11 @@ create_hrf_manifold <- function(hrf_library, params, TR, verbose = TRUE) {
   
   # Handle parameter presets
   if (is.character(params) && length(params) == 1) {
-    params <- get_preset_params(params)
+    if (verbose) {
+      params <- get_preset_params(params)
+    } else {
+      params <- suppressMessages(get_preset_params(params))
+    }
   }
   
   # Handle different library sources
@@ -309,13 +313,25 @@ create_hrf_manifold <- function(hrf_library, params, TR, verbose = TRUE) {
   )
   
   # Create manifold with robust construction
-  manifold <- get_manifold_basis_reconstructor_robust(
-    S_markov_matrix = S_markov,
-    L_library_matrix = L_library,
-    m_manifold_dim_target = params$m_manifold_dim_target,
-    m_manifold_dim_min_variance = params$m_manifold_dim_min_variance %||% 0.95,
-    fallback_to_pca = TRUE
-  )
+  if (verbose) {
+    manifold <- get_manifold_basis_reconstructor_robust(
+      S_markov_matrix = S_markov,
+      L_library_matrix = L_library,
+      m_manifold_dim_target = params$m_manifold_dim_target,
+      m_manifold_dim_min_variance = params$m_manifold_dim_min_variance %||% 0.95,
+      fallback_to_pca = TRUE
+    )
+  } else {
+    manifold <- suppressWarnings(
+      get_manifold_basis_reconstructor_robust(
+        S_markov_matrix = S_markov,
+        L_library_matrix = L_library,
+        m_manifold_dim_target = params$m_manifold_dim_target,
+        m_manifold_dim_min_variance = params$m_manifold_dim_min_variance %||% 0.95,
+        fallback_to_pca = TRUE
+      )
+    )
+  }
   
   # Add additional parameters for compatibility
   manifold$parameters <- params
@@ -688,6 +704,9 @@ run_mhrf_lss_chunked <- function(Y_data, design_info, manifold, Z_confounds,
                                 voxel_coords, params, outlier_weights,
                                 estimation, nchunks, progress) {
   
+  if (is.null(manifold$library_hrfs)) {
+    manifold$library_hrfs <- manifold$B_reconstructor_matrix
+  }
   V <- ncol(Y_data)
   chunk_size <- ceiling(V / nchunks)
   
@@ -796,5 +815,12 @@ extract_hrf_stats <- function(H_shapes) {
 }
 
 
-# Utility operator
+# Null-coalesce operator
+#'
+#' Returns \code{y} if \code{x} is \code{NULL}, otherwise \code{x}.
+#'
+#' @param x Primary value to return if not \code{NULL}.
+#' @param y Fallback value to return if \code{x} is \code{NULL}.
+#' @return \code{x} if not \code{NULL}, otherwise \code{y}.
+#' @export
 `%||%` <- function(x, y) if (is.null(x)) y else x

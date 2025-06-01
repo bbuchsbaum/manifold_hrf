@@ -170,7 +170,6 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #' @param B_reconstructor_matrix p x m manifold reconstructor
 #' @param h_ref_shape_vector p-length canonical HRF shape
 #' @param ident_scale_method one of "l2_norm", "max_abs_val", "none"
-#' @param ident_sign_method one of "first_component", "canonical_correlation"
 #' @param zero_tol numeric tolerance for treating a reconstructed HRF as zero.
 #'   Voxels with L2 norm or maximum absolute value below this threshold are
 #'   zeroed in both \code{Xi_ident_matrix} and \code{Beta_ident_matrix}.
@@ -185,7 +184,6 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                  ident_scale_method = c("l2_norm", "max_abs_val", "none"),
                                                  ident_sign_method = c("first_component", "canonical_correlation"),
                                                  zero_tol = 1e-8) {
-                                                 ident_sign_method = c("canonical_correlation")) {
 
   ident_scale_method <- match.arg(ident_scale_method)
   ident_sign_method <- match.arg(ident_sign_method)
@@ -199,6 +197,12 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
   for (v in seq_len(V)) {
     xi_v <- Xi_raw_matrix[, v]
     beta_v <- Beta_raw_matrix[, v]
+
+    if (all(xi_v == 0)) {
+      Xi_ident[, v] <- 0
+      Beta_ident[, v] <- 0
+      next
+    }
 
     sgn <- sign(sum(xi_v * xi_ref_coord))
     if (sgn == 0) sgn <- 1
@@ -326,9 +330,11 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
 #' @param Y_proj_matrix n x V projected BOLD matrix
 #' @param X_condition_list_proj_matrices list of k n x p design matrices
 #' @param H_shapes_allvox_matrix p x V HRF shapes for all voxels
-#' @param lambda_beta_final ridge penalty
-#' @param control_alt_list list with max_iter (ignored here)
-#' @return k x V matrix of final betas
+#' @param lambda_beta_final numeric scalar ridge penalty (default 0)
+#' @param control_alt_list list with control parameters (default \code{list(max_iter = 1)}).
+#'   Recognized elements are \code{max_iter} (positive integer) and
+#'   \code{rel_change_tol} (non-negative numeric).
+#' @return k x V matrix of final condition-level betas
 #' @export
 estimate_final_condition_betas_core <- function(Y_proj_matrix,
                                                 X_condition_list_proj_matrices,

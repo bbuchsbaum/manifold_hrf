@@ -97,13 +97,14 @@ project_out_confounds_core <- function(Y_data_matrix,
     stop("Z_confounds_matrix has too many columns (must be less than number of timepoints)")
   }
 
-  # Step 1: Compute QR decomposition of confounds matrix
-  # Q_Z is an orthonormal basis for the column space of Z
-  qr_Z <- qr(Z_confounds_matrix, LAPACK = TRUE)
-  if (qr_Z$rank < ncol(Z_confounds_matrix)) {
+  # Step 1: Compute orthonormal basis of confounds (via SVD for robust rank detection)
+  svd_Z <- svd(Z_confounds_matrix)
+  tol_svd <- max(dim(Z_confounds_matrix)) * max(svd_Z$d) * .Machine$double.eps
+  rank_Z <- sum(svd_Z$d > tol_svd)
+  if (rank_Z < ncol(Z_confounds_matrix)) {
     warning("Z_confounds_matrix is rank deficient; using independent columns only")
   }
-  Q_Z <- qr.Q(qr_Z)[, seq_len(qr_Z$rank), drop = FALSE]
+  Q_Z <- svd_Z$u[, seq_len(rank_Z), drop = FALSE]
   
   # Step 2: Project out confounds from Y
   # Y_proj = Y - Q_Z * Q_Z' * Y
@@ -572,7 +573,7 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
     # Skip if xi is zero (no signal)
     if (all(abs(xi_vx) < .Machine$double.eps)) {
       Xi_ident_matrix[, vx] <- xi_vx
-      Beta_ident_matrix[, vx] <- beta_vx
+      Beta_ident_matrix[, vx] <- 0
       next
     }
     

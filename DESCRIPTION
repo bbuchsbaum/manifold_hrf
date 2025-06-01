@@ -2,7 +2,9 @@ Package: manifoldhrf
 Type: Package
 Title: Manifold Methods for Hemodynamic Response Function Analysis
 Version: 0.1.0
-Authors@R: person("First", "Last", email = "your.email@example.com", role = c("aut", "cre"))
+Authors@R: person("Brad", "Buchsbaum", email = "brad.buchsbaum@gmail.com", role = c("aut", "cre"))
+Maintainer: Brad Buchsbaum <brad.buchsbaum@gmail.com>
+Author: Brad Buchsbaum [aut, cre]
 Description: This package provides manifold learning methods for analyzing 
     hemodynamic response functions (HRF) in neuroimaging data. It implements 
     dimensionality reduction techniques and manifold-based approaches for 
@@ -21,7 +23,9 @@ Imports:
     MASS,
     RSpectra,
     RANN,
-    hrfals
+    hrfals,
+    rsvd,
+    fmrireg
 Suggests:
     testthat (>= 3.0.0),
     knitr,
@@ -32,7 +36,7 @@ Suggests:
     parallel,
     proxy,
     RcppHNSW
-VignetteBuilder: knitr
+VignetteBuilder: knitr, rmarkdown
 URL: https://github.com/bbuchsbaum/manifold_hrf
 BugReports: https://github.com/bbuchsbaum/manifold_hrf/issues 
 

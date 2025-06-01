@@ -30,6 +30,15 @@ Gamma <- matrix(rnorm(m * k * V), m * k, V)
    expect_equal(dim(L), c(nrow(coords), nrow(coords)))
  })
 
+test_that("make_voxel_graph_laplacian_core produces correct Laplacian for 2-voxel chain", {
+  coords <- matrix(c(0, 0, 0,
+                     1, 0, 0), nrow = 2, byrow = TRUE)
+  L <- make_voxel_graph_laplacian_core(coords, num_neighbors_Lsp = 1)
+  Lm <- as.matrix(L)
+  expect_equal(Lm, matrix(c(1, -1,
+                             -1, 1), nrow = 2, byrow = TRUE))
+})
+
 test_that("apply_spatial_smoothing_core returns same dimension", {
   coords <- matrix(seq_len(9), ncol = 3)
   L <- make_voxel_graph_laplacian_core(coords, num_neighbors_Lsp = 2)

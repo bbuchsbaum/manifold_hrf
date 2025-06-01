@@ -1,10 +1,10 @@
 ---
 title: "Using M-HRF-LSS with fmrireg"
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Using M-HRF-LSS with fmrireg}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+vignette:
+  engine: knitr::rmarkdown
+  encoding: UTF-8
+  eval: FALSE
 ---
 
 ```{r, include = FALSE}

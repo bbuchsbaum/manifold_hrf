@@ -311,6 +311,10 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
                                   P_lss_matrix,
                                   p_lss_vector) {
   
+  # Accept single-column matrices for vector input
+  if (is.matrix(Y_proj_voxel_vector) && ncol(Y_proj_voxel_vector) == 1) {
+    Y_proj_voxel_vector <- drop(Y_proj_voxel_vector)
+  }
   # Input validation
   if (!is.numeric(Y_proj_voxel_vector) || !is.vector(Y_proj_voxel_vector)) {
     stop("Y_proj_voxel_vector must be a numeric vector")
@@ -415,70 +419,21 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
   return(beta_trial_voxel_vector)
 }
 
-#' Run LSS for All Voxels (Core)
 #'
-#' Main loop for Least Squares Separate (LSS) estimation across all voxels.
-#' This implementation uses fmrireg's proven LSS implementation when available,
-#' falling back to our Woodbury method if fmrireg is not installed.
-#'
-#' @param Y_proj_matrix The n x V projected data matrix, where n is timepoints 
-#'   and V is number of voxels
-#' @param X_trial_onset_list_of_matrices A list of T matrices, where each is an 
-#'   n x p Toeplitz design matrix for a single trial
-#' @param H_shapes_allvox_matrix The p x V matrix of voxel-specific HRF shapes 
-#'   from reconstruct_hrf_shapes_core
-#' @param A_lss_fixed_matrix The n x q_lss matrix of fixed regressors
-#' @param P_lss_matrix The q_lss x n precomputed projection matrix (for Woodbury only)
-#' @param p_lss_vector The n x 1 precomputed intercept projection vector (for Woodbury only)
-#' @param ram_heuristic_GB_for_Rt Memory threshold in GB for precomputing 
-#'   R_t matrices (for Woodbury only)
-#' @param use_fmrireg Logical. If TRUE and fmrireg is available, use fmrireg's
-#'   optimized LSS implementation. Default is TRUE.
-#'   
-#' @return Beta_trial_allvox_matrix A T x V matrix of trial-wise beta estimates
-#'   
-#' @details This function implements Component 3, Step 4 of the M-HRF-LSS pipeline.
-#'   It loops over all voxels and computes single-trial betas using the efficient
-#'   Woodbury LSS method. When memory permits, it precomputes all trial-specific
-#'   regressors (R_t = X_t * H) to avoid redundant calculations. Otherwise, it
-#'   computes them on-the-fly for each voxel.
-#'   
-#' @examples
-#' \dontrun{
-#' # Setup
-#' n <- 200  # timepoints
-#' p <- 30   # HRF length
-#' V <- 100  # voxels
-#' T <- 50   # trials
-#' 
-#' # Projected data
-#' Y_proj <- matrix(rnorm(n * V), n, V)
-#' 
-#' # Trial designs
-#' X_trials <- lapply(1:T, function(t) {
-#'   X <- matrix(0, n, p)
-#'   onset <- 10 + (t-1) * 3
-#'   if (onset + p <= n) {
-#'     X[onset:(onset+p-1), ] <- diag(p)
-#'   }
-#'   X
-#' })
-#' 
-#' # HRF shapes (from previous components)
-#' H_shapes <- matrix(rnorm(p * V), p, V)
-#' 
-#' # Fixed regressors and precomputed components
-#' A_fixed <- cbind(1, seq_len(n)/n)
-#' lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-6)
-#' 
-#' # Run LSS for all voxels
-#' Beta_trials <- run_lss_voxel_loop_core(
-#'   Y_proj, X_trials, H_shapes, A_fixed,
-#'   lss_prep$P_lss_matrix, lss_prep$p_lss_vector,
-#'   ram_heuristic_GB_for_Rt = 2.0
-#' )
-#' }
-#' 
+#' @param Y_proj_matrix n x V projected BOLD data matrix, where n is
+#'   the number of timepoints and V is the number of voxels.
+#' @param X_trial_onset_list_of_matrices List of length T, each an n x p matrix
+#'   of trial-specific regressors, where p is the HRF length.
+#' @param H_shapes_allvox_matrix p x V matrix of HRF shapes for all voxels.
+#' @param A_lss_fixed_matrix n x q matrix of fixed regressors to residualize.
+#' @param P_lss_matrix n x n residualizing projection matrix from fixed regressors.
+#' @param p_lss_vector Numeric vector of length n for residualization of fixed effects.
+#' @param ram_heuristic_GB_for_Rt Numeric scalar indicating RAM limit in gigabytes
+#'   for precomputing components (default 1.0).
+#' @param use_fmrireg Logical; if \code{TRUE}, uses \pkg{fmrireg} internals
+#'   for model fitting (default \code{TRUE}).
+#' @return A T x V matrix of trial-level beta estimates, where T is the number
+#'   of trials and V is the number of voxels.
 #' @export
 run_lss_voxel_loop_core <- function(Y_proj_matrix,
                                    X_trial_onset_list_of_matrices,

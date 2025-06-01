@@ -19,7 +19,7 @@ generate_qc_report(
 \itemize{
 \item \code{core_matrices}: List of core pipeline matrices (Y_data, Xi_smoothed, etc.)
 \item \code{manifold}: Manifold construction results
-\item \code{diagnostics}: Optional diagnostic metrics (R², convergence, etc.)
+\item \code{diagnostics}: Optional diagnostic metrics (R^2, convergence, etc.)
 }}
 
 \item{parameters}{List of pipeline parameters used, containing:
@@ -53,7 +53,7 @@ This function generates a comprehensive QC report including:
 \item Input parameters table
 \item Manifold diagnostics (eigenvalue spectrum, variance explained, reconstruction error)
 \item HRF diagnostics (manifold coordinate maps, smoothing effects, shape statistics)
-\item Model fit diagnostics (voxel-wise R², convergence plots)
+\item Model fit diagnostics (voxel-wise R^2, convergence plots)
 \item Performance metrics and timing
 \item Failure mode checklist based on QC flags
 }

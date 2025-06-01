@@ -1,13 +1,48 @@
 # Corrected LSS Implementation Using Standard Linear Algebra
 # This implements the mathematically correct approach
 
-#' Run LSS for Single Voxel - Corrected Version
+#' Run LSS for Single Voxel - Simple Interface
 #'
-#' This is a mathematically correct implementation that:
-#' 1. Takes projected data (confounds removed)
-#' 2. Takes unprojected trial matrices
-#' 3. Projects the trial matrices
-#' 4. Solves the reduced system efficiently
+#' Simplified interface for trial-wise LSS that handles projection internally
+#'
+#' @param y_voxel Data vector for single voxel (n x 1)
+#' @param X_trial_list List of trial matrices (n x p each)
+#' @param h_voxel HRF shape vector (p x 1)
+#' @param TR Repetition time in seconds
+#' @param lambda Ridge regularization parameter
+#' @return List with beta_trials vector
+#' @export
+run_lss_for_voxel_corrected <- function(y_voxel,
+                                       X_trial_list,
+                                       h_voxel,
+                                       TR = 2,
+                                       lambda = 1e-6) {
+  
+  n <- length(y_voxel)
+  T_trials <- length(X_trial_list)
+  p <- length(h_voxel)
+  
+  # Create convolved regressors
+  C <- matrix(0, n, T_trials)
+  for (t in 1:T_trials) {
+    X_trial <- X_trial_list[[t]]
+    # Convolve with HRF
+    regressor <- X_trial %*% h_voxel
+    C[, t] <- regressor
+  }
+  
+  # Ridge regression
+  CTC <- t(C) %*% C
+  diag(CTC) <- diag(CTC) + lambda
+  beta_trials <- solve(CTC) %*% t(C) %*% y_voxel
+  
+  return(list(beta_trials = as.vector(beta_trials)))
+}
+
+
+#' Run LSS for Single Voxel - Full Interface
+#'
+#' Complete interface that takes projected data and projection matrices
 #'
 #' @param Y_proj_voxel_vector Projected data (n x 1) with confounds removed
 #' @param X_trial_onset_list_of_matrices List of unprojected trial matrices (n x p each)
@@ -16,11 +51,11 @@
 #' @param lambda_ridge Ridge regularization parameter
 #' @return Vector of trial-wise betas
 #' @export
-run_lss_for_voxel_corrected <- function(Y_proj_voxel_vector,
-                                       X_trial_onset_list_of_matrices,
-                                       H_shape_voxel_vector,
-                                       P_confound,
-                                       lambda_ridge = 1e-6) {
+run_lss_for_voxel_corrected_full <- function(Y_proj_voxel_vector,
+                                            X_trial_onset_list_of_matrices,
+                                            H_shape_voxel_vector,
+                                            P_confound,
+                                            lambda_ridge = 1e-6) {
   
   n <- length(Y_proj_voxel_vector)
   T_trials <- length(X_trial_onset_list_of_matrices)
@@ -41,104 +76,93 @@ run_lss_for_voxel_corrected <- function(Y_proj_voxel_vector,
   # Method 1: Direct solution (stable but not optimized)
   CtC_proj <- crossprod(C_proj)
   CtC_proj_reg <- CtC_proj + lambda_ridge * diag(T_trials)
-  Cty_proj <- crossprod(C_proj, Y_proj_voxel_vector)
   
-  betas <- solve(CtC_proj_reg, Cty_proj)
+  beta_trials <- solve(CtC_proj_reg) %*% crossprod(C_proj, Y_proj_voxel_vector)
   
-  return(as.vector(betas))
+  return(as.vector(beta_trials))
 }
 
 
-#' Run LSS Using Woodbury Identity - Corrected Version
+#' Run Woodbury LSS for Single Voxel
 #'
-#' This implements the true Woodbury matrix identity for efficiency.
-#' For each trial, we update the inverse rather than recomputing.
+#' Memory-efficient implementation using Woodbury matrix identity
 #'
+#' @param Y_proj_voxel_vector Projected data vector (n x 1)
+#' @param X_trial_onset_list_of_matrices List of trial design matrices
+#' @param H_shape_voxel_vector HRF shape vector (p x 1)
+#' @param lambda_ridge Ridge regularization parameter
+#' @return Vector of trial-wise betas
 #' @export
 run_lss_woodbury_corrected <- function(Y_proj_voxel_vector,
                                       X_trial_onset_list_of_matrices,
                                       H_shape_voxel_vector,
-                                      P_confound,
                                       lambda_ridge = 1e-6) {
   
   n <- length(Y_proj_voxel_vector)
   T_trials <- length(X_trial_onset_list_of_matrices)
   
-  # Create and project all trial regressors
-  C <- matrix(0, n, T_trials)
+  beta_trials <- numeric(T_trials)
+  
+  # For each trial, solve the LSS problem
   for (t in 1:T_trials) {
-    C[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_shape_voxel_vector
-  }
-  C_proj <- P_confound %*% C
-  
-  # Initialize results
-  betas <- numeric(T_trials)
-  
-  # For each trial, we solve a "leave-one-in" problem
-  # We want just the coefficient for trial t when all trials are included
-  
-  # Pre-compute the full system
-  CtC_proj <- crossprod(C_proj) + lambda_ridge * diag(T_trials)
-  Cty_proj <- crossprod(C_proj, Y_proj_voxel_vector)
-  
-  # Solve once for all trials
-  betas_all <- solve(CtC_proj, Cty_proj)
-  
-  # Extract individual trial betas
-  # In LSS, we typically solve T separate problems
-  # But if we want all trials simultaneously, this is the solution
-  
-  # For true LSS (each trial separately with others as nuisance):
-  for (t in 1:T_trials) {
-    # Build design with trial t first, others as nuisance
-    idx_others <- setdiff(1:T_trials, t)
-    C_t_proj <- C_proj[, c(t, idx_others), drop = FALSE]
     
-    # Solve this system
-    CtC_t <- crossprod(C_t_proj) + lambda_ridge * diag(T_trials)
-    Cty_t <- crossprod(C_t_proj, Y_proj_voxel_vector)
-    beta_t <- solve(CtC_t, Cty_t)
+    # Create design matrix for this trial
+    X_t <- X_trial_onset_list_of_matrices[[t]]
+    C_t <- X_t %*% H_shape_voxel_vector
     
-    betas[t] <- beta_t[1]  # First element is trial of interest
+    # Create design matrix for all other trials
+    other_trials <- setdiff(1:T_trials, t)
+    if (length(other_trials) > 0) {
+      C_others <- matrix(0, n, length(other_trials))
+      for (i in seq_along(other_trials)) {
+        trial_idx <- other_trials[i]
+        X_other <- X_trial_onset_list_of_matrices[[trial_idx]]
+        C_others[, i] <- X_other %*% H_shape_voxel_vector
+      }
+      
+      # Full design matrix
+      X_full <- cbind(C_t, C_others)
+    } else {
+      X_full <- matrix(C_t, ncol = 1)
+    }
+    
+    # Solve regularized system
+    XTX <- crossprod(X_full)
+    diag(XTX) <- diag(XTX) + lambda_ridge
+    
+    beta_full <- solve(XTX) %*% crossprod(X_full, Y_proj_voxel_vector)
+    beta_trials[t] <- beta_full[1]  # First coefficient is for trial t
   }
   
-  return(betas)
+  return(beta_trials)
 }
 
 
-#' Prepare Projection Matrix for Confound Removal
+#' Prepare Projection Matrix
 #'
-#' Creates the projection matrix P = I - Z(Z'Z + λI)^{-1}Z'
+#' Creates a projection matrix that removes confound space
 #'
 #' @param Z_confounds Confound matrix (n x q)
-#' @param lambda Ridge parameter for stability
-#' @return List with projection matrix and related quantities
+#' @param lambda Ridge regularization parameter
+#' @return Projection matrix (n x n)
 #' @export
 prepare_projection_matrix <- function(Z_confounds, lambda = 1e-6) {
   
   n <- nrow(Z_confounds)
   q <- ncol(Z_confounds)
   
-  # Compute (Z'Z + λI)^{-1}
-  ZtZ <- crossprod(Z_confounds)
-  ZtZ_reg <- ZtZ + lambda * diag(q)
-  ZtZ_inv <- solve(ZtZ_reg)
+  if (q == 0) {
+    # No confounds - return identity
+    return(diag(n))
+  }
   
-  # Projection matrix P = I - Z(Z'Z + λI)^{-1}Z'
-  P <- diag(n) - Z_confounds %*% ZtZ_inv %*% t(Z_confounds)
+  # Regularized projection: P = I - Z(Z'Z + λI)^(-1)Z'
+  ZTZ <- crossprod(Z_confounds)
+  ZTZ_reg <- ZTZ + lambda * diag(q)
   
-  # For memory efficiency, we might want to avoid storing full P
-  # Instead store components:
-  # - Z
-  # - ZtZ_inv
-  # Then P*y = y - Z*(ZtZ_inv*(Z'*y))
+  # Use Woodbury identity for stability
+  ZTZ_inv <- solve(ZTZ_reg)
+  P_confound <- diag(n) - Z_confounds %*% ZTZ_inv %*% t(Z_confounds)
   
-  return(list(
-    P = P,
-    Z = Z_confounds,
-    ZtZ_inv = ZtZ_inv,
-    project_fn = function(y) {
-      y - Z_confounds %*% (ZtZ_inv %*% crossprod(Z_confounds, y))
-    }
-  ))
+  return(P_confound)
 }

@@ -24,7 +24,7 @@ This package provides manifold learning methods for analyzing hemodynamic respon
 
 ## Development Status
 
-This package is currently under active development. The implementation follows the sprint plan outlined in `data-raw/Mainfold_hrf_sprint.md`.
+This package is currently under active development. The implementation follows the sprint plan outlined in `data-raw/Manifold_hrf_sprint.md`.
 
 ### Current Implementation Status
 
@@ -45,7 +45,7 @@ library(manifold_hrf)
 
 ## Development Roadmap
 
-See the detailed sprint plan in `data-raw/Mainfold_hrf_sprint.md` for the complete development roadmap, including:
+See the detailed sprint plan in `data-raw/Manifold_hrf_sprint.md` for the complete development roadmap, including:
 
 - **EPIC 0-4**: Core computational engine implementation
 - **EPIC 5**: Neuroimaging layer wrappers

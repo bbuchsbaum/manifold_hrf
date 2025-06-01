@@ -266,9 +266,17 @@ screen_voxels <- function(Y_data,
   for (v in 1:V) {
     y <- Y_data[, v]
     
+    # Handle NA/Inf values
+    if (any(!is.finite(y))) {
+      keep_voxel[v] <- FALSE
+      quality_scores[v] <- 0
+      flag_voxel[v] <- TRUE
+      next
+    }
+    
     # Check variance
     y_var <- var(y)
-    if (y_var < min_variance) {
+    if (is.na(y_var) || y_var < min_variance) {
       keep_voxel[v] <- FALSE
       quality_scores[v] <- 0
       next

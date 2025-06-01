@@ -1,0 +1,16 @@
+name: lint
+on: [push, pull_request]
+
+jobs:
+  lint:
+    name: lintr
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.2'
+      - name: Install lintr
+        run: install.packages('lintr')
+      - name: Lint code
+        run: lintr::lint_package()

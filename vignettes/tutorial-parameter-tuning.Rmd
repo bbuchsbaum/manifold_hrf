@@ -1,0 +1,45 @@
+---
+title: "Tutorial: Parameter Tuning & Troubleshooting"
+output: rmarkdown::html_vignette
+vignette:
+  engine: knitr::rmarkdown
+  encoding: UTF-8
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+library(manifoldhrf)
+```
+
+# Parameter Tuning & Troubleshooting
+
+## 1. Default parameter suggestions
+
+```{r suggest-params}
+params <- suggest_parameters(Y_data = sim_results$bold_data)
+print(params)
+```
+
+## 2. Adjusting manifold dimensionality
+
+```{r manifold-dim}
+man_low <- create_hrf_manifold("canonical", params = list(m_manifold_dim_target = 3), TR = 2, verbose = FALSE)
+man_high <- create_hrf_manifold("canonical", params = list(m_manifold_dim_target = 10), TR = 2, verbose = FALSE)
+plot(man_low); plot(man_high)
+```
+
+## 3. Comparing smoothing engines
+
+```{r smoothing-engines}
+manifold <- create_hrf_manifold("canonical", params = list(m_manifold_dim_target = 5), TR = 2, verbose = FALSE)
+s_knn <- apply_spatial_smoothing_core(manifold$DR, smoothing_engine = "knn_graph_laplacian", num_neighbors_Lsp = 6)
+s_geo <- apply_spatial_smoothing_core(manifold$DR, smoothing_engine = "surface_geodesic_laplacian", num_neighbors_Lsp = 6)
+plot(s_knn); plot(s_geo)
+```
+
+## 4. Interpreting rank-deficient warnings
+
+```{r rank-def}
+Z <- cbind(rep(1,100), rep(1,100))
+project_out_confounds_core(Y_data = matrix(rnorm(100*5),100,5), X_list = list(W=matrix(rnorm(100*5),100,5)), Z_confounds = Z)
+```

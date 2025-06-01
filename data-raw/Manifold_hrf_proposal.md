@@ -37,10 +37,10 @@ All components are designed for computational efficiency, primarily relying on c
     *   `L_library`: `p x N` matrix of `N` candidate HRF shapes, each sampled at `p` time points (e.g., from a physiological model grid, half-cosine set, FLOBS).
     *   `m_manifold_dim_target`: Target dimensionality of the manifold (user suggestion, e.g., 3-5).
     *   `m_manifold_dim_min_variance`: Minimum variance to be explained by manifold (e.g., 0.95 for automatic `m` selection).
-    *   `k_local_nn_for_sigma`: k-Nearest Neighbors for self-tuning bandwidth `σ_i` (e.g., 7; user-exposed).
-    *   (Optional) `distance_engine`: Method for distance calculation ("euclidean", "ann_euclidean" via RcppHNSW if N > 10k, or custom plugin like "geodesic").
-    *   (Optional) `sparse_if_N_gt`: Threshold for N to switch to sparse affinity matrix (e.g., 5000).
-    *   (Optional) `k_nn_for_W_sparse`: k-NN for sparse affinity matrix `W` if sparsified.
+    *   `k_local_nn_for_sigma`: k-Nearest Neighbors for self-tuning bandwidth `σ_i` (default=7; user-exposed).
+    *   (Optional) `distance_engine`: Method for distance calculation (default="euclidean"; options: "euclidean", "ann_euclidean" via RcppHNSW if N > 10k, or custom plugin like "geodesic").
+    *   (Optional) `sparse_if_N_gt`: Threshold for N to switch to sparse affinity matrix (default=5000).
+    *   (Optional) `k_nn_for_W_sparse`: Number of neighbors for sparse affinity matrix `W` if sparsified (default=20).
 *   **Steps:**
     1.  **Affinity Matrix `W` (Self-Tuning):**
         *   Compute pairwise distances `dists_ij` between all HRFs in `L_library` using `distance_engine`.
@@ -117,8 +117,8 @@ All components are designed for computational efficiency, primarily relying on c
     *   `Xi_ident_allvox`: `m x V` matrix from Component 1.
     *   `voxel_coordinates_matrix`: `V x 3` matrix for graph construction.
     *   `lambda_spatial_smooth`: Spatial smoothing strength.
-    *   (Optional) `smoothing_engine`: Method for graph Laplacian and solve (e.g., "knn_graph_laplacian", "surface_geodesic_laplacian").
-    *   (Optional) `num_neighbors_Lsp`: Number of neighbors for k-NN graph Laplacian (e.g., 6-26).
+    *   (Optional) `smoothing_engine`: Method for graph Laplacian and solve (default="knn_graph_laplacian"; options: "knn_graph_laplacian", "surface_geodesic_laplacian").
+    *   (Optional) `num_neighbors_Lsp`: Number of neighbors for k-NN graph Laplacian (default=6; 6 for face-connected up to 26 for corner-connected).
 *   **Steps:**
     1.  **Construct `voxel_graph_laplacian_Lsp` (`V x V` sparse matrix) using `voxel_coordinates_matrix`, `num_neighbors_Lsp` and `smoothing_engine`.** (Consider RcppAnnoy or similar for k-NN search if pure R is slow). MVP: volume-based k-NN.
     2.  Initialize `Xi_smoothed_allvox = matrix(0, m, V)`.
@@ -172,9 +172,8 @@ All components are designed for computational efficiency, primarily relying on c
 *   **Steps (Iterative refinement, default 1 pass for beta re-estimation):**
     1.  Initialize `Beta_condition_final_allvox = matrix(0, k, V)`.
     2.  **Loop `iter` from 1 to `control_alt$max_iter` (default `max_iter=1` for MVP, effectively just re-fitting betas once):**
-        a.  **Construct Condition-Specific Design with Smoothed HRFs `X_cond_smooth_list`:**
-            *   `X_cond_smooth_list = lapply(1:k, function(c) X_condition_list_proj[[c]] %*% H_shapes_allvox)`
-            *   No, this is wrong. It should be: for each voxel `v`, for each condition `c`, `X_reg_cv = X_condition_list_proj[[c]] %*% H_shapes_allvox[,v]`.
+        a.  **Construct Condition-Specific Design with Smoothed HRFs per voxel and condition:**
+            For each voxel `v` and condition `c`, form `X_design_v_final[,c] = X_condition_list_proj[[c]] %*% H_shapes_allvox[,v]`.
         b.  **Voxel Loop:** For each voxel `v`:
             i.  `X_design_v_final = matrix(NA, nrow=n, ncol=k)`.
             ii. For condition `c = 1...k`: `X_design_v_final[,c] = X_condition_list_proj[[c]] %*% H_shapes_allvox[,v]`.

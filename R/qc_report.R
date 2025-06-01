@@ -11,7 +11,7 @@
 #'   \itemize{
 #'     \item \code{core_matrices}: List of core pipeline matrices (Y_data, Xi_smoothed, etc.)
 #'     \item \code{manifold}: Manifold construction results
-#'     \item \code{diagnostics}: Optional diagnostic metrics (R², convergence, etc.)
+#'     \item \code{diagnostics}: Optional diagnostic metrics (R^2, convergence, etc.)
 #'   }
 #' @param parameters List of pipeline parameters used, containing:
 #'   \itemize{
@@ -32,7 +32,7 @@
 #'     \item Input parameters table
 #'     \item Manifold diagnostics (eigenvalue spectrum, variance explained, reconstruction error)
 #'     \item HRF diagnostics (manifold coordinate maps, smoothing effects, shape statistics)
-#'     \item Model fit diagnostics (voxel-wise R², convergence plots)
+#'     \item Model fit diagnostics (voxel-wise R^2, convergence plots)
 #'     \item Performance metrics and timing
 #'     \item Failure mode checklist based on QC flags
 #'   }
@@ -135,11 +135,11 @@ compute_qc_diagnostics <- function(results) {
   
   diagnostics <- list()
   
-  # Calculate R² if we have the necessary components
+  # Calculate R^2 if we have the necessary components
   if (!is.null(results$core_matrices$Y_data) && 
       !is.null(results$core_matrices$Y_predicted)) {
     
-    # Voxel-wise R²
+    # Voxel-wise R^2
     Y_data <- results$core_matrices$Y_data
     Y_pred <- results$core_matrices$Y_predicted
     
@@ -228,7 +228,7 @@ create_qc_flags <- function(results,
     if (poor_fits > thresholds$max_poor_fit_fraction) {
       qc_flags$poor_fits <- list(
         status = "warning",
-        message = sprintf("%.1f%% of voxels have R² < %.2f", 
+        message = sprintf("%.1f%% of voxels have R^2 < %.2f", 
                          100 * poor_fits, thresholds$min_r2),
         severity = 2
       )

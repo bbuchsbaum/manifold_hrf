@@ -385,6 +385,11 @@ check_and_scale_data <- function(Y_data, target_scale = 100) {
     warning("Data appears to be integer-valued. Consider converting to percent signal change.")
   }
   
+  warning_issued <- FALSE
+  if (data_median > 1e6 || (data_median < 1e-6 && data_median > 0) || all(Y_data == round(Y_data))) {
+    warning_issued <- TRUE
+  }
+  
   if (scaling_needed) {
     Y_scaled <- Y_data * scale_factor
     message(sprintf("Applied scaling factor: %.2e", scale_factor))
@@ -395,6 +400,7 @@ check_and_scale_data <- function(Y_data, target_scale = 100) {
   return(list(
     Y_scaled = Y_scaled,
     scale_factor = scale_factor,
-    scaling_applied = scaling_needed
+    scaling_applied = scaling_needed,
+    warning_issued = warning_issued
   ))
 }

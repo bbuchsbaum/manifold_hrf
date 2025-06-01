@@ -5,17 +5,21 @@
 \title{Preset Parameter Configurations}
 \usage{
 get_preset_params(
-  preset = c("conservative", "balanced", "aggressive"),
-  data_scale = NULL
+  preset = c("conservative", "balanced", "aggressive", "fast", "quality", "robust"),
+  data_scale = NULL,
+  n_voxels = NULL
 )
 }
 \arguments{
-\item{preset}{Character string: "conservative", "balanced", or "aggressive"}
+\item{preset}{Character string: "conservative", "balanced", "aggressive",
+"fast", "quality", or "robust"}
 
 \item{data_scale}{Optional data scale for parameter adaptation}
+
+\item{n_voxels}{Optional number of voxels for memory-aware settings}
 }
 \value{
-List of parameters
+List of parameters with metadata
 }
 \description{
 Returns preset parameter configurations for different analysis styles

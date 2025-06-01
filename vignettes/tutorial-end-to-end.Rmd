@@ -1,0 +1,64 @@
+---
+title: "Tutorial: End-to-end Manifold-guided HRF-LSS Workflow"
+output: rmarkdown::html_vignette
+vignette:
+  engine: knitr::rmarkdown
+  encoding: UTF-8
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+library(manifoldhrf)
+```
+
+# End-to-end Simulation, QC, Manifold Construction, and LSS
+
+## 1. Simulate fMRI data with known ground truth
+
+```{r simulation}
+sim_results <- run_mhrf_lss_simulation(
+  n_voxels = 200,
+  n_timepoints = 250,
+  n_trials = 15,
+  n_conditions = 3,
+  noise_levels = c(0, 5, 10),
+  verbose = TRUE
+)
+print(sim_results$metrics)
+# Inspect noise robustness curves structure
+str(sim_results$noise_curves)
+# Example: plot HRF shape correlation vs noise level
+shape_curve <- sim_results$noise_curves$hrf_shape_correlation
+plot(shape_curve$data$noise, shape_curve$data$value,
+     type = 'b', xlab = 'Noise level', ylab = 'Value',
+     main = shape_curve$title)
+```
+
+<!-- QC report generation can be demonstrated after running the pipeline in Section 3 -->
+
+## 2. HRF manifold construction
+
+```{r construct-manifold}
+manifold <- create_hrf_manifold(
+  hrf_library = "canonical",
+  params = list(m_manifold_dim_target = 5),
+  TR = sim_results$TR,
+  verbose = FALSE
+)
+print(manifold)
+plot(manifold)
+```
+
+## 3. Run the LSS pipeline
+
+```{r run-lss}
+lss_results <- run_mhrf_lss_standard(
+  Y_data = sim_results$bold_data,
+  design_info = sim_results$design_info,
+  manifold = manifold,
+  Z_confounds = NULL,
+  verbose = FALSE
+)
+summary(lss_results)
+plot(lss_results)
+```

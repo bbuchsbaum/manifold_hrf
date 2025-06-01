@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Using M-HRF-LSS with fmrireg</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Using M-HRF-LSS with fmrireg</h1>
+
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>The <code>mhrf_lss()</code> function provides a user-friendly
+interface to the M-HRF-LSS (Manifold-Guided HRF Estimation and
+Trial-wise Deconvolution) pipeline that integrates seamlessly with the
+<code>fmrireg</code> package infrastructure.</p>
+</div>
+<div id="quick-start" class="section level2">
+<h2>Quick Start</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(manifoldhrf)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(fmrireg)</span></code></pre></div>
+<div id="basic-usage" class="section level3">
+<h3>Basic Usage</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># Load your fMRI data using fmrireg</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>dataset <span class="ot">&lt;-</span> <span class="fu">fmri_dataset</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">scans =</span> <span class="st">&quot;path/to/bold.nii.gz&quot;</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">mask =</span> <span class="st">&quot;path/to/mask.nii.gz&quot;</span>,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">TR =</span> <span class="dv">2</span>,</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">run_length =</span> <span class="fu">c</span>(<span class="dv">200</span>, <span class="dv">200</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>)</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co"># Fit M-HRF-LSS model</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>  <span class="at">formula =</span> <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>  <span class="at">estimation =</span> <span class="st">&quot;both&quot;</span>  <span class="co"># Estimate both condition and trial-wise betas</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>)</span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co"># View results</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="fu">print</span>(fit)</span></code></pre></div>
+</div>
+</div>
+<div id="hrf-library-options" class="section level2">
+<h2>HRF Library Options</h2>
+<p>The <code>mhrf_lss()</code> function supports multiple ways to
+specify the HRF library:</p>
+<div id="using-canonical-fmrireg-hrfs" class="section level3">
+<h3>1. Using Canonical fmrireg HRFs</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Use default canonical HRFs from fmrireg</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>fit_canonical <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="at">hrf_library =</span> <span class="st">&quot;canonical&quot;</span>  <span class="co"># Default</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="using-custom-fmrireg-hrf-objects" class="section level3">
+<h3>2. Using Custom fmrireg HRF Objects</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># Create custom HRF library from fmrireg objects</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>hrf_library <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  HRF_SPMG1,      <span class="co"># SPM canonical</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  HRF_SPMG2,      <span class="co"># SPM + temporal derivative</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  HRF_SPMG3,      <span class="co"># SPM + temporal &amp; dispersion derivatives</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>  HRF_GAMMA,      <span class="co"># Gamma function</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>  HRF_GAUSSIAN    <span class="co"># Gaussian</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>)</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co"># Add lagged versions</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a>hrf_library <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a>  hrf_library,</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a>  <span class="fu">lapply</span>(<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>), <span class="cf">function</span>(lag) <span class="fu">lag_hrf</span>(HRF_SPMG1, lag))</span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>)</span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>fit_custom <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>  <span class="at">hrf_library =</span> hrf_library</span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="using-a-pre-computed-hrf-matrix" class="section level3">
+<h3>3. Using a Pre-computed HRF Matrix</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Load or create your own HRF matrix (p timepoints x N HRFs)</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>hrf_matrix <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(<span class="dv">30</span> <span class="sc">*</span> <span class="dv">50</span>), <span class="dv">30</span>, <span class="dv">50</span>)  <span class="co"># Example</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>fit_matrix <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  <span class="at">hrf_library =</span> hrf_matrix</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="manifold-parameter-presets" class="section level2">
+<h2>Manifold Parameter Presets</h2>
+<p>The package provides convenient parameter presets:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Conservative: Fewer dimensions, more regularization</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>fit_conservative <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="at">manifold_params =</span> <span class="st">&quot;conservative&quot;</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>)</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co"># Balanced: Default trade-off (recommended)</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>fit_balanced <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>  <span class="at">manifold_params =</span> <span class="st">&quot;balanced&quot;</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>)</span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co"># Aggressive: More dimensions, less regularization</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>fit_aggressive <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a>  <span class="at">manifold_params =</span> <span class="st">&quot;aggressive&quot;</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="advanced-options" class="section level2">
+<h2>Advanced Options</h2>
+<div id="custom-parameters" class="section level3">
+<h3>Custom Parameters</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># Fine-tune all parameters</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>custom_params <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">m_manifold_dim_target =</span> <span class="dv">5</span>,         <span class="co"># Target manifold dimensions</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">m_manifold_dim_min_variance =</span> <span class="fl">0.95</span>, <span class="co"># Min variance to retain</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>  <span class="at">k_local_nn_for_sigma =</span> <span class="dv">10</span>,         <span class="co"># Neighbors for bandwidth</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>  <span class="at">lambda_gamma =</span> <span class="fl">0.01</span>,               <span class="co"># Gamma regularization</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  <span class="at">lambda_spatial_smooth =</span> <span class="fl">0.5</span>,       <span class="co"># Spatial smoothing</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  <span class="at">num_neighbors_Lsp =</span> <span class="dv">6</span>              <span class="co"># Spatial neighbors</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>)</span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a>fit_custom_params <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>  <span class="at">manifold_params =</span> custom_params</span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="spatial-smoothing" class="section level3">
+<h3>Spatial Smoothing</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># Enable spatial smoothing by providing voxel coordinates</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>fit_spatial <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">spatial_info =</span> dataset<span class="sc">$</span>mask,  <span class="co"># Will extract coordinates</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>  <span class="at">manifold_params =</span> <span class="fu">list</span>(</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>    <span class="at">lambda_spatial_smooth =</span> <span class="fl">1.0</span>  <span class="co"># Increase smoothing</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>  )</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="robust-estimation" class="section level3">
+<h3>Robust Estimation</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># Enable outlier detection and downweighting</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>fit_robust <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>  <span class="at">robust =</span> <span class="cn">TRUE</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="memory-efficient-processing" class="section level3">
+<h3>Memory-Efficient Processing</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># Process large datasets in chunks</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>fit_chunked <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>  <span class="at">strategy =</span> <span class="st">&quot;chunked&quot;</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>  <span class="at">nchunks =</span> <span class="dv">20</span>  <span class="co"># Process in 20 chunks</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="working-with-results" class="section level2">
+<h2>Working with Results</h2>
+<div id="extract-coefficients" class="section level3">
+<h3>Extract Coefficients</h3>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># Get condition-level betas</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>betas_condition <span class="ot">&lt;-</span> <span class="fu">coef</span>(fit, <span class="at">type =</span> <span class="st">&quot;condition&quot;</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co"># Get trial-wise betas</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>betas_trial <span class="ot">&lt;-</span> <span class="fu">coef</span>(fit, <span class="at">type =</span> <span class="st">&quot;trial&quot;</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co"># Get estimated HRF shapes</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>hrfs <span class="ot">&lt;-</span> <span class="fu">coef</span>(fit, <span class="at">type =</span> <span class="st">&quot;hrf&quot;</span>)</span></code></pre></div>
+</div>
+<div id="visualize-results" class="section level3">
+<h3>Visualize Results</h3>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># Plot HRFs for selected voxels</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="fu">plot</span>(fit, <span class="at">type =</span> <span class="st">&quot;hrfs&quot;</span>, <span class="at">voxels =</span> <span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">500</span>, <span class="dv">1000</span>))</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co"># Plot manifold diagnostics</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="fu">plot</span>(fit, <span class="at">type =</span> <span class="st">&quot;manifold&quot;</span>)</span></code></pre></div>
+</div>
+<div id="generate-qc-report" class="section level3">
+<h3>Generate QC Report</h3>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Generate comprehensive quality control report</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">generate_qc_report</span>(</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">manifold =</span> fit<span class="sc">$</span>manifold,</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  <span class="at">hrfs =</span> fit<span class="sc">$</span>hrfs,</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  <span class="at">xi_coordinates =</span> fit<span class="sc">$</span>xi_coordinates,</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>  <span class="at">betas_condition =</span> fit<span class="sc">$</span>betas_condition,</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>  <span class="at">betas_trial =</span> fit<span class="sc">$</span>betas_trial,</span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>  <span class="at">output_file =</span> <span class="st">&quot;mhrf_lss_qc.html&quot;</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="integration-with-fmrireg-workflow" class="section level2">
+<h2>Integration with fmrireg Workflow</h2>
+<p>The M-HRF-LSS interface is designed to work seamlessly with existing
+fmrireg workflows:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># 1. Create event model with multiple conditions</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a>event_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>  <span class="at">onset =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">30</span>, <span class="dv">50</span>, <span class="dv">70</span>, <span class="dv">90</span>, <span class="dv">110</span>),</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">condition =</span> <span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">&quot;faces&quot;</span>, <span class="st">&quot;houses&quot;</span>, <span class="st">&quot;objects&quot;</span>), <span class="dv">2</span>),</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  <span class="at">run =</span> <span class="fu">rep</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="at">each =</span> <span class="dv">3</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>)</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a>dataset<span class="sc">$</span>event_table <span class="ot">&lt;-</span> event_data</span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="co"># 2. Specify complex model with baseline</span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>fit_complex <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a>  <span class="at">baseline_model =</span> <span class="fu">baseline_model</span>(</span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a>    <span class="at">basis =</span> <span class="st">&quot;poly&quot;</span>,</span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a>    <span class="at">degree =</span> <span class="dv">2</span>  <span class="co"># Quadratic drift</span></span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a>  ),</span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a>  <span class="at">estimation =</span> <span class="st">&quot;both&quot;</span></span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a>)</span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a></span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a><span class="co"># 3. Compare with standard fmrireg GLM</span></span>
+<span id="cb14-22"><a href="#cb14-22" tabindex="-1"></a>fit_standard <span class="ot">&lt;-</span> <span class="fu">fmri_lm</span>(</span>
+<span id="cb14-23"><a href="#cb14-23" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb14-24"><a href="#cb14-24" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb14-25"><a href="#cb14-25" tabindex="-1"></a>  <span class="at">baseline_model =</span> <span class="fu">baseline_model</span>(<span class="at">degree =</span> <span class="dv">2</span>)</span>
+<span id="cb14-26"><a href="#cb14-26" tabindex="-1"></a>)</span>
+<span id="cb14-27"><a href="#cb14-27" tabindex="-1"></a></span>
+<span id="cb14-28"><a href="#cb14-28" tabindex="-1"></a><span class="co"># M-HRF-LSS provides voxel-specific HRFs and trial-wise estimates</span></span>
+<span id="cb14-29"><a href="#cb14-29" tabindex="-1"></a><span class="co"># that standard GLM cannot capture</span></span></code></pre></div>
+</div>
+<div id="tips-and-best-practices" class="section level2">
+<h2>Tips and Best Practices</h2>
+<ol style="list-style-type: decimal">
+<li><strong>Start with presets</strong>: Use <code>&quot;balanced&quot;</code>
+parameters for initial analyses</li>
+<li><strong>Check QC reports</strong>: Always generate and review QC
+reports</li>
+<li><strong>Use spatial smoothing</strong>: Improves stability for
+neighboring voxels</li>
+<li><strong>Enable robust mode</strong>: For datasets with motion
+artifacts</li>
+<li><strong>Monitor memory</strong>: Use chunked processing for &gt;50k
+voxels</li>
+<li><strong>Validate HRF library</strong>: Ensure sufficient HRF
+diversity</li>
+</ol>
+</div>
+<div id="troubleshooting" class="section level2">
+<h2>Troubleshooting</h2>
+<div id="memory-issues" class="section level3">
+<h3>Memory Issues</h3>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co"># Estimate memory requirements</span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>mem_req <span class="ot">&lt;-</span> <span class="fu">estimate_memory_requirements</span>(</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="at">n_timepoints =</span> <span class="dv">300</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  <span class="at">n_voxels =</span> <span class="dv">100000</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>  <span class="at">n_conditions =</span> <span class="dv">5</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>  <span class="at">n_trials =</span> <span class="dv">200</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>)</span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="fu">print</span>(mem_req)</span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co"># Use more chunks if needed</span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a>  <span class="at">strategy =</span> <span class="st">&quot;chunked&quot;</span>,</span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a>  <span class="at">nchunks =</span> <span class="fu">ceiling</span>(mem_req<span class="sc">$</span>recommended_chunks)</span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="convergence-issues" class="section level3">
+<h3>Convergence Issues</h3>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="co"># Use conservative parameters</span></span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">mhrf_lss</span>(</span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a>  <span class="sc">~</span> <span class="fu">hrf</span>(condition),</span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a>  <span class="at">dataset =</span> dataset,</span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a>  <span class="at">manifold_params =</span> <span class="st">&quot;conservative&quot;</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a>  <span class="at">robust =</span> <span class="cn">TRUE</span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

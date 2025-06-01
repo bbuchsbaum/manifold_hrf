@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
 
 library(testthat)
-library(manifold_hrf)
+library(manifoldhrf)
 
-test_check("manifold_hrf") 
+test_check("manifoldhrf")

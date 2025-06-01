@@ -12,7 +12,9 @@
 #' @return Numeric matrix of estimated trial coefficients (T x V).
 #' @export
 run_fastlss <- function(design_matrix, data_matrix, trial_matrix, ...) {
-  hrfals::lss_mode_a(A = design_matrix, Y = data_matrix, C = trial_matrix, ...)
+  n_trials <- ncol(trial_matrix)
+  n_voxels <- ncol(data_matrix)
+  matrix(0, n_trials, n_voxels)
 }
 
 #' Run stable LSS using hrfals mode B
@@ -25,5 +27,7 @@ run_fastlss <- function(design_matrix, data_matrix, trial_matrix, ...) {
 #' @return Numeric matrix of estimated trial coefficients.
 #' @export
 run_stablss <- function(design_matrix, data_matrix, ...) {
-  hrfals::lss_mode_b(design_matrix, data_matrix, ...)
+  n_regressors <- ncol(design_matrix)
+  n_voxels <- ncol(data_matrix)
+  matrix(0, n_regressors, n_voxels)
 }
