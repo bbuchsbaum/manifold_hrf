@@ -24,13 +24,15 @@
 #' @param verbose Print detailed messages
 #' @param ... Additional arguments
 #'
-#' @return An mhrf_lss_fit object containing:
-#'   - manifold: The HRF manifold object
-#'   - hrfs: Estimated voxel-specific HRFs
-#'   - betas_condition: Condition-level amplitudes
-#'   - betas_trial: Trial-wise amplitudes (if requested)
-#'   - model_info: Original model specifications
-#'   - diagnostics: Fit quality metrics
+#' @return An \code{mhrf_lss_result} object with components:
+#'   \describe{
+#'     \item{parameters}{List of parameter settings used}
+#'     \item{manifold}{HRF manifold object}
+#'     \item{hrf}{List of raw and smoothed HRF matrices}
+#'     \item{beta}{List of condition and trial beta estimates}
+#'     \item{qc}{Quality control metrics}
+#'     \item{diagnostics}{Additional diagnostic information}
+#'   }
 #'
 #' @examples
 #' \dontrun{
@@ -63,6 +65,9 @@
 #'   spatial_info = dset$mask,
 #'   robust = TRUE
 #' )
+#'
+#' # Access estimated HRFs
+#' head(fit$hrf$smoothed)
 #' }
 #'
 #' @export
@@ -89,6 +94,10 @@ mhrf_lss <- function(formula,
   data_mat <- fmrireg::get_data_matrix(dataset)
   n_time <- nrow(data_mat)
   n_voxels <- ncol(data_mat)
+
+  # Basic validation using helper functions
+  .validate_Y_data(data_mat)
+  .validate_events(dataset$event_table, n_time, dataset$TR)
   
   if (verbose) {
     message(sprintf("M-HRF-LSS: %d timepoints, %d voxels", n_time, n_voxels))
@@ -114,6 +123,7 @@ mhrf_lss <- function(formula,
   
   # Extract design matrices for conditions and trials
   design_info <- extract_design_info(event_mod, sframe)
+  validate_design_matrix_list(design_info$X_condition_list, n_time)
   
   # Step 2: Create HRF manifold
   if (verbose) message("Constructing HRF manifold...")
@@ -143,6 +153,7 @@ mhrf_lss <- function(formula,
   
   # Get confound matrix
   Z_confounds <- fmrireg::design_matrix(baseline_model)
+  validate_confounds_matrix(Z_confounds, n_time)
   
   # Step 5: Check for outliers if robust
   outlier_weights <- NULL
@@ -189,33 +200,25 @@ mhrf_lss <- function(formula,
   
   fit <- structure(
     list(
-      manifold = manifold,
-      hrfs = results$H_shapes,
-      xi_coordinates = results$Xi_smoothed,
-      betas_condition = results$Beta_condition,
-      betas_trial = if (estimation %in% c("trial", "both")) results$Beta_trial else NULL,
-      model_info = list(
-        formula = formula,
-        event_model = event_mod,
-        baseline_model = baseline_model,
-        estimation = estimation,
-        n_timepoints = n_time,
-        n_voxels = n_voxels,
-        n_conditions = nrow(results$Beta_condition),
-        n_trials = if (!is.null(results$Beta_trial)) nrow(results$Beta_trial) else NULL
-      ),
-      diagnostics = results$diagnostics,
-      dataset_info = list(
-        TR = dataset$TR,
-        run_lengths = dataset$run_length
-      ),
-      params = list(
+      parameters = list(
         manifold = manifold$parameters,
         robust = robust
       ),
+      manifold = manifold,
+      hrf = list(
+        raw = results$H_raw,
+        smoothed = results$H_shapes
+      ),
+      beta = list(
+        condition_initial = results$Beta_condition_initial,
+        condition_final = results$Beta_condition,
+        trial = if (estimation %in% c("trial", "both")) results$Beta_trial else NULL
+      ),
+      qc = results$diagnostics,
+      diagnostics = results$diagnostics,
       call = match.call()
     ),
-    class = c("mhrf_lss_fit", "list")
+    class = "mhrf_lss_result"
   )
   
   if (verbose) message("M-HRF-LSS fitting complete!")
@@ -470,7 +473,13 @@ run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
     Y_proj_matrix = proj_result$Y_proj_matrix,
     X_condition_list_proj_matrices = proj_result$X_list_proj_matrices
   )
-  
+
+  # HRF shapes prior to spatial smoothing
+  H_raw <- reconstruct_hrf_shapes_core(
+    B_reconstructor_matrix = manifold$B_reconstructor_matrix,
+    Xi_smoothed_matrix = ident_result$Xi_ident_matrix
+  )
+
   # 6. Spatial smoothing if coordinates provided
   if (!is.null(voxel_coords)) {
     # Create spatial graph
@@ -541,8 +550,10 @@ run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
   )
   
   return(list(
+    H_raw = H_raw,
     H_shapes = H_shapes,
     Xi_smoothed = Xi_smoothed,
+    Beta_condition_initial = ident_result$Beta_ident_matrix,
     Beta_condition = Beta_condition_final,
     Beta_trial = Beta_trial,
     diagnostics = diagnostics
@@ -610,29 +621,21 @@ extract_voxel_coordinates <- function(spatial_info, mask = NULL) {
 }
 
 
-# S3 Methods for mhrf_lss_fit
+# S3 Methods for mhrf_lss_result
 
 #' @export
-print.mhrf_lss_fit <- function(x, ...) {
-  cat("M-HRF-LSS Model Fit\n")
-  cat("===================\n\n")
-  
-  cat("Formula:", deparse(x$model_info$formula), "\n")
-  cat("Data dimensions:", x$model_info$n_timepoints, "timepoints x",
-      x$model_info$n_voxels, "voxels\n")
-  cat("Conditions:", x$model_info$n_conditions, "\n")
-  
-  if (!is.null(x$model_info$n_trials)) {
-    cat("Trials:", x$model_info$n_trials, "\n")
+print.mhrf_lss_result <- function(x, ...) {
+  cat("M-HRF-LSS Result\n")
+  cat("=================\n\n")
+
+  if (!is.null(x$manifold)) {
+    cat("Manifold dimensions:", x$manifold$m_manifold_dim, "\n")
   }
-  
-  cat("\nManifold:\n")
-  cat("  Method:", x$manifold$method_used, "\n")
-  cat("  Dimensions:", x$manifold$m_manifold_dim, "\n")
-  cat("  Library size:", x$manifold$parameters$n_hrfs_library, "HRFs\n")
-  
-  cat("\nEstimation:", x$model_info$estimation, "\n")
-  
+
+  if (!is.null(x$beta$condition_final)) {
+    cat("Conditions:", nrow(x$beta$condition_final), "\n")
+  }
+
   invisible(x)
 }
 
@@ -640,14 +643,14 @@ print.mhrf_lss_fit <- function(x, ...) {
 #' Extract Coefficients from M-HRF-LSS Fit
 #'
 #' @export
-coef.mhrf_lss_fit <- function(object, type = c("condition", "trial", "hrf"), ...) {
+coef.mhrf_lss_result <- function(object, type = c("condition", "trial", "hrf"), ...) {
   
   type <- match.arg(type)
   
   switch(type,
-    condition = object$betas_condition,
-    trial = object$betas_trial,
-    hrf = object$hrfs
+    condition = object$beta$condition_final,
+    trial = object$beta$trial,
+    hrf = object$hrf$smoothed
   )
 }
 
@@ -655,8 +658,8 @@ coef.mhrf_lss_fit <- function(object, type = c("condition", "trial", "hrf"), ...
 #' Plot M-HRF-LSS Results
 #'
 #' @export
-plot.mhrf_lss_fit <- function(x, type = c("hrfs", "manifold", "diagnostics"),
-                             voxels = NULL, ...) {
+plot.mhrf_lss_result <- function(x, type = c("hrfs", "manifold", "diagnostics"),
+                                 voxels = NULL, ...) {
   
   type <- match.arg(type)
   
@@ -664,11 +667,11 @@ plot.mhrf_lss_fit <- function(x, type = c("hrfs", "manifold", "diagnostics"),
     # Plot HRF shapes for selected voxels
     if (is.null(voxels)) {
       # Select representative voxels
-      voxels <- sample(1:ncol(x$hrfs), min(9, ncol(x$hrfs)))
+      voxels <- sample(1:ncol(x$hrf$smoothed), min(9, ncol(x$hrf$smoothed)))
     }
     
     # Would create actual plots here
-    message(sprintf("Plotting HRFs for voxels: %s", 
+    message(sprintf("Plotting HRFs for voxels: %s",
                    paste(voxels, collapse = ", ")))
   }
   
@@ -694,7 +697,9 @@ run_mhrf_lss_chunked <- function(Y_data, design_info, manifold, Z_confounds,
   # Initialize result storage
   Xi_smoothed <- matrix(0, manifold$m_manifold_dim, V)
   H_shapes <- matrix(0, nrow(manifold$B_reconstructor_matrix), V)
+  H_raw <- matrix(0, nrow(manifold$B_reconstructor_matrix), V)
   Beta_condition <- matrix(0, design_info$n_conditions, V)
+  Beta_condition_initial <- matrix(0, design_info$n_conditions, V)
   Beta_trial <- NULL
   if (estimation %in% c("trial", "both")) {
     Beta_trial <- matrix(0, design_info$n_trials, V)
@@ -739,7 +744,9 @@ run_mhrf_lss_chunked <- function(Y_data, design_info, manifold, Z_confounds,
     # Store chunk results
     Xi_smoothed[, chunk_indices] <- chunk_result$Xi_smoothed
     H_shapes[, chunk_indices] <- chunk_result$H_shapes
+    H_raw[, chunk_indices] <- chunk_result$H_raw
     Beta_condition[, chunk_indices] <- chunk_result$Beta_condition
+    Beta_condition_initial[, chunk_indices] <- chunk_result$Beta_condition_initial
     
     if (!is.null(chunk_result$Beta_trial)) {
       Beta_trial[, chunk_indices] <- chunk_result$Beta_trial
@@ -763,8 +770,10 @@ run_mhrf_lss_chunked <- function(Y_data, design_info, manifold, Z_confounds,
   )
   
   return(list(
+    H_raw = H_raw,
     H_shapes = H_shapes,
     Xi_smoothed = Xi_smoothed,
+    Beta_condition_initial = Beta_condition_initial,
     Beta_condition = Beta_condition,
     Beta_trial = Beta_trial,
     diagnostics = diagnostics
