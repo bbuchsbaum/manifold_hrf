@@ -447,9 +447,6 @@ process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
   if (!requireNamespace("neuroim2", quietly = TRUE)) {
     stop("Package 'neuroim2' is required")
   }
-  if (!requireNamespace("fmrireg", quietly = TRUE)) {
-    stop("Package 'fmrireg' is required")
-  }
 
   bold <- if (inherits(bold_input, c("NeuroVec", "NeuroVol"))) {
     bold_input
