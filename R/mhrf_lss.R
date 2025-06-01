@@ -104,17 +104,23 @@ mhrf_analyze <- function(Y_data,
                      verbose = TRUE,
                      save_intermediate = FALSE,
                      output_dir = tempdir(),
+                     logger = NULL,
                      ...) {
   
   # Capture call for reproducibility
   mc <- match.call()
   start_time <- Sys.time()
-  
+
   # Set up verbosity
   verbose_level <- if (is.logical(verbose)) {
     if (verbose) 1L else 0L
   } else {
     as.integer(verbose)
+  }
+
+  # Initialize logger
+  if (is.null(logger)) {
+    logger <- create_logger()
   }
   
   # Create progress tracker
@@ -242,7 +248,8 @@ mhrf_analyze <- function(Y_data,
   manifold_result <- .run_manifold_construction(
     L_library = L_library,
     params = params,
-    progress = progress
+    progress = progress,
+    logger = logger
   )
 
   error_log <- list()
@@ -256,7 +263,8 @@ mhrf_analyze <- function(Y_data,
       X_condition_list = X_condition_list,
       manifold = manifold_result,
       params = params,
-      progress = progress
+      progress = progress,
+      logger=logger
     )
   }, error = function(e) {
     error_log$component1 <<- e$message
@@ -271,6 +279,7 @@ mhrf_analyze <- function(Y_data,
     voxel_coords = data_info$voxel_coords,
     params = params,
     progress = progress,
+    logger = logger,
     Y_data = Y_matrix
   )
   
@@ -359,6 +368,7 @@ mhrf_analyze <- function(Y_data,
       manifold_coords = smoothing_result$Xi_smooth,
       qc_metrics = qc_metrics,
       metadata = metadata,
+      log = logger$get(),
       design_matrices = X_condition_list,
       voxel_indices = voxel_indices,
       data_info = data_info,
@@ -657,7 +667,7 @@ mhrf_analyze <- function(Y_data,
 
 #' Run manifold construction
 #' @keywords internal
-.run_manifold_construction <- function(L_library, params, progress) {
+.run_manifold_construction <- function(L_library, params, progress, logger = NULL) {
   
   # Calculate affinity matrix
   S_markov <- calculate_manifold_affinity_core(
@@ -684,8 +694,17 @@ mhrf_analyze <- function(Y_data,
   }
   
   progress$message(sprintf("Manifold constructed: %d dimensions (method: %s)",
-                          manifold$m_final_dim, 
+                          manifold$m_final_dim,
                           manifold$method_used %||% "diffusion_map"))
+
+  if (!is.null(logger)) {
+    logger$add(sprintf("Auto-selected manifold dimension: %d (target %d)",
+                       manifold$m_auto_selected_dim,
+                       params$m_manifold_dim_target))
+    if (identical(manifold$method_used, "PCA")) {
+      logger$add("Manifold construction used PCA fallback")
+    }
+  }
   
   return(list(
     B_reconstructor = manifold$B_reconstructor_matrix,
@@ -699,8 +718,8 @@ mhrf_analyze <- function(Y_data,
 
 #' Run voxelwise estimation
 #' @keywords internal  
-.run_voxelwise_estimation <- function(Y_data, X_condition_list, manifold, 
-                                     params, progress) {
+.run_voxelwise_estimation <- function(Y_data, X_condition_list, manifold,
+                                     params, progress, logger = NULL) {
   
   # Transform designs to manifold basis
   XB_list <- transform_designs_to_manifold_basis_core(
@@ -721,7 +740,8 @@ mhrf_analyze <- function(Y_data,
     svd_result <- extract_xi_beta_raw_svd_robust(
       Gamma_coeffs_matrix = Gamma,
       m_manifold_dim = manifold$m_final,
-      k_conditions = length(X_condition_list)
+      k_conditions = length(X_condition_list),
+      logger = logger
     )
   } else {
     svd_result <- extract_xi_beta_raw_svd_core(
@@ -762,7 +782,7 @@ mhrf_analyze <- function(Y_data,
 #' @param Y_data Optional n x V data matrix for computing local SNR
 #' @keywords internal
 .run_spatial_smoothing <- function(Xi_matrix, voxel_coords, params, progress,
-                                   Y_data = NULL) {
+                                   logger = NULL, Y_data = NULL) {
   
   n_voxels <- ncol(Xi_matrix)
   
@@ -782,6 +802,9 @@ mhrf_analyze <- function(Y_data,
   } else {
     # No spatial information - use identity (no smoothing)
     progress$message("No spatial coordinates available - skipping spatial smoothing")
+    if (!is.null(logger)) {
+      logger$add("Spatial smoothing skipped: no voxel coordinates")
+    }
     L_spatial <- Matrix::Diagonal(n_voxels)
   }
   
@@ -802,6 +825,10 @@ mhrf_analyze <- function(Y_data,
       edge_preserve = params$edge_preserve %||% FALSE,
       voxel_coords = voxel_coords
     )
+    if (!is.null(logger)) {
+      logger$add(sprintf("Adaptive spatial smoothing applied (lambda=%.3f)",
+                         params$lambda_spatial_smooth))
+    }
   } else {
     # Standard smoothing
     Xi_smooth <- apply_spatial_smoothing_core(
@@ -809,6 +836,10 @@ mhrf_analyze <- function(Y_data,
       L_sp_sparse_matrix = L_spatial,
       lambda_spatial_smooth = params$lambda_spatial_smooth
     )
+    if (!is.null(logger)) {
+      logger$add(sprintf("Spatial smoothing applied (lambda=%.3f)",
+                         params$lambda_spatial_smooth))
+    }
   }
   
   return(list(
