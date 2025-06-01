@@ -37,7 +37,8 @@
 #' @param save_intermediate Logical; whether to save intermediate results for
 #'   debugging (default: FALSE)
 #' @param output_dir Directory for saving results and intermediate files
-#'   (default: temporary directory)
+#'   (default: temporary directory). If the directory does not exist, it will be
+#'   created automatically.
 #' @param ... Additional parameters to override preset values. See 
 #'   \code{\link{get_preset_params}} for available options.
 #'
@@ -162,6 +163,11 @@ mhrf_analyze <- function(Y_data,
   params$verbose_level <- verbose_level
   params$save_intermediate <- save_intermediate
   params$output_dir <- output_dir
+
+  # Ensure output directory exists before saving
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
   
   # Add default values for parameters that might be missing
   params$p_hrf <- params$p_hrf %||% 25
