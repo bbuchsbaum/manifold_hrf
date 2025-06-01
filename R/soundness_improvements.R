@@ -491,7 +491,10 @@ get_preset_params <- function(preset = c("conservative", "balanced", "aggressive
       use_case = "Clinical data, motion artifacts, heterogeneous quality"
     )
   )
-  
+
+  # Default sign alignment method
+  base_params$ident_sign_method <- "canonical_correlation"
+
   # Scale parameters if data scale provided
   if (!is.null(data_scale) && data_scale > 0) {
     scale_factor <- data_scale^2

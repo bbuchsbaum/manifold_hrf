@@ -209,15 +209,20 @@ test_that("construct_hrf_manifold_nim handles list input", {
   expect_equal(manifold_list$library_info$n_hrfs, 3)
 })
 
-test_that("placeholder functions raise appropriate errors", {
-  # Test that unimplemented functions give clear errors
-  expect_error(
-    manifoldhrf:::process_subject_mhrf_lss_nim(NULL, NULL, NULL),
-    "not yet implemented"
-  )
+test_that("subject-level wrapper runs on minimal data", {
+  skip_if_not_installed("neuroim2")
+  skip_if_not_installed("fmrireg")
 
-  expect_error(
-    manifoldhrf:::package_mhrf_results_nim(NULL, NULL, NULL, NULL, NULL),
-    "not yet implemented"
-  )
+  space <- neuroim2::NeuroSpace(c(2, 2, 1, 5), spacing = rep(1, 4))
+  bold <- neuroim2::NeuroVec(array(rnorm(2 * 2 * 1 * 5), dim = c(2, 2, 1, 5)), space)
+  mask <- neuroim2::LogicalNeuroVol(array(TRUE, c(2, 2, 1)), neuroim2::space(bold))
+  events <- data.frame(onset = 0, condition = "A")
+
+  manifold <- construct_hrf_manifold_nim("gamma_grid", TR_precision = 1, m_manifold_dim_target = 2)
+  params <- get_preset_params("fast")
+  params$TR <- 1
+
+  res <- process_subject_mhrf_lss_nim(bold, mask, events, NULL, manifold, params)
+  expect_type(res, "list")
+  expect_true("H_shapes" %in% names(res))
 })

@@ -182,11 +182,19 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                  B_reconstructor_matrix,
                                                  h_ref_shape_vector,
                                                  ident_scale_method = c("l2_norm", "max_abs_val", "none"),
-                                                 ident_sign_method = c("first_component", "canonical_correlation"),
-                                                 zero_tol = 1e-8) {
+                                                 ident_sign_method = c("first_component", "canonical_correlation", "data_fit_correlation"),
+                                                 zero_tol = 1e-8,
+                                                 Y_proj_matrix = NULL,
+                                                 X_condition_list_proj_matrices = NULL) {
 
   ident_scale_method <- match.arg(ident_scale_method)
   ident_sign_method <- match.arg(ident_sign_method)
+
+  if (ident_sign_method == "data_fit_correlation") {
+    if (is.null(Y_proj_matrix) || is.null(X_condition_list_proj_matrices)) {
+      stop("data_fit_correlation method requires Y_proj_matrix and X_condition_list_proj_matrices")
+    }
+  }
 
   xi_ref_coord <- MASS::ginv(B_reconstructor_matrix) %*% h_ref_shape_vector
 
@@ -204,8 +212,31 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
       next
     }
 
-    sgn <- sign(sum(xi_v * xi_ref_coord))
-    if (sgn == 0) sgn <- 1
+    if (ident_sign_method == "canonical_correlation" || ident_sign_method == "first_component") {
+      sgn <- sign(sum(xi_v * xi_ref_coord))
+      if (sgn == 0) sgn <- 1
+    } else if (ident_sign_method == "data_fit_correlation") {
+      best_r2 <- -Inf
+      best_sgn <- 1
+      for (sg in c(1, -1)) {
+        xi_tmp <- xi_v * sg
+        beta_tmp <- beta_v * sg
+        h_tmp <- B_reconstructor_matrix %*% xi_tmp
+        k <- length(X_condition_list_proj_matrices)
+        X_design <- matrix(0, nrow(Y_proj_matrix), k)
+        for (c in 1:k) {
+          X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp
+        }
+        y_pred <- X_design %*% beta_tmp
+        y_true <- Y_proj_matrix[, v]
+        r2 <- suppressWarnings(cor(y_pred, y_true))^2
+        if (!is.na(r2) && r2 > best_r2) {
+          best_r2 <- r2
+          best_sgn <- sg
+        }
+      }
+      sgn <- best_sgn
+    }
 
     xi_v <- xi_v * sgn
     beta_v <- beta_v * sgn
