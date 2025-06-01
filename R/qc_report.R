@@ -93,7 +93,8 @@ generate_qc_report <- function(results,
   render_params <- list(
     results = results,
     parameters = parameters,
-    metadata = metadata
+    metadata = metadata,
+    log = results$log
   )
   
   # Render the report

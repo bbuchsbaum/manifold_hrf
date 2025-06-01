@@ -445,6 +445,22 @@ if (!is.null(metadata$timing)) {
 }
 ```
 
+# Pipeline Log
+
+```{r pipeline_log}
+if (!is.null(params$log)) {
+  cat("<pre>\n")
+  cat(paste(tail(params$log, 50), collapse = "\n"))
+  cat("\n</pre>")
+} else if (!is.null(results$log)) {
+  cat("<pre>\n")
+  cat(paste(tail(results$log, 50), collapse = "\n"))
+  cat("\n</pre>")
+} else {
+  cat("No log available.")
+}
+```
+
 # Failure Mode Checklist
 
 Based on the QC flags and diagnostics, here are potential issues to investigate:
