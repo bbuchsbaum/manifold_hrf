@@ -452,6 +452,10 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #'   maximum absolute value (for "max_abs_val") of a voxel's HRF is below this
 #'   threshold, both \code{Xi_ident_matrix} and \code{Beta_ident_matrix} are set
 #'   to zero for that voxel.
+#' @param consistency_check Logical; if TRUE, the reconstructed HRF is
+#'   re-projected after sign/scale alignment and verified against the
+#'   canonical shape. Voxels failing the check are flipped to ensure
+#'   consistent orientation.
 #' @param n_jobs Number of parallel jobs for voxel processing (default 1).
 #'   
 #' @return A list containing:
@@ -464,6 +468,11 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #'   It ensures that HRF estimates are identifiable by:
 #'   1. Aligning sign with a reference HRF (avoiding arbitrary sign flips)
 #'   2. Normalizing scale consistently across voxels
+#'   The chosen sign alignment method is reported via \code{message()}.
+#'   If the correlation with the canonical HRF is near zero, a warning is
+#'   issued and a fallback RMS-based alignment is attempted. When
+#'   \code{consistency_check = TRUE}, each voxel's HRF is reprojected and the
+#'   alignment with the canonical shape is reverified.
 #'   The beta amplitudes are adjusted inversely to preserve the overall signal.
 #'   Voxels whose reconstructed HRFs fall below \code{zero_tol} are zeroed in
 #'   both returned matrices.
@@ -498,7 +507,8 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                 ident_sign_method = "canonical_correlation",
                                                 zero_tol = 1e-8,
                                                 Y_proj_matrix = NULL,
-                                                X_condition_list_proj_matrices = NULL) {
+                                                X_condition_list_proj_matrices = NULL,
+                                                consistency_check = FALSE,
                                                 n_jobs = 1) {
 
   
@@ -547,6 +557,8 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
   if (!ident_sign_method %in% valid_sign_methods) {
     stop("ident_sign_method must be one of: ", paste(valid_sign_methods, collapse = ", "))
   }
+
+  message(sprintf("Using '%s' for sign alignment", ident_sign_method))
   
   if (ident_sign_method == "data_fit_correlation") {
     if (is.null(Y_proj_matrix) || is.null(X_condition_list_proj_matrices)) {
@@ -572,11 +584,48 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
       return(list(xi = xi_vx, beta = rep(0, k)))
     }
     
-    # Step 1: Sign alignment
+    # Step 1: Sign alignment with fallback strategies
+    sgn <- 1
+    method_used <- ident_sign_method
     if (ident_sign_method == "canonical_correlation") {
-      # Align sign based on correlation with reference
-      sgn <- sign(sum(xi_vx * xi_ref_coord))
+      h_tmp <- B_reconstructor_matrix %*% xi_vx
+      corr_ref <- suppressWarnings(cor(h_tmp, h_ref_shape_vector))
+      if (is.na(corr_ref)) corr_ref <- 0
+      if (abs(corr_ref) < 1e-3) {
+        warning(sprintf("Voxel %d: canonical correlation near zero (%.3f)", vx, corr_ref))
+      }
+      sgn <- sign(corr_ref)
       if (sgn == 0) sgn <- 1
+      if (abs(corr_ref) < 1e-3 && !is.null(Y_proj_matrix) &&
+          !is.null(X_condition_list_proj_matrices)) {
+        best_r2 <- -Inf
+        best_sgn <- 1
+        for (sg in c(1, -1)) {
+          xi_tmp <- xi_vx * sg
+          beta_tmp <- beta_vx * sg
+          h_tmp2 <- B_reconstructor_matrix %*% xi_tmp
+          k2 <- length(X_condition_list_proj_matrices)
+          X_design <- matrix(0, nrow(Y_proj_matrix), k2)
+          for (c in 1:k2) {
+            X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp2
+          }
+          y_pred <- X_design %*% beta_tmp
+          y_true <- Y_proj_matrix[, vx]
+          r2 <- suppressWarnings(cor(y_pred, y_true))^2
+          if (!is.na(r2) && r2 > best_r2) {
+            best_r2 <- r2
+            best_sgn <- sg
+          }
+        }
+        if (best_r2 > 0) {
+          sgn <- best_sgn
+          method_used <- "data_fit_correlation_fallback"
+        } else {
+          sgn <- sign(sum(h_tmp))
+          if (sgn == 0) sgn <- 1
+          method_used <- "rms_fallback"
+        }
+      }
     } else if (ident_sign_method == "data_fit_correlation") {
       best_r2 <- -Inf
       best_sgn <- 1
@@ -584,9 +633,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
         xi_tmp <- xi_vx * sg
         beta_tmp <- beta_vx * sg
         h_tmp <- B_reconstructor_matrix %*% xi_tmp
-        k <- length(X_condition_list_proj_matrices)
-        X_design <- matrix(0, nrow(Y_proj_matrix), k)
-        for (c in 1:k) {
+        k2 <- length(X_condition_list_proj_matrices)
+        X_design <- matrix(0, nrow(Y_proj_matrix), k2)
+        for (c in 1:k2) {
           X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp
         }
         y_pred <- X_design %*% beta_tmp
@@ -598,7 +647,20 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
         }
       }
       sgn <- best_sgn
+      if (!(best_r2 > 0)) {
+        h_tmp <- B_reconstructor_matrix %*% xi_vx
+        corr_ref <- suppressWarnings(cor(h_tmp, h_ref_shape_vector))
+        if (!is.na(corr_ref) && abs(corr_ref) >= 1e-3) {
+          sgn <- sign(corr_ref)
+          method_used <- "canonical_correlation_fallback"
+        } else {
+          sgn <- sign(sum(h_tmp))
+          if (sgn == 0) sgn <- 1
+          method_used <- "rms_fallback"
+        }
+      }
     }
+    message(sprintf("Voxel %d sign method: %s", vx, method_used))
     
     # Apply sign
     xi_vx_signed <- xi_vx * sgn
@@ -632,6 +694,15 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 
     if (scl > 1 / sqrt(.Machine$double.eps)) {
       beta_out <- rep(0, k)
+    }
+
+    if (consistency_check) {
+      hr_check <- B_reconstructor_matrix %*% xi_out
+      corr_check <- suppressWarnings(cor(hr_check, h_ref_shape_vector))
+      if (!is.na(corr_check) && corr_check < 0) {
+        xi_out <- -xi_out
+        beta_out <- -beta_out
+      }
     }
 
     list(xi = xi_out, beta = beta_out)

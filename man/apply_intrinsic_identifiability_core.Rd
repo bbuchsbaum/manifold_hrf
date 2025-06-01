@@ -11,7 +11,8 @@ apply_intrinsic_identifiability_core(
   h_ref_shape_vector,
   ident_scale_method = "l2_norm",
   ident_sign_method = "canonical_correlation",
-  zero_tol = 1e-08
+  zero_tol = 1e-08,
+  consistency_check = FALSE
 )
 
 apply_intrinsic_identifiability_core(
@@ -21,7 +22,8 @@ apply_intrinsic_identifiability_core(
   h_ref_shape_vector,
   ident_scale_method = "l2_norm",
   ident_sign_method = "canonical_correlation",
-  zero_tol = 1e-08
+  zero_tol = 1e-08,
+  consistency_check = FALSE
 )
 }
 \arguments{
@@ -44,6 +46,9 @@ when applying scale normalization. If the L2 norm (for "l2_norm") or
 maximum absolute value (for "max_abs_val") of a voxel's HRF is below this
 threshold, both \code{Xi_ident_matrix} and \code{Beta_ident_matrix} are set
 to zero for that voxel.}
+\item{consistency_check}{Logical; if TRUE, the reconstructed HRF is
+reprojected and the sign is reverified against the canonical shape. Voxels
+that disagree are flipped.}
 }
 \value{
 list with Xi_ident_matrix and Beta_ident_matrix
@@ -63,6 +68,10 @@ It ensures that HRF estimates are identifiable by:
 \enumerate{
 \item Aligning sign with a reference HRF (avoiding arbitrary sign flips)
 \item Normalizing scale consistently across voxels
+The chosen sign alignment method is reported via messages. When the
+correlation with the canonical HRF is near zero, a warning is produced and
+a fallback RMS-based alignment is attempted. Setting
+\code{consistency_check = TRUE} reprojects each HRF and revalidates the sign.
 The beta amplitudes are adjusted inversely to preserve the overall signal.
 Voxels whose reconstructed HRFs fall below \code{zero_tol} are zeroed in
 both returned matrices.
