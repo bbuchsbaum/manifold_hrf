@@ -209,6 +209,25 @@ test_that("construct_hrf_manifold_nim handles list input", {
   expect_equal(manifold_list$library_info$n_hrfs, 3)
 })
 
+test_that("construct_hrf_manifold_nim evaluates fmrireg HRF objects", {
+  skip_if_not_installed("fmrireg")
+
+  hrf_list <- list(
+    fmrireg::HRF_SPMG1,
+    fmrireg::HRF_GAMMA
+  )
+
+  manifold_fmrireg <- construct_hrf_manifold_nim(
+    hrf_library_source = hrf_list,
+    TR_precision = 0.5,
+    m_manifold_dim_target = 2
+  )
+
+  expect_s3_class(manifold_fmrireg, "mhrf_manifold")
+  expect_equal(manifold_fmrireg$library_info$name, "custom_list")
+  expect_equal(manifold_fmrireg$parameters$n_hrfs_library, length(hrf_list))
+})
+
 test_that("subject-level wrapper runs on minimal data", {
   skip_if_not_installed("neuroim2")
   skip_if_not_installed("fmrireg")
