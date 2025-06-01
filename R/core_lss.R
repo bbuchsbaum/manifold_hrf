@@ -120,9 +120,9 @@ prepare_lss_fixed_components_core <- function(A_lss_fixed_matrix,
   }
   
   # Step 4: Compute P_lss = (A'A + lambda*I)^(-1) * A'
-  # First solve for (A'A + lambda*I)^(-1)
-  AtA_reg_inv <- solve(AtA_reg)
-  
+  # Use Cholesky decomposition for stable inversion
+  AtA_reg_inv <- chol2inv(chol(AtA_reg))
+
   # Then multiply by A'
   P_lss_matrix <- AtA_reg_inv %*% t(A_lss_fixed_matrix)  # q_lss x n
   
