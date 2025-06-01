@@ -390,18 +390,61 @@ summary.mhrf_manifold <- function(object, ...) {
 #' @param manifold_objects Manifold objects from construct_hrf_manifold_nim
 #' @param params_list All pipeline parameters
 #' @return List of R matrices plus processing metadata
-#' @export
 process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
                                         confound_input = NULL, manifold_objects,
                                         params_list) {
-  # TODO: Implement MHRF-NIM-WRAP-SUBJECT-01
-  # This would handle:
-  # - Loading BOLD data via neuroim2
-  # - Creating design matrices via fmrireg
-  # - Calling all core pipeline functions
-  # - Returning results
-  
-  stop("Function not yet implemented - requires neuroim2/fmrireg integration")
+  if (!requireNamespace("neuroim2", quietly = TRUE)) {
+    stop("Package 'neuroim2' is required")
+  }
+  if (!requireNamespace("fmrireg", quietly = TRUE)) {
+    stop("Package 'fmrireg' is required")
+  }
+
+  bold <- if (inherits(bold_input, c("NeuroVec", "NeuroVol"))) {
+    bold_input
+  } else {
+    neuroim2::read_vec(bold_input)
+  }
+
+  mask <- if (inherits(mask_input, "LogicalNeuroVol")) {
+    mask_input
+  } else {
+    neuroim2::read_vol(mask_input)
+  }
+
+  events <- if (is.character(event_input)) {
+    read.csv(event_input, sep = ifelse(grepl("\\.tsv$", event_input), "\t", ","))
+  } else {
+    event_input
+  }
+
+  TR <- params_list$TR %||% stop("TR must be specified in params_list")
+
+  Y_mat <- as.matrix(bold)
+  mask_idx <- which(as.logical(mask))
+  Y_mat <- Y_mat[, mask_idx, drop = FALSE]
+
+  sframe <- fmrireg::sampling_frame(blocklens = nrow(Y_mat), TR = TR)
+  ev_model <- fmrireg::event_model(~ hrf(onset, basis = manifold_objects$manifold_hrf_basis),
+                                   data = events, sampling_frame = sframe, drop_empty = TRUE)
+  design_info <- extract_design_info(ev_model, sframe)
+
+  result <- run_mhrf_lss_standard(
+    Y_data = Y_mat,
+    design_info = design_info,
+    manifold = manifold_objects,
+    Z_confounds = confound_input,
+    voxel_coords = neuroim2::coords(mask)[mask_idx, , drop = FALSE],
+    params = params_list,
+    outlier_weights = NULL,
+    estimation = if (length(design_info$X_trial_list) > 0) "both" else "condition",
+    progress = FALSE
+  )
+
+  result$mask_indices <- mask_idx
+  result$space <- neuroim2::space(bold)
+
+  return(result)
 }
 
 #' Enhanced Results Packaging & Visualization (Neuroimaging Layer)
@@ -412,14 +455,31 @@ process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
 #' @param original_inputs Original input specifications
 #' @param processing_metadata Metadata from processing
 #' @return mhrf_results S3 object with neuroim2 integration
-#' @export
 package_mhrf_results_nim <- function(core_results_list, reference_space, mask_vol,
                                     original_inputs, processing_metadata) {
-  # TODO: Implement MHRF-NIM-OUTPUT-01
-  # This would:
-  # - Convert matrices back to NeuroVec/NeuroVol objects
-  # - Create S3 class with print/plot/summary methods
-  # - Enable writing results to NIfTI
-  
-  stop("Function not yet implemented - requires neuroim2 integration")
+  if (!requireNamespace("neuroim2", quietly = TRUE)) {
+    stop("Package 'neuroim2' is required")
+  }
+
+  mask_idx <- which(as.logical(mask_vol))
+  p <- nrow(core_results_list$H_shapes)
+  Vtot <- prod(neuroim2::dim(reference_space))
+
+  hrf_arr <- matrix(0, p, Vtot)
+  hrf_arr[, mask_idx] <- core_results_list$H_shapes
+  hrf_vec <- neuroim2::NeuroVec(hrf_arr, reference_space)
+
+  amp_arr <- matrix(0, nrow(core_results_list$Beta_condition), Vtot)
+  amp_arr[, mask_idx] <- core_results_list$Beta_condition
+  amp_vec <- neuroim2::NeuroVec(amp_arr, reference_space)
+
+  result <- list(
+    hrfs = hrf_vec,
+    amplitudes = amp_vec,
+    matrices = core_results_list,
+    metadata = processing_metadata,
+    inputs = original_inputs
+  )
+  class(result) <- c("mhrf_results", "list")
+  return(result)
 }

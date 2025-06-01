@@ -182,11 +182,19 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                  B_reconstructor_matrix,
                                                  h_ref_shape_vector,
                                                  ident_scale_method = c("l2_norm", "max_abs_val", "none"),
-                                                 ident_sign_method = c("first_component", "canonical_correlation"),
-                                                 zero_tol = 1e-8) {
+                                                 ident_sign_method = c("first_component", "canonical_correlation", "data_fit_correlation"),
+                                                 zero_tol = 1e-8,
+                                                 Y_proj_matrix = NULL,
+                                                 X_condition_list_proj_matrices = NULL) {
 
   ident_scale_method <- match.arg(ident_scale_method)
   ident_sign_method <- match.arg(ident_sign_method)
+
+  if (ident_sign_method == "data_fit_correlation") {
+    if (is.null(Y_proj_matrix) || is.null(X_condition_list_proj_matrices)) {
+      stop("data_fit_correlation method requires Y_proj_matrix and X_condition_list_proj_matrices")
+    }
+  }
 
   xi_ref_coord <- MASS::ginv(B_reconstructor_matrix) %*% h_ref_shape_vector
 
@@ -204,8 +212,31 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
       next
     }
 
-    sgn <- sign(sum(xi_v * xi_ref_coord))
-    if (sgn == 0) sgn <- 1
+    if (ident_sign_method == "canonical_correlation" || ident_sign_method == "first_component") {
+      sgn <- sign(sum(xi_v * xi_ref_coord))
+      if (sgn == 0) sgn <- 1
+    } else if (ident_sign_method == "data_fit_correlation") {
+      best_r2 <- -Inf
+      best_sgn <- 1
+      for (sg in c(1, -1)) {
+        xi_tmp <- xi_v * sg
+        beta_tmp <- beta_v * sg
+        h_tmp <- B_reconstructor_matrix %*% xi_tmp
+        k <- length(X_condition_list_proj_matrices)
+        X_design <- matrix(0, nrow(Y_proj_matrix), k)
+        for (c in 1:k) {
+          X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp
+        }
+        y_pred <- X_design %*% beta_tmp
+        y_true <- Y_proj_matrix[, v]
+        r2 <- suppressWarnings(cor(y_pred, y_true))^2
+        if (!is.na(r2) && r2 > best_r2) {
+          best_r2 <- r2
+          best_sgn <- sg
+        }
+      }
+      sgn <- best_sgn
+    }
 
     xi_v <- xi_v * sgn
     beta_v <- beta_v * sgn
@@ -243,7 +274,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 #' @param num_neighbors_Lsp number of nearest neighbours
 #' @return sparse V x V graph Laplacian matrix
 #' @export
-make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, num_neighbors_Lsp = 6) {
+make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, num_neighbors_Lsp = 6,
+                                            distance_engine = c("euclidean", "ann_euclidean"),
+                                            ann_threshold = 10000) {
   # Input validation
   if (!is.matrix(voxel_coords_matrix)) {
     stop("voxel_coords_matrix must be a matrix")
@@ -271,9 +304,18 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, num_neighbors_L
     # Create fully connected graph
     W <- Matrix::Matrix(1, n_voxels, n_voxels) - Matrix::Diagonal(n_voxels)
   } else {
-    nn <- RANN::nn2(voxel_coords_matrix, k = min(num_neighbors_Lsp + 1, n_voxels))
-    i_idx <- rep(seq_len(n_voxels), each = ncol(nn$nn.idx) - 1)
-    j_idx <- as.vector(nn$nn.idx[, -1])
+    distance_engine <- match.arg(distance_engine)
+    if (distance_engine == "ann_euclidean" ||
+        (distance_engine == "euclidean" && n_voxels > ann_threshold &&
+         requireNamespace("RcppHNSW", quietly = TRUE))) {
+      ann_res <- RcppHNSW::hnsw_knn(voxel_coords_matrix, k = num_neighbors_Lsp + 1)
+      idx_mat <- ann_res$idx[, -1, drop = FALSE]
+    } else {
+      res <- knn_search_cpp(t(voxel_coords_matrix), t(voxel_coords_matrix), num_neighbors_Lsp + 1)
+      idx_mat <- t(res$idx)[, -1, drop = FALSE]
+    }
+    i_idx <- rep(seq_len(n_voxels), each = ncol(idx_mat))
+    j_idx <- as.vector(idx_mat)
     W <- Matrix::sparseMatrix(i = i_idx, j = j_idx, x = 1,
                               dims = c(n_voxels, n_voxels))
     W <- (W + Matrix::t(W)) / 2
@@ -325,78 +367,4 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
 }
 
 
-#' Estimate final condition-level betas using smoothed HRFs
-#'
-#' @param Y_proj_matrix n x V projected BOLD matrix
-#' @param X_condition_list_proj_matrices list of k n x p design matrices
-#' @param H_shapes_allvox_matrix p x V HRF shapes for all voxels
-#' @param lambda_beta_final numeric scalar ridge penalty (default 0)
-#' @param control_alt_list list with control parameters (default \code{list(max_iter = 1)}).
-#'   Recognized elements are \code{max_iter} (positive integer) and
-#'   \code{rel_change_tol} (non-negative numeric).
-#' @return k x V matrix of final condition-level betas
-#' @export
-estimate_final_condition_betas_core <- function(Y_proj_matrix,
-                                                X_condition_list_proj_matrices,
-                                                H_shapes_allvox_matrix,
-                                                lambda_beta_final = 0,
-                                                control_alt_list = list(max_iter = 1)) {
-  # Input validation
-  if (!is.matrix(Y_proj_matrix)) {
-    stop("Y_proj_matrix must be a matrix")
-  }
-  if (!is.list(X_condition_list_proj_matrices)) {
-    stop("X_condition_list_proj_matrices must be a list")
-  }
-  if (length(X_condition_list_proj_matrices) == 0) {
-    stop("X_condition_list_proj_matrices must contain at least one condition")
-  }
-  if (!is.matrix(H_shapes_allvox_matrix)) {
-    stop("H_shapes_allvox_matrix must be a matrix")
-  }
-  
-  k <- length(X_condition_list_proj_matrices)
-  V <- ncol(Y_proj_matrix)
-  n <- nrow(Y_proj_matrix)
-  
-  # More validation
-  if (ncol(H_shapes_allvox_matrix) != V) {
-    stop("H_shapes_allvox_matrix must have V columns matching Y_proj_matrix")
-  }
-  if (!is.numeric(lambda_beta_final) || length(lambda_beta_final) != 1 || lambda_beta_final < 0) {
-    stop("lambda_beta_final must be a non-negative scalar")
-  }
-  if (!is.list(control_alt_list)) {
-    stop("control_alt_list must be a list")
-  }
-  if (!is.null(control_alt_list$max_iter)) {
-    if (!is.numeric(control_alt_list$max_iter) || control_alt_list$max_iter < 1) {
-      stop("max_iter must be a positive integer")
-    }
-  }
-  if (!is.null(control_alt_list$rel_change_tol)) {
-    if (!is.numeric(control_alt_list$rel_change_tol) || control_alt_list$rel_change_tol < 0) {
-      stop("rel_change_tol must be a non-negative scalar")
-    }
-  }
-  
-  Beta_final <- matrix(0, k, V)
-  for (v in seq_len(V)) {
-    X_v <- matrix(0, n, k)
-    for (c in seq_len(k)) {
-      X_v[, c] <- X_condition_list_proj_matrices[[c]] %*% H_shapes_allvox_matrix[, v]
-    }
-    XtX <- crossprod(X_v) + diag(lambda_beta_final, k)
-    XtY <- crossprod(X_v, Y_proj_matrix[, v])
-    
-    # Check for near-singularity
-    if (rcond(XtX) < .Machine$double.eps) {
-      # If singular, return zeros
-      Beta_final[, v] <- rep(0, k)
-    } else {
-      Beta_final[, v] <- solve(XtX, XtY)
-    }
-  }
-  Beta_final
-}
 

@@ -45,7 +45,9 @@
 #' @export
 calculate_manifold_affinity_core <- function(L_library_matrix,
                                             k_local_nn_for_sigma,
-                                            use_sparse_W_params = list()) {
+                                            use_sparse_W_params = list(),
+                                            distance_engine = c("euclidean", "ann_euclidean"),
+                                            ann_threshold = 10000) {
   
   # Input validation
   if (!is.matrix(L_library_matrix)) {
@@ -63,47 +65,61 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
   sparse_threshold <- use_sparse_W_params$sparse_if_N_gt
   k_nn_sparse <- use_sparse_W_params$k_nn_for_W_sparse
   
-  # Step 1: Compute pairwise Euclidean distances
-  # Using dist() for efficiency, then convert to matrix
-  dist_mat <- as.matrix(dist(t(L_library_matrix)))
-  
-  # Step 2: Find k-th nearest neighbor distance for each HRF (self-tuning bandwidth)
-  # For each HRF, sort distances and take the k-th smallest (excluding self)
-  sigma_i <- numeric(N)
-  for (i in 1:N) {
-    # Sort distances from HRF i (excluding self-distance which is 0)
-    sorted_dists <- sort(dist_mat[i, -i])
-    # k-th nearest neighbor distance
-    sigma_i[i] <- sorted_dists[k_local_nn_for_sigma]
-    
-    # Ensure sigma is not zero (can happen with duplicate HRFs)
-    if (sigma_i[i] == 0) {
-      # Use median of all non-zero distances as fallback
-      non_zero_dists <- sorted_dists[sorted_dists > 0]
-      if (length(non_zero_dists) > 0) {
-        sigma_i[i] <- median(non_zero_dists)
+  distance_engine <- match.arg(distance_engine)
+
+  # Step 1: compute pairwise distances or nearest neighbors
+  if (distance_engine == "ann_euclidean" ||
+      (distance_engine == "euclidean" && N > ann_threshold &&
+       requireNamespace("RcppHNSW", quietly = TRUE))) {
+    k_for_ann <- max(k_local_nn_for_sigma,
+                     k_nn_sparse %||% k_local_nn_for_sigma)
+    ann_res <- RcppHNSW::hnsw_knn(t(L_library_matrix), k = k_for_ann + 1)
+    nn_idx <- ann_res$idx[, -1, drop = FALSE]
+    nn_dist <- ann_res$dist[, -1, drop = FALSE]
+    sigma_i <- nn_dist[, k_local_nn_for_sigma]
+    if (requireNamespace("Matrix", quietly = TRUE)) {
+      i_vec <- rep(seq_len(N), each = k_for_ann)
+      j_vec <- as.vector(t(nn_idx))
+      d_vec <- as.vector(t(nn_dist))
+      sigma_prod_vec <- sigma_i[i_vec] * sigma_i[j_vec]
+      w_vec <- exp(-(d_vec^2) / sigma_prod_vec)
+      W <- Matrix::sparseMatrix(i = i_vec, j = j_vec, x = w_vec,
+                                dims = c(N, N))
+      W <- pmax(W, Matrix::t(W))
+    } else {
+      W <- matrix(0, N, N)
+      for (i in seq_len(N)) {
+        for (kk in seq_len(k_for_ann)) {
+          j <- nn_idx[i, kk]
+          d_ij <- nn_dist[i, kk]
+          w_ij <- exp(-(d_ij^2) / (sigma_i[i] * sigma_i[j]))
+          W[i, j] <- max(W[i, j], w_ij)
+          W[j, i] <- max(W[j, i], w_ij)
+        }
+      }
+    }
+  } else {
+    # Use exact distances with Rcpp
+    dist_mat <- pairwise_distances_cpp(L_library_matrix)
+    dist_no_self <- dist_mat + diag(Inf, N)
+    sigma_i <- apply(dist_no_self, 1, function(row) {
+      val <- sort(row)[k_local_nn_for_sigma]
+      if (val == 0 || is.na(val)) {
+        nz <- row[row > 0]
+        if (length(nz) > 0) median(nz) else 1e-6
       } else {
-        # Last resort: use a small positive value
-        sigma_i[i] <- 1e-6
+        val
       }
-    }
+    })
+    sigma_prod <- outer(sigma_i, sigma_i)
+    W <- exp(-(dist_mat ^ 2) / sigma_prod)
+    diag(W) <- 0
   }
   
-  # Step 3: Compute affinity matrix W with self-tuning bandwidth
-  # W_ij = exp(-dist_ij^2 / (sigma_i * sigma_j))
-  W <- matrix(0, N, N)
-  for (i in 1:N) {
-    for (j in 1:N) {
-      if (i != j) {
-        W[i, j] <- exp(-dist_mat[i, j]^2 / (sigma_i[i] * sigma_i[j]))
-      }
-    }
-  }
-  # Set diagonal to 0 (no self-loops)
-  diag(W) <- 0
   
-  # Step 4: Optional sparsification for large N
-  if (!is.null(sparse_threshold) && N > sparse_threshold && !is.null(k_nn_sparse)) {
+  # Step 4: Optional sparsification for large N (only if W is dense)
+  if (!inherits(W, "Matrix") && !is.null(sparse_threshold) &&
+      N > sparse_threshold && !is.null(k_nn_sparse)) {
     # Convert to sparse matrix keeping only k_nn_sparse nearest neighbors
     W_sparse <- W
     for (i in 1:N) {
