@@ -77,7 +77,7 @@ construct_hrf_manifold_nim <- function(hrf_library_source,
   
   if (is.character(hrf_library_source) && length(hrf_library_source) == 1) {
     # Handle predefined libraries or file paths
-    L_library_matrix <- switch(hrf_library_source,
+    library_list_or_matrix <- switch(hrf_library_source,
       "FLOBS" = {
         library_info$name <- "FLOBS"
         library_info$description <- "FMRIB's Linear Optimal Basis Set"
@@ -104,6 +104,18 @@ construct_hrf_manifold_nim <- function(hrf_library_source,
         }
       }
     )
+
+    time_points <- seq(0, hrf_duration, by = TR_precision)
+    if (is.list(library_list_or_matrix) && all(sapply(library_list_or_matrix, inherits, "HRF"))) {
+      library_info$n_hrfs <- length(library_list_or_matrix)
+      L_library_matrix <- do.call(cbind, lapply(library_list_or_matrix, function(h) {
+        as.numeric(fmrireg::evaluate(h, time_points))
+      }))
+    } else if (is.matrix(library_list_or_matrix)) {
+      L_library_matrix <- library_list_or_matrix
+    } else {
+      stop("Unsupported HRF library format returned from switch")
+    }
   } else if (is.list(hrf_library_source)) {
     # List input - may be fmrireg HRF objects or generic structures
     library_info$name <- "custom_list"
@@ -119,14 +131,9 @@ construct_hrf_manifold_nim <- function(hrf_library_source,
 
     if (all(sapply(hrf_library_source, inherits, "HRF"))) {
       # Evaluate each fmrireg HRF object
-      if (!requireNamespace("fmrireg", quietly = TRUE)) {
-        stop("Package 'fmrireg' is required to evaluate HRF objects")
-      }
-
-      L_library_list <- lapply(hrf_library_source, function(hrf_obj) {
+      L_library_matrix <- do.call(cbind, lapply(hrf_library_source, function(hrf_obj) {
         as.numeric(fmrireg::evaluate(hrf_obj, time_points))
-      })
-      L_library_matrix <- do.call(cbind, L_library_list)
+      }))
     } else {
       # Fallback: treat as generic list and generate dummy HRFs (backwards compatibility)
       L_library_matrix <- matrix(0, p, N)
@@ -247,75 +254,101 @@ construct_hrf_manifold_nim <- function(hrf_library_source,
 # Helper functions for creating HRF libraries
 
 #' Create FLOBS Library
+#'
+#' Generates a small set of FLOBS-like HRF basis functions as a list of
+#' `fmrireg::HRF` objects.
 #' @keywords internal
 create_flobs_library <- function(TR_precision, hrf_duration) {
-  # Simplified FLOBS-like basis
-  # In real implementation, would use actual FLOBS basis
   time_points <- seq(0, hrf_duration, by = TR_precision)
-  p <- length(time_points)
-  
-  # Create basis functions
+
   n_basis <- 5
-  L <- matrix(0, p, n_basis)
-  
-  # Canonical HRF and derivatives
-  for (i in 1:n_basis) {
-    t_shift <- time_points - (i-1) * 0.5
-    t_shift[t_shift < 0] <- 0
-    L[, i] <- dgamma(t_shift, shape = 6, rate = 1) - 
-              0.35 * dgamma(t_shift, shape = 16, rate = 1)
+  library_list <- vector("list", n_basis)
+
+  for (i in seq_len(n_basis)) {
+    hrf_fun <- local({
+      shift <- (i - 1) * 0.5
+      function(t) {
+        t_shift <- t - shift
+        t_shift[t_shift < 0] <- 0
+        stats::dgamma(t_shift, shape = 6, rate = 1) -
+          0.35 * stats::dgamma(t_shift, shape = 16, rate = 1)
+      }
+    })
+
+    # Normalise based on sampling grid
+    scale_val <- max(abs(hrf_fun(time_points)))
+    hrf_norm <- function(t) hrf_fun(t) / scale_val
+
+    library_list[[i]] <- fmrireg::as_hrf(
+      hrf_norm,
+      name = paste0("flobs", i),
+      span = hrf_duration
+    )
   }
-  
-  # Normalize
-  L <- apply(L, 2, function(x) x / max(abs(x)))
-  
-  return(L)
+
+  library_list
 }
 
 #' Create Half-Cosine Library
+#'
+#' Returns a list of damped cosine basis functions as `fmrireg::HRF` objects.
 #' @keywords internal
 create_half_cosine_library <- function(TR_precision, hrf_duration, n_basis = 20) {
   time_points <- seq(0, hrf_duration, by = TR_precision)
-  p <- length(time_points)
-  
-  L <- matrix(0, p, n_basis)
-  
-  for (i in 1:n_basis) {
+
+  library_list <- vector("list", n_basis)
+
+  for (i in seq_len(n_basis)) {
     freq <- i * pi / hrf_duration
-    L[, i] <- cos(freq * time_points)
-    # Apply window to make it causal
-    L[, i] <- L[, i] * exp(-time_points / (hrf_duration / 2))
+    hrf_fun <- function(t) {
+      stats::cos(freq * t) * exp(-t / (hrf_duration / 2))
+    }
+
+    scale_val <- max(abs(hrf_fun(time_points)))
+    hrf_norm <- function(t) hrf_fun(t) / scale_val
+
+    library_list[[i]] <- fmrireg::as_hrf(
+      hrf_norm,
+      name = paste0("half_cosine", i),
+      span = hrf_duration
+    )
   }
-  
-  # Normalize
-  L <- apply(L, 2, function(x) x / max(abs(x)))
-  
-  return(L)
+
+  library_list
 }
 
 #' Create Gamma Grid Library
+#'
+#' Generates a grid of gamma HRFs as a list of `fmrireg::HRF` objects.
 #' @keywords internal
 create_gamma_grid_library <- function(TR_precision, hrf_duration) {
   time_points <- seq(0, hrf_duration, by = TR_precision)
-  p <- length(time_points)
-  
-  # Grid of shape and scale parameters
+
   shapes <- seq(4, 8, length.out = 10)
   scales <- seq(0.8, 1.2, length.out = 10)
-  
+
   grid <- expand.grid(shape = shapes, scale = scales)
-  N <- nrow(grid)
-  
-  L <- matrix(0, p, N)
-  
-  for (i in 1:N) {
-    L[, i] <- dgamma(time_points, shape = grid$shape[i], scale = grid$scale[i])
+
+  library_list <- vector("list", nrow(grid))
+
+  for (i in seq_len(nrow(grid))) {
+    shape_i <- grid$shape[i]
+    scale_i <- grid$scale[i]
+    hrf_fun <- function(t) {
+      stats::dgamma(t, shape = shape_i, scale = scale_i)
+    }
+
+    norm_val <- sum(hrf_fun(time_points))
+    hrf_norm <- function(t) hrf_fun(t) / norm_val
+
+    library_list[[i]] <- fmrireg::as_hrf(
+      hrf_norm,
+      name = paste0("gamma_shape", shape_i, "_scale", scale_i),
+      span = hrf_duration
+    )
   }
-  
-  # Normalize
-  L <- apply(L, 2, function(x) x / sum(x))
-  
-  return(L)
+
+  library_list
 }
 
 #' Create Manifold HRF Object
