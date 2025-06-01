@@ -235,7 +235,7 @@ mhrf_analyze <- function(Y_data,
   
   # Step 6: Run core M-HRF-LSS pipeline
   progress$update("Running M-HRF-LSS pipeline...")
-  
+
   # Component 0: HRF Manifold Construction
   progress$update("  Component 0: Constructing HRF manifold...", level = 2)
   
@@ -244,17 +244,24 @@ mhrf_analyze <- function(Y_data,
     params = params,
     progress = progress
   )
+
+  error_log <- list()
   
   # Component 1: Voxel-wise HRF Estimation
   progress$update("  Component 1: Estimating voxel-wise HRFs...", level = 2)
   
-  voxelwise_result <- .run_voxelwise_estimation(
-    Y_data = Y_matrix,
-    X_condition_list = X_condition_list,
-    manifold = manifold_result,
-    params = params,
-    progress = progress
-  )
+  voxelwise_result <- tryCatch({
+    .run_voxelwise_estimation(
+      Y_data = Y_matrix,
+      X_condition_list = X_condition_list,
+      manifold = manifold_result,
+      params = params,
+      progress = progress
+    )
+  }, error = function(e) {
+    error_log$component1 <<- e$message
+    stop(e)
+  })
   
   # Component 2: Spatial Smoothing
   progress$update("  Component 2: Applying spatial smoothing...", level = 2)
@@ -270,10 +277,15 @@ mhrf_analyze <- function(Y_data,
   # Component 3: HRF Reconstruction
   progress$update("  Component 3: Reconstructing HRF shapes...", level = 2)
   
-  hrf_shapes <- reconstruct_hrf_shapes_core(
-    B_reconstructor_matrix = manifold_result$B_reconstructor,
-    Xi_smoothed_matrix = smoothing_result$Xi_smooth
-  )
+  hrf_shapes <- tryCatch({
+    reconstruct_hrf_shapes_core(
+      B_reconstructor_matrix = manifold_result$B_reconstructor,
+      Xi_smoothed_matrix = smoothing_result$Xi_smooth
+    )
+  }, error = function(e) {
+    error_log$component3 <<- e$message
+    stop(e)
+  })
   
   # Apply physiological constraints if requested
   if (params$apply_hrf_constraints) {
@@ -309,7 +321,8 @@ mhrf_analyze <- function(Y_data,
     hrf_shapes = hrf_shapes,
     amplitudes = voxelwise_result$Beta_ident,
     manifold_coords = smoothing_result$Xi_smooth,
-    params = params
+    params = params,
+    error_log = error_log
   )
   qc_metrics$n_truncated_hrfs <- design_info$n_truncated_hrfs
   
@@ -818,11 +831,16 @@ mhrf_analyze <- function(Y_data,
 
 #' Run trial estimation
 #' @keywords internal
-.run_trial_estimation <- function(Y_data, X_trial_list, hrf_shapes, 
+.run_trial_estimation <- function(Y_data, X_trial_list, hrf_shapes,
                                  params, progress) {
-  
+
   n_voxels <- ncol(Y_data)
   n_trials <- length(X_trial_list)
+
+  validate_design_matrix_list(X_trial_list, n_timepoints = nrow(Y_data))
+  validate_hrf_shape_matrix(hrf_shapes,
+                            n_timepoints = ncol(X_trial_list[[1]]),
+                            n_voxels = n_voxels)
   
   # Initialize storage
   trial_amplitudes <- matrix(NA, n_trials, n_voxels)
@@ -913,7 +931,7 @@ mhrf_analyze <- function(Y_data,
 #' @param params List of pipeline parameters
 #' @keywords internal
 .compute_qc_metrics <- function(Y_data, X_condition_list, hrf_shapes, amplitudes,
-                               manifold_coords, params) {
+                               manifold_coords, params, error_log = NULL) {
   
   # Basic metrics
   qc <- list(
@@ -962,7 +980,11 @@ mhrf_analyze <- function(Y_data,
   qc$r_squared_voxels <- r2_voxels
   qc$diagnostics <- list(r2_voxelwise = r2_voxels)
   qc$quality_flags <- create_qc_flags(qc)
-  
+
+  if (!is.null(error_log)) {
+    qc$error_log <- error_log
+  }
+
   return(qc)
 }
 
