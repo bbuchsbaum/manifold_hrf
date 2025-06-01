@@ -26,10 +26,12 @@
 #'   
 #' @details This function implements Component 4 of the M-HRF-LSS pipeline.
 #'   It re-estimates condition-level amplitudes using the final smoothed HRF
-#'   shapes. For each voxel, it constructs condition-specific regressors by
-#'   convolving the design matrices with the voxel's HRF, then solves a
-#'   ridge regression problem. The MVP version does a single pass (max_iter=1),
-#'   but the framework supports iterative refinement between HRFs and betas.
+#'   shapes. Regressors for all voxels are precomputed in a vectorized manner to
+#'   avoid redundant convolutions, yielding a noticeable efficiency improvement.
+#'   For very large datasets, a C++ (Rcpp) implementation of this step could
+#'   provide further acceleration. The MVP version does a single pass
+#'   (max_iter=1), but the framework supports iterative refinement between HRFs
+#'   and betas.
 #'   
 #' @examples
 #' \dontrun{
@@ -151,9 +153,31 @@ estimate_final_condition_betas_core <- function(Y_proj_matrix,
     }
   }
   
+  # Precompute condition-specific regressors for all voxels
+  # Each entry in conv_design_list[[c]] is an n x V matrix where column v is the
+  # regressor for condition c and voxel v
+  conv_design_list <- lapply(X_condition_list_proj_matrices, function(Xc) {
+    Xc %*% H_shapes_allvox_matrix
+  })
+
+  # Precompute cross products with the data (XtY) and between regressors (XtX)
+  XtY_matrix <- matrix(0, nrow = k, ncol = V)
+  for (c in 1:k) {
+    XtY_matrix[c, ] <- colSums(conv_design_list[[c]] * Y_proj_matrix)
+  }
+
+  XtX_array <- array(0, dim = c(k, k, V))
+  for (c1 in 1:k) {
+    for (c2 in c1:k) {
+      prod_vec <- colSums(conv_design_list[[c1]] * conv_design_list[[c2]])
+      XtX_array[c1, c2, ] <- prod_vec
+      XtX_array[c2, c1, ] <- prod_vec
+    }
+  }
+
   # Initialize output matrix
   Beta_condition_final_matrix <- matrix(0, nrow = k, ncol = V)
-  
+
   # For MVP, we only do one iteration (max_iter = 1)
   # Future versions could iterate between beta and HRF estimation
   for (iter in 1:max_iter) {
@@ -166,27 +190,10 @@ estimate_final_condition_betas_core <- function(Y_proj_matrix,
     # Main voxel loop
     # This could be parallelized in future versions
     for (v in 1:V) {
-      
-      # Extract data and HRF for current voxel
-      Y_voxel <- Y_proj_matrix[, v]
-      H_voxel <- H_shapes_allvox_matrix[, v]
-      
-      # Construct design matrix for this voxel
-      # Each column is a condition-specific regressor convolved with voxel HRF
-      X_design_voxel <- matrix(0, nrow = n, ncol = k)
-      
-      for (c in 1:k) {
-        # Convolve condition design with voxel-specific HRF
-        # X_c is n x p, H_voxel is p x 1, result is n x 1
-        X_design_voxel[, c] <- X_condition_list_proj_matrices[[c]] %*% H_voxel
-      }
-      
-      # Ridge regression for this voxel
-      # beta = (X'X + lambda*I)^(-1) * X'y
-      XtX_voxel <- crossprod(X_design_voxel)  # k x k
-      XtX_voxel_reg <- XtX_voxel + lambda_beta_final * diag(k)
-      XtY_voxel <- crossprod(X_design_voxel, Y_voxel)  # k x 1
-      
+
+      XtX_voxel_reg <- XtX_array[, , v] + lambda_beta_final * diag(k)
+      XtY_voxel <- XtY_matrix[, v]
+
       # Solve for beta
       # Check for numerical issues
       if (any(is.na(XtX_voxel_reg)) || any(is.infinite(XtX_voxel_reg))) {

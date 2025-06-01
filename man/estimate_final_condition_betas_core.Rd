@@ -36,10 +36,11 @@ HRF shapes from the manifold estimation pipeline.
 \details{
 This function implements Component 4 of the M-HRF-LSS pipeline.
 It re-estimates condition-level amplitudes using the final smoothed HRF
-shapes. For each voxel, it constructs condition-specific regressors by
-convolving the design matrices with the voxel's HRF, then solves a
-ridge regression problem. The MVP version does a single pass (max_iter=1),
-but the framework supports iterative refinement between HRFs and betas.
+shapes. Regressors for all voxels are precomputed in a vectorized manner
+to avoid redundant convolutions, improving efficiency. For very large
+data sets, converting this step to C++ via Rcpp could further accelerate
+computation. The MVP version does a single pass (max_iter=1), but the
+framework supports iterative refinement between HRFs and betas.
 }
 \examples{
 \dontrun{
