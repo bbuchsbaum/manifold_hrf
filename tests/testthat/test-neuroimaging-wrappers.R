@@ -178,12 +178,11 @@ test_that("manifold HRF basis object is created correctly", {
   hrf_basis <- manifold$manifold_hrf_basis
   
   # Check structure
-  expect_type(hrf_basis, "list")
   expect_s3_class(hrf_basis, "mhrf_basis")
-  expect_equal(hrf_basis$type, "manifold")
-  expect_equal(hrf_basis$nbasis, manifold$m_manifold_dim)
-  expect_true("evaluate" %in% names(hrf_basis))
-  expect_true(is.function(hrf_basis$evaluate))
+  expect_s3_class(hrf_basis, "HRF")
+  expect_equal(attr(hrf_basis, "nbasis"), manifold$m_manifold_dim)
+  expect_true(is.function(hrf_basis))
+  expect_type(fmrireg::evaluate(hrf_basis, 0), "double")
 })
 
 test_that("construct_hrf_manifold_nim handles list input", {

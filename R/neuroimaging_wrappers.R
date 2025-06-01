@@ -354,24 +354,32 @@ create_gamma_grid_library <- function(TR_precision, hrf_duration) {
 #' Create Manifold HRF Object
 #' @keywords internal
 create_manifold_hrf_object <- function(B_reconstructor, name, nbasis) {
-  # Placeholder for creating fmrireg-compatible HRF object
-  # In real implementation would use fmrireg::as_hrf()
-  
-  hrf_obj <- list(
-    type = "manifold",
-    name = name,
-    nbasis = nbasis,
-    B_reconstructor = B_reconstructor,
-    evaluate = function(grid, ...) {
-      # Placeholder evaluation function
-      # Would implement proper manifold coordinate to HRF mapping
-      matrix(0, length(grid), nbasis)
-    }
-  )
-  
-  class(hrf_obj) <- c("mhrf_basis", "hrf", "list")
-  
-  return(hrf_obj)
+  if (!is.matrix(B_reconstructor)) {
+    stop("B_reconstructor must be a matrix")
+  }
+
+  nbasis <- nbasis %||% ncol(B_reconstructor)
+  if (ncol(B_reconstructor) < nbasis) {
+    stop("nbasis exceeds number of columns in B_reconstructor")
+  }
+
+  time_points <- seq(0, length.out = nrow(B_reconstructor), by = 1)
+
+  basis_functions <- vector("list", nbasis)
+  for (j in seq_len(nbasis)) {
+    basis_functions[[j]] <- fmrireg::empirical_hrf(
+      time_points,
+      B_reconstructor[, j],
+      name = paste0(name, "_basis", j)
+    )
+  }
+
+  manifold_hrf <- do.call(fmrireg::bind_basis, basis_functions)
+  attr(manifold_hrf, "name") <- name
+  attr(manifold_hrf, "nbasis") <- nbasis
+  class(manifold_hrf) <- c("mhrf_basis", class(manifold_hrf))
+
+  manifold_hrf
 }
 
 #' Print method for mhrf_manifold objects
