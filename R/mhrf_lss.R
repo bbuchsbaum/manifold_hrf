@@ -298,6 +298,7 @@ mhrf_analyze <- function(Y_data,
   
   qc_metrics <- .compute_qc_metrics(
     Y_data = Y_matrix,
+    X_condition_list = X_condition_list,
     hrf_shapes = hrf_shapes,
     amplitudes = voxelwise_result$Beta_ident,
     manifold_coords = smoothing_result$Xi_smooth,
@@ -868,8 +869,19 @@ mhrf_analyze <- function(Y_data,
 
 
 #' Compute QC metrics
+#'
+#' Estimates basic quality metrics for the fitted model.  A sample of voxels is
+#' reconstructed using the estimated HRFs and amplitudes and the resulting
+#' R\eqn{^2} statistics are summarized.
+#'
+#' @param Y_data n \times V matrix of observed time series
+#' @param X_condition_list list of condition design matrices
+#' @param hrf_shapes p \times V matrix of estimated HRF shapes
+#' @param amplitudes k \times V matrix of condition amplitudes
+#' @param manifold_coords m \times V matrix of manifold coordinates
+#' @param params List of pipeline parameters
 #' @keywords internal
-.compute_qc_metrics <- function(Y_data, hrf_shapes, amplitudes, 
+.compute_qc_metrics <- function(Y_data, X_condition_list, hrf_shapes, amplitudes,
                                manifold_coords, params) {
   
   # Basic metrics
@@ -893,18 +905,31 @@ mhrf_analyze <- function(Y_data,
     sample_voxels <- 1:ncol(Y_data)
   }
   
-  # Simple R-squared calculation
+  # Reconstruct a subset of voxels to evaluate fit quality
   r2_voxels <- numeric(length(sample_voxels))
   for (i in seq_along(sample_voxels)) {
     v <- sample_voxels[i]
-    # This is simplified - full reconstruction would need convolution
-    y_mean <- mean(Y_data[, v])
-    ss_tot <- sum((Y_data[, v] - y_mean)^2)
-    # Placeholder for actual reconstruction
-    r2_voxels[i] <- runif(1, 0.5, 0.9)  # Would compute actual R²
+    y <- Y_data[, v]
+
+    # Predicted time series from condition regressors
+    y_pred <- rep(0, nrow(Y_data))
+    h_v <- hrf_shapes[, v]
+    for (j in seq_along(X_condition_list)) {
+      y_pred <- y_pred + (X_condition_list[[j]] %*% h_v) * amplitudes[j, v]
+    }
+
+    resid <- y - y_pred
+    denom <- sum((y - mean(y))^2)
+    if (denom > 0) {
+      r2_voxels[i] <- 1 - sum(resid^2) / denom
+    } else {
+      r2_voxels[i] <- NA_real_
+    }
   }
-  
-  qc$mean_r_squared <- mean(r2_voxels)
+
+  qc$mean_r_squared <- mean(r2_voxels, na.rm = TRUE)
+  qc$r_squared_voxels <- r2_voxels
+  qc$diagnostics <- list(r2_voxelwise = r2_voxels)
   qc$quality_flags <- create_qc_flags(qc)
   
   return(qc)
