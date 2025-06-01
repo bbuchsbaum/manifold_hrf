@@ -227,7 +227,10 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
 #'   For large libraries (N > 100) and when the \pkg{RSpectra} package is
 #'   available, the eigendecomposition is computed using
 #'   \code{RSpectra::eigs()}, which handles non-symmetric matrices efficiently.
-#'   
+#'
+#'   Manifold dimensionality is chosen with \code{select_manifold_dim()}, which
+#'   logs cumulative variance explained and eigenvalue gaps.
+#'
 #' @examples
 #' \dontrun{
 #' # Create synthetic HRF library and compute manifold
@@ -294,23 +297,13 @@ get_manifold_basis_reconstructor_core <- function(S_markov_matrix,
     eigenvectors_full <- eig_result$vectors[, 1:eig_k]
   }
   
-  # The first eigenvector should be trivial (all ones for stochastic matrix)
-  # We exclude it from the manifold coordinates
+  # The first eigenvector should be trivial (all ones for a stochastic matrix)
+  # Remove it from manifold coordinates and determine dimensionality
   eigenvalues_S <- eigenvalues_full[-1]
   Phi_raw_full <- eigenvectors_full[, -1, drop = FALSE]
-  
-  # Automatic m selection based on variance explained
-  # Using absolute values of eigenvalues for variance calculation
-  abs_eigenvalues <- abs(eigenvalues_S)
-  cum_var_explained <- cumsum(abs_eigenvalues) / sum(abs_eigenvalues)
-  m_auto <- which(cum_var_explained >= m_manifold_dim_min_variance)[1]
-  
-  # If no dimension meets the variance threshold, use all available
-  if (is.na(m_auto)) {
-    m_auto <- length(eigenvalues_S)
-    warning(sprintf("Could not achieve %.1f%% variance with available dimensions. Using all %d dimensions.", 
-                   m_manifold_dim_min_variance * 100, m_auto))
-  }
+
+  dim_info <- select_manifold_dim(eigenvalues_full, m_manifold_dim_min_variance)
+  m_auto <- dim_info$m_auto
   
   # Choose final dimension (use target dimension, but limit to available eigenvectors)
   m_final <- min(m_manifold_dim_target, length(eigenvalues_S))
