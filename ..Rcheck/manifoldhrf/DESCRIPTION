@@ -1,0 +1,26 @@
+Package: manifoldhrf
+Type: Package
+Title: Manifold Methods for Hemodynamic Response Function Analysis
+Version: 0.1.0
+Authors@R: person("Brad", "Buchsbaum", email = "brad.buchsbaum@gmail.com", role = c("aut", "cre"))
+Maintainer: Brad Buchsbaum <brad.buchsbaum@gmail.com>
+Author: Brad Buchsbaum [aut, cre]
+Description: This package provides manifold learning methods for analyzing 
+    hemodynamic response functions (HRF) in neuroimaging data. It implements 
+    dimensionality reduction techniques and manifold-based approaches for 
+    understanding HRF patterns and dynamics. The package includes a complete 
+    pipeline for manifold-guided HRF estimation and trial-wise deconvolution 
+    (M-HRF-LSS) with support for neuroimaging data formats.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2.9000
+Imports: stats, utils, Matrix, MASS, RSpectra, RANN, hrfals, rsvd,
+        fmrireg
+Suggests: testthat (>= 3.0.0), knitr, rmarkdown, neuroim2, fmrireg,
+        future.apply, parallel, proxy, RcppHNSW
+VignetteBuilder: knitr, rmarkdown
+URL: https://github.com/bbuchsbaum/manifold_hrf
+BugReports: https://github.com/bbuchsbaum/manifold_hrf/issues
+Built: R 4.3.2; ; 2025-05-31 19:10:14 UTC; unix

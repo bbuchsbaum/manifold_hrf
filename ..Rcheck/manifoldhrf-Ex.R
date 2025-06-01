@@ -1,0 +1,609 @@
+pkgname <- "manifoldhrf"
+source(file.path(R.home("share"), "R", "examples-header.R"))
+options(warn = 1)
+library('manifoldhrf')
+
+base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
+cleanEx()
+nameEx("apply_intrinsic_identifiability_core")
+### * apply_intrinsic_identifiability_core
+
+flush(stderr()); flush(stdout())
+
+### Name: apply_intrinsic_identifiability_core
+### Title: Apply intrinsic identifiability constraints
+### Aliases: apply_intrinsic_identifiability_core
+
+### ** Examples
+
+## Not run: 
+##D # After SVD extraction
+##D m <- 5
+##D k <- 3
+##D V <- 100
+##D p <- 30
+##D 
+##D # Get raw Xi and Beta from SVD
+##D svd_result <- extract_xi_beta_raw_svd_core(gamma, m, k)
+##D 
+##D # Apply identifiability with canonical HRF reference
+##D h_canonical <- c(0, 0.8, 1, 0.7, 0.3, rep(0, p-5))  # simplified canonical
+##D ident_result <- apply_intrinsic_identifiability_core(
+##D   svd_result$Xi_raw_matrix,
+##D   svd_result$Beta_raw_matrix,
+##D   B_reconstructor,
+##D   h_canonical
+##D )
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("apply_spatial_smoothing_core")
+### * apply_spatial_smoothing_core
+
+flush(stderr()); flush(stdout())
+
+### Name: apply_spatial_smoothing_core
+### Title: Apply Spatial Smoothing to Manifold Coordinates (Core)
+### Aliases: apply_spatial_smoothing_core
+
+### ** Examples
+
+## Not run: 
+##D # Example with synthetic data
+##D m <- 5   # manifold dimensions
+##D V <- 100 # voxels
+##D 
+##D # Create example manifold coordinates
+##D Xi_ident <- matrix(rnorm(m * V), m, V)
+##D 
+##D # Create simple grid coordinates
+##D coords <- expand.grid(x = 1:10, y = 1:10, z = 1)
+##D voxel_coords <- as.matrix(coords[1:V, ])
+##D 
+##D # Create Laplacian
+##D L_sparse <- make_voxel_graph_laplacian_core(voxel_coords, num_neighbors_Lsp = 8)
+##D 
+##D # Apply smoothing
+##D Xi_smoothed <- apply_spatial_smoothing_core(Xi_ident, L_sparse, lambda_spatial_smooth = 0.1)
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("calculate_manifold_affinity_core")
+### * calculate_manifold_affinity_core
+
+flush(stderr()); flush(stdout())
+
+### Name: calculate_manifold_affinity_core
+### Title: Calculate Manifold Affinity and Markov Matrix (Core)
+### Aliases: calculate_manifold_affinity_core
+
+### ** Examples
+
+## Not run: 
+##D # Create synthetic HRF library
+##D p <- 30  # time points
+##D N <- 100 # number of HRFs
+##D L_library <- matrix(rnorm(p * N), nrow = p, ncol = N)
+##D 
+##D # Compute Markov matrix
+##D S <- calculate_manifold_affinity_core(L_library, k_local_nn_for_sigma = 7)
+##D 
+##D # With sparse matrix for large N
+##D S_sparse <- calculate_manifold_affinity_core(
+##D   L_library, 
+##D   k_local_nn_for_sigma = 7,
+##D   use_sparse_W_params = list(sparse_if_N_gt = 50, k_nn_for_W_sparse = 20)
+##D )
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("construct_hrf_manifold_nim")
+### * construct_hrf_manifold_nim
+
+flush(stderr()); flush(stdout())
+
+### Name: construct_hrf_manifold_nim
+### Title: Construct HRF Manifold (Neuroimaging Wrapper)
+### Aliases: construct_hrf_manifold_nim
+
+### ** Examples
+
+## Not run: 
+##D # Use FLOBS basis
+##D manifold_flobs <- construct_hrf_manifold_nim(
+##D   hrf_library_source = "FLOBS",
+##D   TR_precision = 0.1,
+##D   m_manifold_dim_target = 5
+##D )
+##D 
+##D # Use custom HRF objects from fmrireg
+##D hrf_list <- list(
+##D   fmrireg::HRF_SPMG1,
+##D   fmrireg::HRF_SPMG2,
+##D   fmrireg::HRF_SPMG3,
+##D   fmrireg::HRF_GAMMA
+##D )
+##D manifold_custom <- construct_hrf_manifold_nim(
+##D   hrf_library_source = hrf_list,
+##D   TR_precision = 0.5
+##D )
+##D 
+##D # Use in fmrireg model
+##D # event_model(~ hrf(onset, basis = manifold_custom$manifold_hrf_basis))
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("estimate_final_condition_betas_core")
+### * estimate_final_condition_betas_core
+
+flush(stderr()); flush(stdout())
+
+### Name: estimate_final_condition_betas_core
+### Title: Estimate Final Condition Betas (Core)
+### Aliases: estimate_final_condition_betas_core
+
+### ** Examples
+
+## Not run: 
+##D # Setup
+##D n <- 200  # timepoints
+##D p <- 30   # HRF length
+##D k <- 3    # conditions
+##D V <- 100  # voxels
+##D 
+##D # Projected data
+##D Y_proj <- matrix(rnorm(n * V), n, V)
+##D 
+##D # Condition design matrices
+##D X_cond_list <- lapply(1:k, function(c) {
+##D   # Simple block design for each condition
+##D   X <- matrix(0, n, p)
+##D   # Add some events
+##D   onsets <- seq(10 + (c-1)*20, n-p, by = 60)
+##D   for (onset in onsets) {
+##D     X[onset:(onset+p-1), ] <- diag(p)
+##D   }
+##D   X
+##D })
+##D 
+##D # HRF shapes (from previous components)
+##D H_shapes <- matrix(rnorm(p * V), p, V)
+##D 
+##D # Estimate final betas
+##D Beta_final <- estimate_final_condition_betas_core(
+##D   Y_proj, X_cond_list, H_shapes,
+##D   lambda_beta_final = 0.01,
+##D   control_alt_list = list(max_iter = 1)
+##D )
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("extract_xi_beta_raw_svd_core")
+### * extract_xi_beta_raw_svd_core
+
+flush(stderr()); flush(stdout())
+
+### Name: extract_xi_beta_raw_svd_core
+### Title: Extract raw manifold coordinates and condition amplitudes via
+###   SVD
+### Aliases: extract_xi_beta_raw_svd_core
+
+### ** Examples
+
+## Not run: 
+##D # Create example gamma coefficients
+##D m <- 5   # manifold dimensions
+##D k <- 3   # conditions
+##D V <- 100 # voxels
+##D 
+##D # Gamma from GLM solve
+##D gamma <- matrix(rnorm((k * m) * V), k * m, V)
+##D 
+##D # Extract Xi and Beta
+##D result <- extract_xi_beta_raw_svd_core(gamma, m, k)
+##D # result$Xi_raw_matrix is m x V
+##D # result$Beta_raw_matrix is k x V
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("generate_qc_report")
+### * generate_qc_report
+
+flush(stderr()); flush(stdout())
+
+### Name: generate_qc_report
+### Title: Generate M-HRF-LSS QC Report
+### Aliases: generate_qc_report
+
+### ** Examples
+
+## Not run: 
+##D # Generate report from pipeline results
+##D report_path <- generate_qc_report(
+##D   results = pipeline_output,
+##D   parameters = list(
+##D     manifold = manifold_params,
+##D     pipeline = pipeline_params
+##D   ),
+##D   output_file = "subject001_qc.html"
+##D )
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("get_manifold_basis_reconstructor_core")
+### * get_manifold_basis_reconstructor_core
+
+flush(stderr()); flush(stdout())
+
+### Name: get_manifold_basis_reconstructor_core
+### Title: Get Manifold Basis Reconstructor (Core)
+### Aliases: get_manifold_basis_reconstructor_core
+
+### ** Examples
+
+## Not run: 
+##D # Create synthetic HRF library and compute manifold
+##D p <- 30
+##D N <- 100
+##D L_library <- matrix(rnorm(p * N), nrow = p, ncol = N)
+##D S <- calculate_manifold_affinity_core(L_library, k_local_nn_for_sigma = 7)
+##D 
+##D # Get manifold basis
+##D manifold <- get_manifold_basis_reconstructor_core(
+##D   S, L_library, 
+##D   m_manifold_dim_target = 5,
+##D   m_manifold_dim_min_variance = 0.95
+##D )
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("make_voxel_graph_laplacian_core")
+### * make_voxel_graph_laplacian_core
+
+flush(stderr()); flush(stdout())
+
+### Name: make_voxel_graph_laplacian_core
+### Title: Construct Graph Laplacian for Voxel Coordinates (Core)
+### Aliases: make_voxel_graph_laplacian_core
+
+### ** Examples
+
+## Not run: 
+##D # Create example 3D grid of voxels
+##D coords <- expand.grid(x = 1:10, y = 1:10, z = 1:5)
+##D voxel_coords <- as.matrix(coords)
+##D 
+##D # Construct 6-neighbor Laplacian (face-connected)
+##D L_sparse <- make_voxel_graph_laplacian_core(voxel_coords, num_neighbors_Lsp = 6)
+##D 
+##D # Construct 26-neighbor Laplacian (corner-connected)
+##D L_sparse_full <- make_voxel_graph_laplacian_core(voxel_coords, num_neighbors_Lsp = 26)
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("mhrf_lss")
+### * mhrf_lss
+
+flush(stderr()); flush(stdout())
+
+### Name: mhrf_lss
+### Title: Fit M-HRF-LSS Model
+### Aliases: mhrf_lss
+
+### ** Examples
+
+## Not run: 
+##D # Load fmrireg for dataset creation
+##D library(fmrireg)
+##D 
+##D # Create dataset (using fmrireg)
+##D dset <- fmri_dataset(
+##D   scans = "bold.nii.gz",
+##D   mask = "mask.nii.gz", 
+##D   TR = 2,
+##D   run_length = c(200, 200)
+##D )
+##D 
+##D # Basic M-HRF-LSS fit
+##D fit <- mhrf_lss(
+##D   ~ hrf(condition),
+##D   dataset = dset,
+##D   hrf_library = "canonical",
+##D   estimation = "both"
+##D )
+##D 
+##D # Advanced with custom parameters
+##D fit_custom <- mhrf_lss(
+##D   ~ hrf(cond1) + hrf(cond2),
+##D   dataset = dset,
+##D   baseline_model = baseline_model(degree = 2),
+##D   hrf_library = list(HRF_SPMG1, HRF_SPMG2, HRF_SPMG3, HRF_GAMMA),
+##D   manifold_params = "balanced",  # or custom list
+##D   spatial_info = dset$mask,
+##D   robust = TRUE
+##D )
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("prepare_lss_fixed_components_core")
+### * prepare_lss_fixed_components_core
+
+flush(stderr()); flush(stdout())
+
+### Name: prepare_lss_fixed_components_core
+### Title: Prepare LSS Fixed Components (Core)
+### Aliases: prepare_lss_fixed_components_core
+
+### ** Examples
+
+## Not run: 
+##D # Create example fixed regressors
+##D n <- 200  # timepoints
+##D 
+##D # Intercept + linear drift + motion parameters
+##D A_fixed <- cbind(
+##D   1,                    # intercept
+##D   seq_len(n) / n,       # linear drift
+##D   rnorm(n),             # motion param 1
+##D   rnorm(n)              # motion param 2
+##D )
+##D 
+##D # Prepare LSS components
+##D lss_components <- prepare_lss_fixed_components_core(
+##D   A_fixed, 
+##D   intercept_col_index_in_Alss = 1,
+##D   lambda_ridge_Alss = 1e-6
+##D )
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("project_out_confounds_core")
+### * project_out_confounds_core
+
+flush(stderr()); flush(stdout())
+
+### Name: project_out_confounds_core
+### Title: Project out confound regressors from data and design matrices
+### Aliases: project_out_confounds_core
+
+### ** Examples
+
+## Not run: 
+##D # Create example data
+##D n <- 200  # timepoints
+##D V <- 100  # voxels
+##D p <- 30   # HRF length
+##D k <- 3    # conditions
+##D 
+##D Y_data <- matrix(rnorm(n * V), n, V)
+##D X_list <- lapply(1:k, function(i) matrix(rnorm(n * p), n, p))
+##D Z_confounds <- cbind(1, poly(1:n, degree = 3))  # intercept + polynomial trends
+##D 
+##D # Project out confounds
+##D result <- project_out_confounds_core(Y_data, X_list, Z_confounds)
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("reconstruct_hrf_shapes_core")
+### * reconstruct_hrf_shapes_core
+
+flush(stderr()); flush(stdout())
+
+### Name: reconstruct_hrf_shapes_core
+### Title: Reconstruct HRF Shapes from Manifold Coordinates (Core)
+### Aliases: reconstruct_hrf_shapes_core
+
+### ** Examples
+
+## Not run: 
+##D # Example with synthetic data
+##D p <- 30   # HRF length
+##D m <- 5    # manifold dimensions
+##D V <- 100  # voxels
+##D 
+##D # Example reconstructor (would come from Component 0)
+##D B_reconstructor <- matrix(rnorm(p * m), p, m)
+##D 
+##D # Example smoothed manifold coordinates (would come from Component 2)
+##D Xi_smoothed <- matrix(rnorm(m * V), m, V)
+##D 
+##D # Reconstruct HRF shapes
+##D H_shapes <- reconstruct_hrf_shapes_core(B_reconstructor, Xi_smoothed)
+##D # Result is 30 x 100 matrix (HRF samples x voxels)
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("run_lss_for_voxel_core")
+### * run_lss_for_voxel_core
+
+flush(stderr()); flush(stdout())
+
+### Name: run_lss_for_voxel_core
+### Title: Run LSS for Single Voxel (Core)
+### Aliases: run_lss_for_voxel_core
+
+### ** Examples
+
+## Not run: 
+##D # Setup for single voxel
+##D n <- 200  # timepoints
+##D p <- 30   # HRF length
+##D T <- 50   # trials
+##D 
+##D # Data for one voxel
+##D Y_voxel <- rnorm(n)
+##D 
+##D # Trial onsets (simplified)
+##D X_trials <- lapply(1:T, function(t) {
+##D   X <- matrix(0, n, p)
+##D   # Put onset at different times
+##D   onset_time <- 10 + (t-1) * 3
+##D   if (onset_time + p <= n) {
+##D     X[onset_time:(onset_time+p-1), ] <- diag(p)
+##D   }
+##D   X
+##D })
+##D 
+##D # HRF shape for this voxel
+##D H_voxel <- dgamma(0:(p-1), shape = 6, rate = 1)
+##D H_voxel <- H_voxel / max(H_voxel)
+##D 
+##D # Fixed regressors
+##D A_fixed <- cbind(1, seq_len(n)/n)
+##D lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-6)
+##D 
+##D # Run LSS
+##D betas <- run_lss_for_voxel_core(
+##D   Y_voxel, X_trials, H_voxel, A_fixed,
+##D   lss_prep$P_lss_matrix, lss_prep$p_lss_vector
+##D )
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("run_mhrf_lss_simulation")
+### * run_mhrf_lss_simulation
+
+flush(stderr()); flush(stdout())
+
+### Name: run_mhrf_lss_simulation
+### Title: Run M-HRF-LSS Simulation and Validation
+### Aliases: run_mhrf_lss_simulation
+
+### ** Examples
+
+## Not run: 
+##D # Run basic simulation
+##D sim_results <- run_mhrf_lss_simulation(
+##D   n_voxels = 200,
+##D   n_timepoints = 250,
+##D   noise_levels = c(0, 5, 10),
+##D   hrf_variability = "moderate"
+##D )
+##D 
+##D # View performance metrics
+##D print(sim_results$metrics)
+##D 
+##D # Plot noise robustness curves
+##D plot(sim_results$noise_curves)
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("solve_glm_for_gamma_core")
+### * solve_glm_for_gamma_core
+
+flush(stderr()); flush(stdout())
+
+### Name: solve_glm_for_gamma_core
+### Title: Solve GLM for gamma coefficients
+### Aliases: solve_glm_for_gamma_core
+
+### ** Examples
+
+## Not run: 
+##D # Create example data
+##D n <- 200  # timepoints
+##D m <- 5    # manifold dimensions
+##D k <- 3    # conditions
+##D V <- 100  # voxels
+##D 
+##D # Design matrices in manifold basis
+##D Z_list <- lapply(1:k, function(i) matrix(rnorm(n * m), n, m))
+##D Y_proj <- matrix(rnorm(n * V), n, V)
+##D 
+##D # Solve GLM
+##D gamma <- solve_glm_for_gamma_core(Z_list, Y_proj, lambda_gamma = 0.01)
+##D # gamma is (k*m) x V
+## End(Not run)
+
+
+
+
+cleanEx()
+nameEx("transform_designs_to_manifold_basis_core")
+### * transform_designs_to_manifold_basis_core
+
+flush(stderr()); flush(stdout())
+
+### Name: transform_designs_to_manifold_basis_core
+### Title: Transform design matrices to manifold basis
+### Aliases: transform_designs_to_manifold_basis_core
+
+### ** Examples
+
+## Not run: 
+##D # Create example data
+##D n <- 200  # timepoints
+##D p <- 30   # HRF length
+##D m <- 5    # manifold dimensions
+##D k <- 3    # conditions
+##D 
+##D # Example design matrices and reconstructor
+##D X_list <- lapply(1:k, function(i) matrix(rnorm(n * p), n, p))
+##D B_reconstructor <- matrix(rnorm(p * m), p, m)
+##D 
+##D # Transform to manifold basis
+##D Z_list <- transform_designs_to_manifold_basis_core(X_list, B_reconstructor)
+##D # Each Z_list[[i]] is now n x m instead of n x p
+## End(Not run)
+
+
+
+
+### * <FOOTER>
+###
+cleanEx()
+options(digits = 7L)
+base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+grDevices::dev.off()
+###
+### Local variables: ***
+### mode: outline-minor ***
+### outline-regexp: "\\(> \\)?### [*]+" ***
+### End: ***
+quit('no')
