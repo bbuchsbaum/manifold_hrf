@@ -107,6 +107,28 @@ test_that("make_voxel_graph_laplacian_core handles edge cases", {
   expect_true(all(abs(Matrix::rowSums(L)) < 1e-10))
 })
 
+test_that("ann_euclidean falls back when RcppHNSW absent", {
+  coords <- matrix(runif(30), 10, 3)
+
+  if (!requireNamespace("RcppHNSW", quietly = TRUE)) {
+    expect_warning(
+      L_ann <- make_voxel_graph_laplacian_core(
+        coords, num_neighbors_Lsp = 3, distance_engine = "ann_euclidean"
+      ),
+      "falling back"
+    )
+    L_exact <- make_voxel_graph_laplacian_core(
+      coords, num_neighbors_Lsp = 3, distance_engine = "euclidean"
+    )
+    expect_equal(L_ann, L_exact)
+  } else {
+    L_ann <- make_voxel_graph_laplacian_core(
+      coords, num_neighbors_Lsp = 3, distance_engine = "ann_euclidean"
+    )
+    expect_true(inherits(L_ann, "Matrix"))
+  }
+})
+
 test_that("apply_spatial_smoothing_core works correctly", {
   # Create test data
   set.seed(123)
