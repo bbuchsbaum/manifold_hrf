@@ -151,37 +151,34 @@ test_that("run_mhrf_lss_chunked handles chunking correctly", {
   }
 })
 
-test_that("S3 methods work for mhrf_lss_fit", {
+test_that("S3 methods work for mhrf_lss_result", {
   # Create mock fit object
   mock_fit <- structure(
     list(
+      parameters = list(manifold = list(), robust = FALSE),
       manifold = list(
         method_used = "diffusion_maps",
         m_manifold_dim = 5,
         parameters = list(n_hrfs_library = 30)
       ),
-      hrfs = matrix(rnorm(20 * 100), 20, 100),
-      xi_coordinates = matrix(rnorm(5 * 100), 5, 100),
-      betas_condition = matrix(rnorm(3 * 100), 3, 100),
-      betas_trial = matrix(rnorm(50 * 100), 50, 100),
-      model_info = list(
-        formula = ~ hrf(condition),
-        n_timepoints = 200,
-        n_voxels = 100,
-        n_conditions = 3,
-        n_trials = 50,
-        estimation = "both"
+      hrf = list(
+        raw = matrix(rnorm(20 * 100), 20, 100),
+        smoothed = matrix(rnorm(20 * 100), 20, 100)
       ),
+      beta = list(
+        condition_initial = matrix(rnorm(3 * 100), 3, 100),
+        condition_final = matrix(rnorm(3 * 100), 3, 100),
+        trial = matrix(rnorm(50 * 100), 50, 100)
+      ),
+      qc = list(),
       diagnostics = list(),
       call = quote(mhrf_lss())
     ),
-    class = c("mhrf_lss_fit", "list")
+    class = "mhrf_lss_result"
   )
   
   # Test print method
-  expect_output(print(mock_fit), "M-HRF-LSS Model Fit")
-  expect_output(print(mock_fit), "100 voxels")
-  expect_output(print(mock_fit), "Trials: 50")
+  expect_output(print(mock_fit), "M-HRF-LSS Result")
   
   # Test coef method
   betas_cond <- coef(mock_fit, type = "condition")
