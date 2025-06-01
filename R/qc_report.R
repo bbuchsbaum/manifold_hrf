@@ -268,6 +268,15 @@ create_qc_flags <- function(results,
       )
     }
   }
+
+  # Check for truncated HRFs
+  if (!is.null(results$n_truncated_hrfs) && results$n_truncated_hrfs > 0) {
+    qc_flags$hrf_truncation <- list(
+      status = "warning",
+      message = sprintf("%d HRFs truncated due to end of run", results$n_truncated_hrfs),
+      severity = 1
+    )
+  }
   
   # Overall QC status
   if (length(qc_flags) == 0) {
