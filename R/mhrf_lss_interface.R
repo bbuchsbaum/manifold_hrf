@@ -814,13 +814,3 @@ extract_hrf_stats <- function(H_shapes) {
   )
 }
 
-
-# Null-coalesce operator
-#'
-#' Returns \code{y} if \code{x} is \code{NULL}, otherwise \code{x}.
-#'
-#' @param x Primary value to return if not \code{NULL}.
-#' @param y Fallback value to return if \code{x} is \code{NULL}.
-#' @return \code{x} if not \code{NULL}, otherwise \code{y}.
-#' @export
-`%||%` <- function(x, y) if (is.null(x)) y else x
