@@ -340,6 +340,7 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
 #'   manifold dimension
 #' @param m_manifold_dim Manifold dimensionality (m)
 #' @param k_conditions Number of conditions (k)
+#' @param n_jobs Number of parallel jobs for voxel processing (default 1).
 #' 
 #' @return A list containing:
 #'   \itemize{
@@ -363,7 +364,7 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
 #' 
 #' # Gamma from GLM solve
 #' gamma <- matrix(rnorm((k * m) * V), k * m, V)
-#' 
+#'
 #' # Extract Xi and Beta
 #' result <- extract_xi_beta_raw_svd_core(gamma, m, k)
 #' # result$Xi_raw_matrix is m x V
@@ -373,7 +374,8 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
 #' @export
 extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
                                         m_manifold_dim,
-                                        k_conditions) {
+                                        k_conditions,
+                                        n_jobs = 1) {
   
   # Input validation
   if (!is.matrix(Gamma_coeffs_matrix)) {
@@ -408,34 +410,23 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
   # Threshold for near-zero singular values
   svd_threshold <- sqrt(.Machine$double.eps)
   
-  # Loop over voxels
-  for (vx in 1:V) {
-    # Extract gamma coefficients for this voxel
+  voxel_fun <- function(vx) {
     gamma_vx <- Gamma_coeffs_matrix[, vx]
-    
-    # Reshape into m x k matrix
-    # The gamma vector is organized as:
-    # [cond1_dim1, cond1_dim2, ..., cond1_dimM, cond2_dim1, ..., cond2_dimM, ...]
-    # We want to reshape so rows are manifold dimensions and columns are conditions
     G_vx <- matrix(gamma_vx, nrow = m_manifold_dim, ncol = k_conditions)
-    
-    # Perform SVD
     svd_result <- svd(G_vx)
-    
-    # Check if first singular value is above threshold
     if (svd_result$d[1] > svd_threshold) {
-      # Extract first singular components
-      # Split singular value between u and v using square root
       sqrt_s1 <- sqrt(svd_result$d[1])
-      
-      # Xi gets u * sqrt(s)
-      Xi_raw_matrix[, vx] <- svd_result$u[, 1] * sqrt_s1
-      
-      # Beta gets v * sqrt(s)
-      Beta_raw_matrix[, vx] <- svd_result$v[, 1] * sqrt_s1
+      list(xi = svd_result$u[, 1] * sqrt_s1,
+           beta = svd_result$v[, 1] * sqrt_s1)
+    } else {
+      list(xi = rep(0, m_manifold_dim),
+           beta = rep(0, k_conditions))
     }
-    # If singular value is near zero, Xi and Beta remain zero for this voxel
   }
+
+  res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
+  Xi_raw_matrix <- do.call(cbind, lapply(res_list, "[[", "xi"))
+  Beta_raw_matrix <- do.call(cbind, lapply(res_list, "[[", "beta"))
   
   # Return results
   list(
@@ -461,6 +452,7 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #'   maximum absolute value (for "max_abs_val") of a voxel's HRF is below this
 #'   threshold, both \code{Xi_ident_matrix} and \code{Beta_ident_matrix} are set
 #'   to zero for that voxel.
+#' @param n_jobs Number of parallel jobs for voxel processing (default 1).
 #'   
 #' @return A list containing:
 #'   \itemize{
@@ -507,6 +499,8 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                 zero_tol = 1e-8,
                                                 Y_proj_matrix = NULL,
                                                 X_condition_list_proj_matrices = NULL) {
+                                                n_jobs = 1) {
+
   
   # Input validation
   if (!is.matrix(Xi_raw_matrix)) {
@@ -568,17 +562,14 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
   # Initialize output matrices
   Xi_ident_matrix <- matrix(0, nrow = m, ncol = V)
   Beta_ident_matrix <- matrix(0, nrow = k, ncol = V)
-  
-  # Process each voxel
-  for (vx in 1:V) {
+
+  voxel_fun <- function(vx) {
     xi_vx <- Xi_raw_matrix[, vx]
     beta_vx <- Beta_raw_matrix[, vx]
     
     # Skip if xi is zero (no signal)
     if (all(abs(xi_vx) < .Machine$double.eps)) {
-      Xi_ident_matrix[, vx] <- xi_vx
-      Beta_ident_matrix[, vx] <- 0
-      next
+      return(list(xi = xi_vx, beta = rep(0, k)))
     }
     
     # Step 1: Sign alignment
@@ -618,21 +609,16 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
     
     # Step 2: Scale normalization
     if (ident_scale_method == "l2_norm") {
-      # Scale by L2 norm
       l2_norm <- sqrt(sum(reconstructed_hrf_vx^2))
       if (l2_norm < zero_tol) {
-        Xi_ident_matrix[, vx] <- 0
-        Beta_ident_matrix[, vx] <- 0
-        next
+        return(list(xi = rep(0, m), beta = rep(0, k)))
       }
       scl <- 1 / max(l2_norm, .Machine$double.eps)
     } else if (ident_scale_method == "max_abs_val") {
       # Scale by maximum absolute value
       max_abs <- max(abs(reconstructed_hrf_vx))
       if (max_abs < zero_tol) {
-        Xi_ident_matrix[, vx] <- 0
-        Beta_ident_matrix[, vx] <- 0
-        next
+        return(list(xi = rep(0, m), beta = rep(0, k)))
       }
       scl <- 1 / max(max_abs, .Machine$double.eps)
     } else {  # "none"
@@ -641,14 +627,19 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
     
     # Apply scaling
     # Xi is scaled up, Beta is scaled down to preserve signal
-    Xi_ident_matrix[, vx] <- xi_vx_signed * scl
-    Beta_ident_matrix[, vx] <- beta_vx_signed / scl
-    
-    # If scaling was based on machine epsilon (essentially zero HRF), set Beta to zero
+    xi_out <- xi_vx_signed * scl
+    beta_out <- beta_vx_signed / scl
+
     if (scl > 1 / sqrt(.Machine$double.eps)) {
-      Beta_ident_matrix[, vx] <- 0
+      beta_out <- rep(0, k)
     }
+
+    list(xi = xi_out, beta = beta_out)
   }
+
+  res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
+  Xi_ident_matrix <- do.call(cbind, lapply(res_list, "[[", "xi"))
+  Beta_ident_matrix <- do.call(cbind, lapply(res_list, "[[", "beta"))
   
   # Return results
   list(
