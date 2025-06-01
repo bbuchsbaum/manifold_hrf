@@ -181,17 +181,14 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
     }
   }
   
-  # Create D_inv (inverse degree matrix)
-  D_inv <- diag(1 / row_sums)
-  
   # Compute Markov matrix S
   if (inherits(W, "Matrix")) {
     # If W is sparse, keep S sparse
     D_inv <- Matrix::Diagonal(x = 1 / row_sums)
-    S_markov_matrix <- D_inv %*% W
   } else {
-    S_markov_matrix <- D_inv %*% W
+    D_inv <- diag(1 / row_sums)
   }
+  S_markov_matrix <- D_inv %*% W
   
   return(S_markov_matrix)
 }
