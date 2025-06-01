@@ -339,19 +339,23 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
 #' @param m_manifold_dim Manifold dimensionality (m)
 #' @param k_conditions Number of conditions (k)
 #' @param n_jobs Number of parallel jobs for voxel processing (default 1).
-#' 
+#' @param log_fun Optional logging function to report quality metrics. If NULL,
+#'   no logging is performed.
+#'
 #' @return A list containing:
 #'   \itemize{
 #'     \item \code{Xi_raw_matrix}: m x V matrix of raw manifold coordinates
 #'     \item \code{Beta_raw_matrix}: k x V matrix of raw condition amplitudes
+#'     \item \code{quality_metrics}: Diagnostics from the robust SVD
 #'   }
 #'   
 #' @details This function implements Component 1, Step 4 of the M-HRF-LSS pipeline.
-#'   For each voxel, it reshapes the gamma coefficients into an m x k matrix and
-#'   performs SVD to extract the dominant pattern. The first singular value and
-#'   vectors are used to decompose gamma into Xi (HRF shape) and Beta (amplitude)
-#'   components. Near-zero singular values are handled by setting the corresponding
-#'   Xi and Beta values to zero.
+#'   It now delegates the SVD step to \code{extract_xi_beta_raw_svd_robust}, which
+#'   adds condition number checks and fallback strategies. The first singular
+#'   value and associated vectors are used to decompose gamma into Xi (HRF shape)
+#'   and Beta (amplitude) components. Near-zero singular values are handled by
+#'   setting the corresponding Xi and Beta values to zero. Quality metrics from
+#'   the robust SVD can optionally be logged via \code{log_fun}.
 #'   
 #' @examples
 #' \dontrun{
@@ -373,7 +377,8 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
 extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
                                         m_manifold_dim,
                                         k_conditions,
-                                        n_jobs = 1) {
+                                        n_jobs = 1,
+                                        log_fun = NULL) {
   
   # Input validation
   if (!is.matrix(Gamma_coeffs_matrix)) {
@@ -400,36 +405,28 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
   }
   
   V <- ncol(Gamma_coeffs_matrix)
-  
-  # Initialize output matrices
-  Xi_raw_matrix <- matrix(0, nrow = m_manifold_dim, ncol = V)
-  Beta_raw_matrix <- matrix(0, nrow = k_conditions, ncol = V)
-  
-  # Threshold for near-zero singular values
-  svd_threshold <- sqrt(.Machine$double.eps)
-  
-  voxel_fun <- function(vx) {
-    gamma_vx <- Gamma_coeffs_matrix[, vx]
-    G_vx <- matrix(gamma_vx, nrow = m_manifold_dim, ncol = k_conditions)
-    svd_result <- svd(G_vx)
-    if (svd_result$d[1] > svd_threshold) {
-      sqrt_s1 <- sqrt(svd_result$d[1])
-      list(xi = svd_result$u[, 1] * sqrt_s1,
-           beta = svd_result$v[, 1] * sqrt_s1)
-    } else {
-      list(xi = rep(0, m_manifold_dim),
-           beta = rep(0, k_conditions))
-    }
+
+  # Use robust SVD decomposition
+  svd_result <- extract_xi_beta_raw_svd_robust(
+    Gamma_coeffs_matrix = Gamma_coeffs_matrix,
+    m_manifold_dim = m_manifold_dim,
+    k_conditions = k_conditions
+  )
+
+  Xi_raw_matrix <- svd_result$Xi_raw_matrix
+  Beta_raw_matrix <- svd_result$Beta_raw_matrix
+
+  # Optional logging of quality metrics
+  if (!is.null(log_fun) && is.function(log_fun)) {
+    gap_mean <- mean(svd_result$quality_metrics$singular_value_gaps, na.rm = TRUE)
+    log_fun(sprintf("Mean singular value gap: %.4f", gap_mean))
   }
 
-  res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
-  Xi_raw_matrix <- do.call(cbind, lapply(res_list, "[[", "xi"))
-  Beta_raw_matrix <- do.call(cbind, lapply(res_list, "[[", "beta"))
-  
-  # Return results
+  # Return results with metrics
   list(
     Xi_raw_matrix = Xi_raw_matrix,
-    Beta_raw_matrix = Beta_raw_matrix
+    Beta_raw_matrix = Beta_raw_matrix,
+    quality_metrics = svd_result$quality_metrics
   )
 }
 
