@@ -217,24 +217,11 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
   # I_V is the identity matrix of size V x V
   I_V <- Matrix::Diagonal(n = V)
   A_system <- I_V + lambda_spatial_smooth * L_sp_sparse_matrix
-## fix merge conflict <<<<<<< codex/update-1-m-and-1-v-with-seq_len
-  
-  # Solve for each manifold dimension independently
-  # For each dimension j: solve (I + lambda*L) * xi_j_smooth = xi_j_ident
-  for (j in seq_len(m)) {
-    # Extract the j-th manifold coordinate across all voxels
-    xi_j_ident <- Xi_ident_matrix[j, ]
-    
-    # Solve the linear system
-    # Using Matrix::solve which handles sparse matrices efficiently
-    xi_j_smooth <- Matrix::solve(A_system, xi_j_ident)
-    
-    # Store the smoothed coordinates
-    # Convert back to regular vector if needed
-    Xi_smoothed_matrix[j, ] <- as.vector(xi_j_smooth)
+
+  # Early return if there are no manifold dimensions or voxels
+  if (m == 0 || V == 0) {
+    return(Xi_ident_matrix)
   }
-  
-## fix merge conflict =======
 
   # Solve the system for all manifold dimensions at once
   Xi_smoothed_t <- Matrix::solve(A_system, t(Xi_ident_matrix))
@@ -242,6 +229,5 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
   # Convert back to regular matrix and transpose to m x V
   Xi_smoothed_matrix <- t(as.matrix(Xi_smoothed_t))
 
-## fix merge conflict >>>>>>> main
   return(Xi_smoothed_matrix)
 }
