@@ -534,7 +534,7 @@ mhrf_analyze <- function(Y_data,
   term_tag <- names(ev_model$terms)[1]
   X_condition_list <- vector("list", n_conditions)
   for (i in seq_along(conditions)) {
-    token <- fmrireg:::level_token("condition", conditions[i])
+    token <- private_level_token("condition", conditions[i])
     prefix <- paste0(term_tag, "_", token)
     cols <- grep(paste0("^", prefix, "_b"), colnames(X_full))
     X_condition_list[[i]] <- X_full[, cols, drop = FALSE]
