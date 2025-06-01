@@ -212,12 +212,12 @@ test_that("construct_hrf_manifold_nim handles list input", {
 test_that("placeholder functions raise appropriate errors", {
   # Test that unimplemented functions give clear errors
   expect_error(
-    process_subject_mhrf_lss_nim(NULL, NULL, NULL),
+    manifoldhrf:::process_subject_mhrf_lss_nim(NULL, NULL, NULL),
     "not yet implemented"
   )
-  
+
   expect_error(
-    package_mhrf_results_nim(NULL, NULL, NULL, NULL, NULL),
+    manifoldhrf:::package_mhrf_results_nim(NULL, NULL, NULL, NULL, NULL),
     "not yet implemented"
   )
 })
