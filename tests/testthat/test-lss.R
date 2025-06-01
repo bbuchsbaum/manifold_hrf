@@ -500,6 +500,7 @@ test_that("LSS integration test with known signal", {
   expect_gt(max(cors_active), 0.3)
 })
 
+
 test_that("rank deficient trial regressors trigger warning", {
   n <- 60
   p <- 10
@@ -521,3 +522,10 @@ test_that("rank deficient trial regressors trigger warning", {
     "rank deficient"
   )
 })
+
+test_that("check_ram_feasibility enforces RAM limit", {
+  expect_true(manifoldhrf:::check_ram_feasibility(5, 10, 1))
+  expect_false(manifoldhrf:::check_ram_feasibility(1000, 1000, 0.0001))
+  expect_message(manifoldhrf:::check_ram_feasibility(1000, 1000, 0.0001), "exceeds limit")
+})
+

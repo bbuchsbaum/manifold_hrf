@@ -51,6 +51,7 @@ n_timepoints <- nrow(results$core_matrices$Y_data)
 n_conditions <- nrow(results$core_matrices$Beta_condition_final)
 n_trials <- nrow(results$core_matrices$Beta_trial)
 manifold_dim <- ncol(results$core_matrices$Xi_smoothed)
+n_truncated_hrfs <- results$qc_metrics$n_truncated_hrfs %||% 0
 
 # QC flags
 qc_flags <- list()
@@ -102,6 +103,7 @@ status_color <- switch(qc_status,
   <p><strong>Data dimensions:</strong> `r n_timepoints` timepoints × `r n_voxels` voxels</p>
   <p><strong>Experimental design:</strong> `r n_conditions` conditions, `r n_trials` trials</p>
   <p><strong>Manifold dimension:</strong> `r manifold_dim` (target: `r parameters$manifold$m_manifold_dim_target`)</p>
+  <p><strong>Truncated HRFs:</strong> `r n_truncated_hrfs`</p>
   `r if (!is.na(mean_r2)) paste0("<p><strong>Mean voxel R²:</strong> ", sprintf("%.3f", mean_r2), "</p>")`
 </div>
 
@@ -442,6 +444,22 @@ if (!is.null(metadata$timing)) {
   print(p)
   
   cat(sprintf("\n**Total processing time:** %.1f minutes\n", sum(timing_df$Time_minutes)))
+}
+```
+
+# Pipeline Log
+
+```{r pipeline_log}
+if (!is.null(params$log)) {
+  cat("<pre>\n")
+  cat(paste(tail(params$log, 50), collapse = "\n"))
+  cat("\n</pre>")
+} else if (!is.null(results$log)) {
+  cat("<pre>\n")
+  cat(paste(tail(results$log, 50), collapse = "\n"))
+  cat("\n</pre>")
+} else {
+  cat("No log available.")
 }
 ```
 

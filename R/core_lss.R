@@ -91,10 +91,8 @@ prepare_lss_fixed_components_core <- function(A_lss_fixed_matrix,
     }
   }
   
-  if (!is.numeric(lambda_ridge_Alss) || length(lambda_ridge_Alss) != 1 || 
-      lambda_ridge_Alss < 0) {
-    stop("lambda_ridge_Alss must be a non-negative scalar")
-  }
+  lambda_ridge_Alss <- .validate_and_standardize_lambda(lambda_ridge_Alss,
+                                                        "lambda_ridge_Alss")
   
   # Step 1: Compute A'A
   AtA <- crossprod(A_lss_fixed_matrix)  # q_lss x q_lss
@@ -468,25 +466,19 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
   n <- nrow(Y_proj_matrix)
   V <- ncol(Y_proj_matrix)
   
-  if (!is.list(X_trial_onset_list_of_matrices)) {
-    stop("X_trial_onset_list_of_matrices must be a list")
-  }
-  
-  T_trials <- length(X_trial_onset_list_of_matrices)
-  
-  if (T_trials < 1) {
-    stop("X_trial_onset_list_of_matrices must contain at least one trial")
-  }
-  
-  if (!is.matrix(H_shapes_allvox_matrix)) {
-    stop("H_shapes_allvox_matrix must be a matrix")
-  }
-  
+  design_info <- validate_design_matrix_list(
+    X_trial_onset_list_of_matrices,
+    n_timepoints = n
+  )
+  T_trials <- design_info$k
+
+  validate_hrf_shape_matrix(
+    H_shapes_allvox_matrix,
+    n_timepoints = design_info$p,
+    n_voxels = V
+  )
+
   p <- nrow(H_shapes_allvox_matrix)
-  
-  if (ncol(H_shapes_allvox_matrix) != V) {
-    stop("H_shapes_allvox_matrix must have V columns to match Y_proj_matrix")
-  }
   
   if (!is.matrix(A_lss_fixed_matrix)) {
     stop("A_lss_fixed_matrix must be a matrix")
@@ -553,12 +545,11 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
     return(Beta_trial_allvox_matrix)
   }
   
-  # Memory heuristic: Check if we can precompute all R_t matrices
-  # Each R_t is n x V, we have T of them
-  # Memory in bytes: T * n * V * 8 (assuming double precision)
-  estimated_memory_GB <- (T_trials * n * V * 8) / (1024^3)
-  
-  precompute_R_t <- (estimated_memory_GB < ram_heuristic_GB_for_Rt)
+  # Memory heuristic: check if we can precompute all R_t matrices.
+  # The helper estimates memory as T * V * 8 / 1e9 GB.
+  precompute_R_t <- check_ram_feasibility(
+    T_trials, V, ram_heuristic_GB_for_Rt
+  )
   
   if (precompute_R_t) {
     # Precompute all R_t matrices for efficiency

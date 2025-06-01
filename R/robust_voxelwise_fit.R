@@ -19,7 +19,8 @@ extract_xi_beta_raw_svd_robust <- function(Gamma_coeffs_matrix,
                                           k_conditions,
                                           regularization_factor = 10,
                                           max_condition_number = 1e8,
-                                          use_randomized_svd = FALSE) {
+                                          use_randomized_svd = FALSE,
+                                          logger = NULL) {
   
   # Get dimensions
   km <- nrow(Gamma_coeffs_matrix)
@@ -140,12 +141,14 @@ extract_xi_beta_raw_svd_robust <- function(Gamma_coeffs_matrix,
   # Report quality summary
   n_regularized <- sum(quality_metrics$regularization_applied)
   if (n_regularized > 0) {
-    message(sprintf("Applied regularization to %d/%d voxels", n_regularized, V))
+    msg <- sprintf("Applied regularization to %d/%d voxels", n_regularized, V)
+    if (!is.null(logger)) logger$add(msg) else message(msg)
   }
-  
+
   n_fallback <- sum(quality_metrics$svd_method == "fallback")
   if (n_fallback > 0) {
-    message(sprintf("Used fallback SVD for %d/%d voxels", n_fallback, V))
+    msg <- sprintf("Used fallback SVD for %d/%d voxels", n_fallback, V)
+    if (!is.null(logger)) logger$add(msg) else message(msg)
   }
   
   return(list(

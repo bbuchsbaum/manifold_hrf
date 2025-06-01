@@ -117,7 +117,8 @@ test_that("create_qc_flags identifies issues correctly", {
     ),
     hrf_stats = data.frame(
       peak_time = runif(100, 4, 6)  # Normal peak times
-    )
+    ),
+    n_truncated_hrfs = 0
   )
   
   flags_good <- create_qc_flags(good_results)
@@ -134,7 +135,8 @@ test_that("create_qc_flags identifies issues correctly", {
     ),
     hrf_stats = data.frame(
       peak_time = c(runif(50, 4, 6), runif(50, 12, 15))  # Some abnormal peaks
-    )
+    ),
+    n_truncated_hrfs = 3
   )
   
   flags_poor <- create_qc_flags(poor_results)
@@ -143,6 +145,7 @@ test_that("create_qc_flags identifies issues correctly", {
   expect_true("low_trial_count" %in% names(flags_poor))
   expect_true("poor_fits" %in% names(flags_poor))
   expect_true("unstable_hrf" %in% names(flags_poor))
+  expect_true("hrf_truncation" %in% names(flags_poor))
 })
 
 test_that("extract_hrf_stats computes HRF metrics correctly", {
