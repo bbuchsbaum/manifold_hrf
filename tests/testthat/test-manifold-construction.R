@@ -255,6 +255,24 @@ test_that("get_manifold_basis_reconstructor_core reconstruction works", {
   expect_lt(B_norm, 1000)  # Arbitrary but reasonable upper bound
 })
 
+
+test_that("get_manifold_basis_reconstructor_core handles large N with RSpectra", {
+  skip_if_not_installed("RSpectra")
+  set.seed(101)
+  p <- 30
+  N <- 250
+  L_library <- matrix(rnorm(p * N), nrow = p, ncol = N)
+  S <- calculate_manifold_affinity_core(L_library, k_local_nn_for_sigma = 7)
+
+  result <- get_manifold_basis_reconstructor_core(
+    S, L_library,
+    m_manifold_dim_target = 5,
+    m_manifold_dim_min_variance = 0.95
+  )
+
+  expect_equal(nrow(result$Phi_coords_matrix), N)
+  expect_true(ncol(result$Phi_coords_matrix) < N)
+})
 test_that("ann_euclidean distance falls back when RcppHNSW missing", {
   skip_if(requireNamespace("RcppHNSW", quietly = TRUE),
           "RcppHNSW installed; cannot test fallback")
@@ -269,4 +287,5 @@ test_that("ann_euclidean distance falls back when RcppHNSW missing", {
     ),
     "RcppHNSW"
   )
+
 })

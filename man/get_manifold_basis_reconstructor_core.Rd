@@ -38,6 +38,9 @@ This function implements Component 0, Steps 3-5 of the M-HRF-LSS pipeline.
 It computes the diffusion map embedding of the HRF library and creates a
 reconstructor matrix that maps low-dimensional manifold coordinates back to
 full HRF shapes.
+For large libraries (N > 100) and when the \pkg{RSpectra} package is
+available, the eigendecomposition is computed using \code{RSpectra::eigs()},
+which efficiently handles non-symmetric matrices.
 }
 \examples{
 \dontrun{

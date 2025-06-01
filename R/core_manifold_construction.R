@@ -220,9 +220,13 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
 #'   }
 #'   
 #' @details This function implements Component 0, Steps 3-5 of the M-HRF-LSS pipeline.
-#'   It computes the diffusion map embedding of the HRF library and creates a 
+#'   It computes the diffusion map embedding of the HRF library and creates a
 #'   reconstructor matrix that maps low-dimensional manifold coordinates back to
 #'   full HRF shapes.
+#'
+#'   For large libraries (N > 100) and when the \pkg{RSpectra} package is
+#'   available, the eigendecomposition is computed using
+#'   \code{RSpectra::eigs()}, which handles non-symmetric matrices efficiently.
 #'   
 #' @examples
 #' \dontrun{
@@ -267,14 +271,15 @@ get_manifold_basis_reconstructor_core <- function(S_markov_matrix,
   # Step 3: Compute diffusion map coordinates using eigendecomposition
   # We need top k eigenvectors, where k is larger than target to allow for selection
   k_eig_max <- min(N - 1, max(10, m_manifold_dim_target + 5))
-  
+  eig_k <- min(k_eig_max + 1, N - 1)  # ensure k < N to satisfy RSpectra requirements
+
   # Use RSpectra for efficient eigendecomposition of large matrices
   if (requireNamespace("RSpectra", quietly = TRUE) && N > 100) {
-    # For large matrices, use RSpectra
-    eig_result <- RSpectra::eigs_sym(
-      S_markov_matrix, 
-      k = k_eig_max + 1,  # +1 for the trivial eigenvector
-      which = "LM"  # Largest magnitude
+    # For large matrices, use RSpectra::eigs (handles non-symmetric matrices)
+    eig_result <- RSpectra::eigs(
+      S_markov_matrix,
+      k = eig_k,
+      which = "LM"
     )
     eigenvalues_full <- eig_result$values
     eigenvectors_full <- eig_result$vectors
@@ -284,9 +289,9 @@ get_manifold_basis_reconstructor_core <- function(S_markov_matrix,
       S_markov_matrix <- as.matrix(S_markov_matrix)
     }
     eig_result <- eigen(S_markov_matrix, symmetric = FALSE)
-    # Take only the top k_eig_max + 1 eigenvectors
-    eigenvalues_full <- eig_result$values[1:(k_eig_max + 1)]
-    eigenvectors_full <- eig_result$vectors[, 1:(k_eig_max + 1)]
+    # Take only the top eig_k eigenvectors
+    eigenvalues_full <- eig_result$values[1:eig_k]
+    eigenvectors_full <- eig_result$vectors[, 1:eig_k]
   }
   
   # The first eigenvector should be trivial (all ones for stochastic matrix)
