@@ -86,4 +86,6 @@ export(create_logger)
 S3method(print,mhrf_logger)
 export(mhrf_lss)
 export(mhrf_lss_parameters)
+export(plot_qc_summary)
 export(plot_trial_betas)
+

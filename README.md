@@ -44,6 +44,8 @@ library(manifold_hrf)
 
 # Basic manifold construction functions are implemented. Neuroimaging
 # wrappers currently provide minimal functionality.
+# After running the pipeline you can visualize a QC summary:
+# plot_qc_summary(result)
 ```
 
 ## Diagnostics and QC
