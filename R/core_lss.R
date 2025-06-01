@@ -456,25 +456,19 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
   n <- nrow(Y_proj_matrix)
   V <- ncol(Y_proj_matrix)
   
-  if (!is.list(X_trial_onset_list_of_matrices)) {
-    stop("X_trial_onset_list_of_matrices must be a list")
-  }
-  
-  T_trials <- length(X_trial_onset_list_of_matrices)
-  
-  if (T_trials < 1) {
-    stop("X_trial_onset_list_of_matrices must contain at least one trial")
-  }
-  
-  if (!is.matrix(H_shapes_allvox_matrix)) {
-    stop("H_shapes_allvox_matrix must be a matrix")
-  }
-  
+  design_info <- validate_design_matrix_list(
+    X_trial_onset_list_of_matrices,
+    n_timepoints = n
+  )
+  T_trials <- design_info$k
+
+  validate_hrf_shape_matrix(
+    H_shapes_allvox_matrix,
+    n_timepoints = design_info$p,
+    n_voxels = V
+  )
+
   p <- nrow(H_shapes_allvox_matrix)
-  
-  if (ncol(H_shapes_allvox_matrix) != V) {
-    stop("H_shapes_allvox_matrix must have V columns to match Y_proj_matrix")
-  }
   
   if (!is.matrix(A_lss_fixed_matrix)) {
     stop("A_lss_fixed_matrix must be a matrix")
