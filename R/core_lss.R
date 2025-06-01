@@ -400,11 +400,23 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
   # Step 1: Construct C_v matrix (n x T)
   # Each column is the convolution of trial onset with voxel-specific HRF
   C_v <- matrix(0, nrow = n, ncol = T_trials)
-  
+
   for (t in 1:T_trials) {
     # Multiply trial design matrix by HRF shape
     # X_t is n x p, H is p x 1, result is n x 1
     C_v[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_shape_voxel_vector
+  }
+
+  # Check for rank deficiency in trial regressors
+  qr_C_v <- qr(C_v)
+  if (qr_C_v$rank < T_trials) {
+    warning(
+      sprintf(
+        "Trial regressors are rank deficient for this voxel: rank %d < %d",
+        qr_C_v$rank,
+        T_trials
+      )
+    )
   }
   
   # Step 2: Woodbury LSS computation via helper
@@ -502,6 +514,7 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
   
   # Initialize output matrix
   Beta_trial_allvox_matrix <- matrix(0, nrow = T_trials, ncol = V)
+  rank_deficient_voxels <- logical(V)
   
   # Try to use fmrireg implementation if available and requested
   if (use_fmrireg && requireNamespace("fmrireg", quietly = TRUE)) {
@@ -553,28 +566,30 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
     Y_voxel <- Y_proj_matrix[, v]
     H_voxel <- H_shapes_allvox_matrix[, v]
 
-    if (precompute_R_t) {
-      C_v <- matrix(0, nrow = n, ncol = T_trials)
-      for (t in 1:T_trials) {
+    C_v <- matrix(0, nrow = n, ncol = T_trials)
+    for (t in 1:T_trials) {
+      if (precompute_R_t) {
         C_v[, t] <- R_t_allvox_list[[t]][, v]
+      } else {
+        C_v[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_voxel
       }
-
-      .compute_lss_betas(C_v, Y_voxel, A_lss_fixed_matrix,
-                         P_lss_matrix, p_lss_vector)
-    } else {
-      run_lss_for_voxel_core(
-        Y_voxel,
-        X_trial_onset_list_of_matrices,
-        H_voxel,
-        A_lss_fixed_matrix,
-        P_lss_matrix,
-        p_lss_vector
-      )
     }
+
+    qr_C_v <- qr(C_v)
+    rank_def <- qr_C_v$rank < T_trials
+    rank_deficient_voxels[v] <<- rank_def
+    if (rank_def) {
+      warning(sprintf("Voxel %d: trial regressors rank deficient (rank %d < %d)",
+                      v, qr_C_v$rank, T_trials))
+    }
+
+    .compute_lss_betas(C_v, Y_voxel, A_lss_fixed_matrix,
+                       P_lss_matrix, p_lss_vector)
   }
 
   res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
   Beta_trial_allvox_matrix <- do.call(cbind, res_list)
-  
+  attr(Beta_trial_allvox_matrix, "rank_deficient_voxels") <- rank_deficient_voxels
+
   return(Beta_trial_allvox_matrix)
 }

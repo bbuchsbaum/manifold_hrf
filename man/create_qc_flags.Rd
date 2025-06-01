@@ -7,7 +7,8 @@
 create_qc_flags(
   results,
   thresholds = list(min_trials = 20, min_r2 = 0.1, max_poor_fit_fraction = 0.3,
-    min_hrf_peak = 2, max_hrf_peak = 10, max_motion_dvars = 1.5)
+    min_hrf_peak = 2, max_hrf_peak = 10, max_motion_dvars = 1.5,
+    max_trial_collinearity_fraction = 0.1)
 )
 }
 \arguments{

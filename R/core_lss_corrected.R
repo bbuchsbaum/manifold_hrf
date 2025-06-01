@@ -30,6 +30,18 @@ run_lss_for_voxel_corrected <- function(y_voxel,
     regressor <- X_trial %*% h_voxel
     C[, t] <- regressor
   }
+
+  # Check for rank deficiency
+  qr_C <- qr(C)
+  if (qr_C$rank < T_trials) {
+    warning(
+      sprintf(
+        "Trial regressors are rank deficient for this voxel: rank %d < %d",
+        qr_C$rank,
+        T_trials
+      )
+    )
+  }
   
   # Ridge regression
   CTC <- t(C) %*% C
@@ -65,6 +77,18 @@ run_lss_for_voxel_corrected_full <- function(Y_proj_voxel_vector,
   C <- matrix(0, n, T_trials)
   for (t in 1:T_trials) {
     C[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_shape_voxel_vector
+  }
+
+  # Check for rank deficiency
+  qr_C <- qr(C)
+  if (qr_C$rank < T_trials) {
+    warning(
+      sprintf(
+        "Trial regressors are rank deficient for this voxel: rank %d < %d",
+        qr_C$rank,
+        T_trials
+      )
+    )
   }
   
   # Step 2: Project trial regressors to remove confound space

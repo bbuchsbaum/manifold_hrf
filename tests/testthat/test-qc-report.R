@@ -271,6 +271,22 @@ test_that("QC thresholds can be customized", {
   expect_false("low_trial_count" %in% names(flags_custom))
 })
 
+test_that("trial regressor collinearity flag triggers", {
+  results <- list(
+    core_matrices = list(
+      Beta_trial = matrix(0, 2, 5)
+    )
+  )
+  attr(results$core_matrices$Beta_trial, "rank_deficient_voxels") <- rep(TRUE, 5)
+
+  flags <- create_qc_flags(
+    results,
+    thresholds = list(min_trials = 1, max_trial_collinearity_fraction = 0.2)
+  )
+
+  expect_true("trial_regressor_collinearity" %in% names(flags))
+})
+
 test_that("compute_qc_diagnostics handles reconstruction error", {
   p <- 20
   N <- 50
