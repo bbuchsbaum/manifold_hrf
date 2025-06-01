@@ -27,7 +27,7 @@ test_that("mhrf_lss interface validates inputs correctly", {
   # Test that it requires fmrireg
   if (!requireNamespace("fmrireg", quietly = TRUE)) {
     expect_error(
-      mhrf_lss(~ hrf(condition), dataset = mock_dataset),
+      manifoldhrf:::mhrf_lss(~ hrf(condition), dataset = mock_dataset),
       "fmrireg"
     )
   }

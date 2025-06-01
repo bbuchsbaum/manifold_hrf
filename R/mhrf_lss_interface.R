@@ -65,7 +65,9 @@
 #' )
 #' }
 #'
-#' @export
+#' @description Deprecated wrapper for `mhrf_analyze`. Use that function
+#'   in new code.
+#' @keywords internal
 mhrf_lss <- function(formula,
                      dataset,
                      baseline_model = NULL,
@@ -79,6 +81,8 @@ mhrf_lss <- function(formula,
                      progress = TRUE,
                      verbose = TRUE,
                      ...) {
+
+  .Deprecated("mhrf_analyze")
   
 
   
