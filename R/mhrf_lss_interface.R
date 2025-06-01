@@ -536,7 +536,8 @@ run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
     Y_proj = proj_result$Y_proj_matrix,
     H_shapes = H_shapes,
     Beta_condition = Beta_condition_final,
-    Xi_smoothed = Xi_smoothed
+    Xi_smoothed = Xi_smoothed,
+    TR_precision = params$TR_precision %||% 1
   )
   
   return(list(
@@ -551,9 +552,16 @@ run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
 
 #' Compute Pipeline Diagnostics
 #'
+#' @param Y_data Original data matrix
+#' @param Y_proj Confound-projected data matrix
+#' @param H_shapes Matrix of reconstructed HRFs
+#' @param Beta_condition Condition-level beta estimates
+#' @param Xi_smoothed Smoothed manifold coordinates
+#' @param TR_precision Sampling rate of the HRFs
 #' @keywords internal
-compute_pipeline_diagnostics <- function(Y_data, Y_proj, H_shapes, 
-                                       Beta_condition, Xi_smoothed) {
+compute_pipeline_diagnostics <- function(Y_data, Y_proj, H_shapes,
+                                       Beta_condition, Xi_smoothed,
+                                       TR_precision = 1) {
   
   # This would compute R², HRF statistics, etc.
   # Simplified version:
@@ -561,7 +569,7 @@ compute_pipeline_diagnostics <- function(Y_data, Y_proj, H_shapes,
   diagnostics <- list(
     n_voxels_processed = ncol(H_shapes),
     manifold_variance = apply(Xi_smoothed, 1, var),
-    hrf_stats = extract_hrf_stats(H_shapes),
+    hrf_stats = extract_hrf_stats(H_shapes, TR_precision = TR_precision),
     timestamp = Sys.time()
   )
   
@@ -764,27 +772,6 @@ run_mhrf_lss_chunked <- function(Y_data, design_info, manifold, Z_confounds,
 }
 
 
-#' Detect Outlier Timepoints (Stub for Interface)
-#'
-#' @keywords internal
-detect_outlier_timepoints <- function(Y_data, threshold = 3) {
-  # This is a stub - actual implementation is in robust_spatial_outlier.R
-  # For now, return uniform weights
-  return(matrix(1, nrow(Y_data), ncol(Y_data)))
-}
 
-
-#' Extract HRF Statistics (Stub for Interface)
-#'
-#' @keywords internal  
-extract_hrf_stats <- function(H_shapes) {
-  # This is a stub - actual implementation is in qc_report.R
-  # Return basic stats
-  list(
-    mean_peak_time = NA,
-    mean_peak_amplitude = NA,
-    mean_fwhm = NA
-  )
-}
 
 
