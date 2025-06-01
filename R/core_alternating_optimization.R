@@ -103,10 +103,8 @@ estimate_final_condition_betas_core <- function(Y_proj_matrix,
     stop("H_shapes_allvox_matrix must have V columns to match Y_proj_matrix")
   }
   
-  if (!is.numeric(lambda_beta_final) || length(lambda_beta_final) != 1 || 
-      lambda_beta_final < 0) {
-    stop("lambda_beta_final must be a non-negative scalar")
-  }
+  lambda_beta_final <- .validate_and_standardize_lambda(lambda_beta_final,
+                                                        "lambda_beta_final")
   
   # Validate control parameters
   if (!is.list(control_alt_list)) {

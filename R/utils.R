@@ -41,3 +41,28 @@
     lapply(X, FUN)
   }
 }
+
+#' Validate and standardize ridge penalty parameter
+#'
+#' Ensures a lambda parameter is a non-negative scalar and applies
+#' consistent tolerance-based adjustments. Small values below a fixed
+#' threshold are coerced to zero with a warning. Unusually large values
+#' trigger a warning about potential over-regularization.
+#'
+#' @param lambda Numeric value provided by the user.
+#' @param name Character name of the parameter (for error messages).
+#' @return Sanitized lambda value.
+#' @keywords internal
+.validate_and_standardize_lambda <- function(lambda, name) {
+  tol <- 1e-8
+  if (!is.numeric(lambda) || length(lambda) != 1 || is.na(lambda) || lambda < 0) {
+    stop(sprintf("%s must be a non-negative scalar", name))
+  }
+  if (lambda < tol && lambda > 0) {
+    warning(sprintf("%s is near zero (%.2e); treating as 0", name, lambda))
+    lambda <- 0
+  } else if (lambda > 1) {
+    warning(sprintf("%s is large (%.2e); may cause over-regularization", name, lambda))
+  }
+  lambda
+}
