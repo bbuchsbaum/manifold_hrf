@@ -89,3 +89,4 @@ export(mhrf_lss_parameters)
 export(plot_qc_summary)
 export(plot_trial_betas)
 
+export(analyze_single_voxel)
