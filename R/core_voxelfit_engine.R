@@ -352,7 +352,16 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 
     if (ident_sign_method == "canonical_correlation" || ident_sign_method == "first_component") {
       h_tmp <- B_reconstructor_matrix %*% xi_v
-      corr_ref <- suppressWarnings(cor(h_tmp, h_ref_shape_vector))
+      
+      # Verify dimensions match
+      if (length(h_tmp) != length(h_ref_shape_vector)) {
+        stop(sprintf("Dimension mismatch at voxel %d: reconstructed HRF has length %d but reference has length %d", 
+                     v, length(h_tmp), length(h_ref_shape_vector)))
+      }
+      
+      corr_ref <- tryCatch(cor(as.vector(h_tmp), as.vector(h_ref_shape_vector)), 
+                          warning = function(w) NA, 
+                          error = function(e) NA)
       if (is.na(corr_ref)) corr_ref <- 0
       if (abs(corr_ref) < 1e-3) {
         warning(sprintf("Voxel %d: canonical correlation near zero (%.3f)", v, corr_ref))
@@ -374,7 +383,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
           }
           y_pred <- X_design %*% beta_tmp
           y_true <- Y_proj_matrix[, v]
-          r2 <- suppressWarnings(cor(y_pred, y_true))^2
+          r2 <- tryCatch(cor(as.vector(y_pred), as.vector(y_true))^2, 
+                        warning = function(w) NA, 
+                        error = function(e) NA)
           if (!is.na(r2) && r2 > best_r2) {
             best_r2 <- r2
             best_sgn <- sg
@@ -401,7 +412,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
         }
         y_pred <- X_design %*% beta_tmp
         y_true <- Y_proj_matrix[, v]
-        r2 <- suppressWarnings(cor(y_pred, y_true))^2
+        r2 <- tryCatch(cor(as.vector(y_pred), as.vector(y_true))^2, 
+                      warning = function(w) NA, 
+                      error = function(e) NA)
         if (!is.na(r2) && r2 > best_r2) {
           best_r2 <- r2
           best_sgn <- sg
@@ -410,7 +423,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
       sgn <- best_sgn
       if (!(best_r2 > 0)) {
         h_tmp <- B_reconstructor_matrix %*% xi_v
-        corr_ref <- suppressWarnings(cor(h_tmp, h_ref_shape_vector))
+        corr_ref <- tryCatch(cor(as.vector(h_tmp), as.vector(h_ref_shape_vector)), 
+                            warning = function(w) NA, 
+                            error = function(e) NA)
         if (!is.na(corr_ref) && abs(corr_ref) >= 1e-3) {
           sgn <- sign(corr_ref)
         } else {
@@ -447,7 +462,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 
     if (consistency_check) {
       hr_check <- B_reconstructor_matrix %*% xi_out
-      corr_check <- suppressWarnings(cor(hr_check, h_ref_shape_vector))
+      corr_check <- tryCatch(cor(as.vector(hr_check), as.vector(h_ref_shape_vector)), 
+                            warning = function(w) NA, 
+                            error = function(e) NA)
       if (!is.na(corr_check) && corr_check < 0) {
         xi_out <- -xi_out
         beta_out <- -beta_out

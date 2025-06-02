@@ -115,7 +115,8 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
       w_vec <- exp(-(d_vec^2) / sigma_prod_vec)
       W <- Matrix::sparseMatrix(i = i_vec, j = j_vec, x = w_vec,
                                 dims = c(N, N))
-      W <- Matrix::pmax(W, Matrix::t(W))
+      W_t <- Matrix::t(W)
+      W <- pmax(W, W_t)
     } else {
       W <- matrix(0, N, N)
       for (i in seq_len(N)) {
@@ -161,7 +162,8 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
       W_sparse[i, !mask] <- 0
     }
     # Symmetrize the sparse matrix (take maximum of W_ij and W_ji)
-    W <- Matrix::pmax(W_sparse, Matrix::t(W_sparse))
+    W_sparse_t <- Matrix::t(W_sparse)
+    W <- pmax(W_sparse, W_sparse_t)
     
     # Convert to sparse matrix format
     if (requireNamespace("Matrix", quietly = TRUE)) {
@@ -327,14 +329,25 @@ get_manifold_basis_reconstructor_core <- function(S_markov_matrix,
   
   # The first eigenvector should be trivial (all ones for a stochastic matrix)
   # Remove it from manifold coordinates and determine dimensionality
-  eigenvalues_S <- eigenvalues_full[-1]
-  Phi_raw_full <- eigenvectors_full[, -1, drop = FALSE]
+  if (length(eigenvalues_full) <= 1) {
+    # Handle case with only trivial eigenvalue
+    eigenvalues_S <- numeric(0)
+    Phi_raw_full <- matrix(0, nrow = N, ncol = 0)
+  } else {
+    eigenvalues_S <- Re(eigenvalues_full[-1])  # Take real part for complex eigenvalues
+    Phi_raw_full <- Re(eigenvectors_full[, -1, drop = FALSE])  # Take real part for complex eigenvectors
+  }
 
-  dim_info <- select_manifold_dim(eigenvalues_full, m_manifold_dim_min_variance)
-  m_auto <- dim_info$m_auto
+  if (length(eigenvalues_S) == 0) {
+    # No non-trivial eigenvalues, use dimension 1
+    m_auto <- 1
+  } else {
+    dim_info <- select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance)
+    m_auto <- dim_info$m_auto
+  }
   
   # Choose final dimension (use target dimension, but limit to available eigenvectors)
-  m_final <- min(m_manifold_dim_target, length(eigenvalues_S))
+  m_final <- min(m_manifold_dim_target, max(1, length(eigenvalues_S)))
 
   # Warn if target is much lower than auto-selected dimension needed for variance threshold
   if (m_manifold_dim_target < m_auto * 0.5) {
@@ -343,14 +356,20 @@ get_manifold_basis_reconstructor_core <- function(S_markov_matrix,
   }
   
   # Step 4: Extract final manifold coordinates
-  Phi_coords_matrix <- Phi_raw_full[, 1:m_final, drop = FALSE]
-  
-  # Enforce consistent sign for reproducibility 
-  # (first non-zero element of each eigenvector should be positive)
-  for (j in 1:m_final) {
-    first_nonzero_idx <- which(abs(Phi_coords_matrix[, j]) > 1e-10)[1]
-    if (!is.na(first_nonzero_idx) && Phi_coords_matrix[first_nonzero_idx, j] < 0) {
-      Phi_coords_matrix[, j] <- -Phi_coords_matrix[, j]
+  if (ncol(Phi_raw_full) == 0 || m_final == 0) {
+    # Handle case with no non-trivial eigenvectors
+    Phi_coords_matrix <- matrix(0, nrow = N, ncol = 1)
+    m_final <- 1
+  } else {
+    Phi_coords_matrix <- Phi_raw_full[, 1:m_final, drop = FALSE]
+    
+    # Enforce consistent sign for reproducibility 
+    # (first non-zero element of each eigenvector should be positive)
+    for (j in 1:m_final) {
+      first_nonzero_idx <- which(abs(Phi_coords_matrix[, j]) > 1e-10)[1]
+      if (!is.na(first_nonzero_idx) && Phi_coords_matrix[first_nonzero_idx, j] < 0) {
+        Phi_coords_matrix[, j] <- -Phi_coords_matrix[, j]
+      }
     }
   }
   

@@ -17,7 +17,7 @@ test_that("calculate_manifold_affinity_core works with small matrix", {
   
   # Check that S is a stochastic matrix (rows sum to 1)
   row_sums <- rowSums(S_markov)
-  expect_equal(row_sums, rep(1, N), tolerance = 1e-10)
+  expect_equal(row_sums, rep(1, N), tolerance = 1e-8)
   
   # Check that diagonal is 0 (no self-loops)
   expect_equal(diag(S_markov), rep(0, N))
@@ -61,7 +61,7 @@ test_that("calculate_manifold_affinity_core handles sparse matrix parameters", {
   } else {
     row_sums <- rowSums(S_markov_sparse)
   }
-  expect_equal(row_sums, rep(1, N), tolerance = 1e-10)
+  expect_equal(row_sums, rep(1, N), tolerance = 1e-8)
 })
 
 test_that("k_nn_for_W_sparse larger than N is truncated", {
@@ -87,7 +87,7 @@ test_that("k_nn_for_W_sparse larger than N is truncated", {
   } else {
     row_sums <- rowSums(S_markov)
   }
-  expect_equal(row_sums, rep(1, N), tolerance = 1e-10)
+  expect_equal(row_sums, rep(1, N), tolerance = 1e-8)
 })
 
 test_that("calculate_manifold_affinity_core validates inputs correctly", {

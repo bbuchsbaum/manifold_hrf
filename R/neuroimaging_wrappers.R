@@ -301,7 +301,7 @@ create_half_cosine_library <- function(TR_precision, hrf_duration, n_basis = 20)
   for (i in seq_len(n_basis)) {
     freq <- i * pi / hrf_duration
     hrf_fun <- function(t) {
-      stats::cos(freq * t) * exp(-t / (hrf_duration / 2))
+      cos(freq * t) * exp(-t / (hrf_duration / 2))
     }
 
     scale_val <- max(abs(hrf_fun(time_points)))

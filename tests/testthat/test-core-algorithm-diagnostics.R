@@ -193,7 +193,9 @@ test_that("M-HRF-LSS preserves signal reconstruction fidelity and manifold geome
     # H_true is p x n_voxels  
     # Beta_true[c, ] is a vector of length n_voxels
     # We want: Y = X * H * diag(beta) where result is n_time x n_voxels
-    Y_clean <- Y_clean + X_conditions[[c]] %*% (H_true * matrix(Beta_true[c, ], p, n_voxels, byrow = TRUE))
+    # Fix: Use rep() to properly expand the beta vector
+    beta_matrix <- matrix(rep(Beta_true[c, ], each = p), nrow = p, ncol = n_voxels)
+    Y_clean <- Y_clean + X_conditions[[c]] %*% (H_true * beta_matrix)
   }
   
   # Test multiple SNR levels
@@ -370,7 +372,8 @@ test_that("M-HRF-LSS trial-wise estimation is unbiased and efficient compared to
   Y_clean <- matrix(0, n_time, n_voxels)
   for (trial in 1:length(trial_onsets)) {
     for (v in 1:n_voxels) {
-      Y_clean[, v] <- Y_clean[, v] + X_trials[[trial]] %*% hrf_true * trial_betas_true[trial, v]
+      # Fix array recycling: scalar multiplication should use as.vector()
+      Y_clean[, v] <- Y_clean[, v] + X_trials[[trial]] %*% (hrf_true * as.vector(trial_betas_true[trial, v]))
     }
   }
   

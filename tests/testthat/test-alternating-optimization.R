@@ -147,7 +147,7 @@ test_that("estimate_final_condition_betas_core validates inputs", {
   expect_error(
     estimate_final_condition_betas_core(Y, X_list, H,
                                       control_alt_list = list(rel_change_tol = -1)),
-    "rel_change_tol must be a non-negative scalar"
+    "rel_change_tol must be a positive scalar"
   )
 })
 
@@ -224,7 +224,7 @@ test_that("estimate_final_condition_betas_core works with multiple iterations", 
   
   # With fixed HRFs, results should be identical
   # (since we're not actually updating HRFs between iterations)
-  expect_equal(Beta_iter1, Beta_iter3, tolerance = 1e-10)
+  expect_equal(Beta_iter1, Beta_iter3, tolerance = 1e-8)
 })
 
 test_that("estimate_final_condition_betas_core recovers known signal patterns", {

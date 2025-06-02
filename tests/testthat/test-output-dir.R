@@ -24,7 +24,8 @@ test_that("mhrf_analyze creates missing output directory", {
     TR = 2,
     save_intermediate = TRUE,
     output_dir = out_dir,
-    verbose = 0
+    verbose = 0,
+    p_hrf = 15  # Shorter HRF to fit within 20 timepoints
   )
 
   expect_s3_class(result, "mhrf_result")

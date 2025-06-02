@@ -124,7 +124,8 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
   
   # Make symmetric by taking max(W, W^T)
   # This ensures if i is a neighbor of j OR j is a neighbor of i, they're connected
-  W_symmetric <- Matrix::pmax(W_directed, Matrix::t(W_directed))
+  W_directed_t <- Matrix::t(W_directed)
+  W_symmetric <- pmax(W_directed, W_directed_t)
   
   # Step 3: Compute degree matrix D
   degrees <- Matrix::rowSums(W_symmetric)

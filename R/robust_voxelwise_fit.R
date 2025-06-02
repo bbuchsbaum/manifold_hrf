@@ -64,8 +64,12 @@ extract_xi_beta_raw_svd_robust <- function(Gamma_coeffs_matrix,
       cn <- kappa(Gamma_scaled)
       quality_metrics$condition_numbers[v] <- cn
       
-      # If poorly conditioned, add regularization
-      if (cn > max_condition_number) {
+      # Check if matrix is rank-1 (special case)
+      svd_check <- svd(Gamma_mat, nu = 0, nv = 0)
+      n_sig <- sum(svd_check$d > max(svd_check$d) * .Machine$double.eps * 100)
+      
+      # If poorly conditioned but NOT rank-1, add regularization
+      if (cn > max_condition_number && n_sig > 1) {
         reg_amount <- (cn / max_condition_number) * regularization_factor * .Machine$double.eps
         # Add regularization to diagonal
         diag(Gamma_mat) <- diag(Gamma_mat) + reg_amount

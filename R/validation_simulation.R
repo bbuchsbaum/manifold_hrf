@@ -724,15 +724,25 @@ run_pipeline_on_simulated_data <- function(bold_data, design_info, ground_truth_
     lambda_ridge_Alss = pipeline_params$lambda_ridge_Alss
   )
   
-  # Run LSS
-  Beta_trial <- run_lss_voxel_loop_core(
-    Y_proj_matrix = proj_result$Y_proj_matrix,
-    X_trial_onset_list_of_matrices = design_info$X_trial_list,
-    H_shapes_allvox_matrix = H_shapes,
-    A_lss_fixed_matrix = bold_data$Z_confounds,
-    lambda_ridge = pipeline_params$lambda_ridge_Alss,
-    n_jobs = pipeline_params$n_jobs %||% 1
-  )
+  # Run LSS using the new corrected implementation
+  V <- ncol(proj_result$Y_proj_matrix)
+  T_trials <- length(design_info$X_trial_list)
+  
+  # Prepare projection matrix once
+  P_confound <- prepare_projection_matrix(bold_data$Z_confounds, pipeline_params$lambda_ridge_Alss)
+  
+  # Loop over voxels to get trial-wise estimates
+  Beta_trial <- matrix(0, T_trials, V)
+  for (v in 1:V) {
+    beta_voxel <- run_lss_for_voxel_corrected_full(
+      Y_proj_voxel_vector = proj_result$Y_proj_matrix[, v],
+      X_trial_onset_list_of_matrices = design_info$X_trial_list,
+      H_shape_voxel_vector = H_shapes[, v],
+      P_confound = P_confound,
+      lambda_ridge = pipeline_params$lambda_ridge_Alss
+    )
+    Beta_trial[, v] <- beta_voxel
+  }
   
   # Step 5: Component 4 - Final condition betas
   Beta_condition_final <- estimate_final_condition_betas_core(

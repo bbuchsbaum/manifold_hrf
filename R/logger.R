@@ -8,18 +8,20 @@
 #' @return An object of class `mhrf_logger` with methods `add` and `get`.
 #' @export
 create_logger <- function() {
-  log_entries <- character()
-
+  # Use an environment to properly encapsulate state
+  log_env <- new.env(parent = emptyenv())
+  log_env$entries <- character()
+  
   add <- function(msg) {
     stamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-    log_entries <<- c(log_entries, sprintf("[%s] %s", stamp, msg))
+    log_env$entries <- c(log_env$entries, sprintf("[%s] %s", stamp, msg))
     invisible(NULL)
   }
-
+  
   get <- function() {
-    log_entries
+    log_env$entries
   }
-
+  
   structure(list(add = add, get = get), class = "mhrf_logger")
 }
 

@@ -167,7 +167,9 @@ compute_edge_weights <- function(Xi_matrix, voxel_coords, edge_threshold = 2) {
   # Compute local gradient magnitude
   for (v in 1:V) {
     # Find spatial neighbors
-    distances <- sqrt(rowSums((voxel_coords - matrix(voxel_coords[v, ], V, 3, byrow = TRUE))^2))
+    # Fix array recycling: use rep() to properly expand the vector
+    voxel_v_matrix <- matrix(rep(voxel_coords[v, ], each = V), nrow = V, ncol = 3)
+    distances <- sqrt(rowSums((voxel_coords - voxel_v_matrix)^2))
     neighbors <- which(distances > 0 & distances < 2)
     
     if (length(neighbors) > 0) {
@@ -305,10 +307,10 @@ screen_voxels <- function(Y_data,
   n_flagged <- sum(flag_voxel)
   
   if (n_excluded > 0) {
-    message(sprintf("Excluded %d low-quality voxels", n_excluded))
+    warning(sprintf("Excluded %d low-quality voxels", n_excluded))
   }
   if (n_flagged > 0) {
-    message(sprintf("Flagged %d voxels with potential artifacts", n_flagged))
+    warning(sprintf("Flagged %d voxels with potential artifacts", n_flagged))
   }
   
   return(list(

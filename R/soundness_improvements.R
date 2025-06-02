@@ -17,17 +17,23 @@ check_hrf_library_quality <- function(L_library_matrix) {
   
   # Check for duplicate HRFs
   # Handle case where all HRFs are constant
-  tryCatch({
+  cor_result <- tryCatch({
     cor_matrix <- cor(L_library_matrix)
     diag(cor_matrix) <- 0
-    max_cor <- max(abs(cor_matrix))
-    n_near_duplicates <- sum(abs(cor_matrix) > 0.99) / 2
+    list(
+      max_cor = max(abs(cor_matrix)),
+      n_near_duplicates = sum(abs(cor_matrix) > 0.99) / 2
+    )
   }, error = function(e) {
     # If correlation fails (e.g., zero variance), treat as degenerate
-    cor_matrix <- matrix(0, N, N)
-    max_cor <- 0
-    n_near_duplicates <- 0
+    list(
+      max_cor = 0,
+      n_near_duplicates = 0
+    )
   })
+  
+  max_cor <- cor_result$max_cor
+  n_near_duplicates <- cor_result$n_near_duplicates
   
   quality$has_duplicates <- n_near_duplicates > 0
   quality$n_duplicates <- n_near_duplicates
@@ -138,17 +144,37 @@ compute_pca_fallback <- function(L_library_matrix, m_target, min_variance = 0.95
   # Use minimum of target and auto-selected
   m_final <- min(m_target, m_auto, length(svd_result$d))
   
+  # Ensure m_final is valid
+  if (is.na(m_final) || m_final < 1) {
+    warning("No valid components found in PCA fallback")
+    m_final <- 1
+  }
+  
   # Ensure we explain at least min_variance
-  if (cum_var[m_final] < min_variance && m_final < length(svd_result$d)) {
+  if (m_final > 0 && m_final <= length(cum_var) && 
+      !is.na(cum_var[m_final]) && cum_var[m_final] < min_variance && 
+      m_final < length(svd_result$d)) {
     m_final <- m_auto
   }
   
   # Extract components
-  B_reconstructor <- svd_result$u[, 1:m_final, drop = FALSE]
-  
-  # Compute coordinates (for compatibility with manifold output)
-  Phi_coords <- svd_result$v[, 1:m_final, drop = FALSE] %*% 
-                diag(svd_result$d[1:m_final], m_final, m_final)
+  if (m_final > 0 && m_final <= ncol(svd_result$u)) {
+    B_reconstructor <- svd_result$u[, 1:m_final, drop = FALSE]
+    
+    # Compute coordinates (for compatibility with manifold output)
+    if (m_final == 1) {
+      Phi_coords <- svd_result$v[, 1, drop = FALSE] * svd_result$d[1]
+    } else {
+      Phi_coords <- svd_result$v[, 1:m_final, drop = FALSE] %*% 
+                    diag(svd_result$d[1:m_final], m_final, m_final)
+    }
+  } else {
+    # Fallback to constant
+    warning("Using constant basis as ultimate fallback")
+    B_reconstructor <- matrix(1/sqrt(p), p, 1)
+    Phi_coords <- matrix(1, N, 1)
+    m_final <- 1
+  }
   
   return(list(
     B_reconstructor_matrix = B_reconstructor,
@@ -184,7 +210,7 @@ get_manifold_basis_reconstructor_robust <- function(S_markov_matrix,
   
   if (!quality$is_good_quality) {
     warning("HRF library has quality issues:")
-    if (!is.null(quality$has_duplicates) && quality$has_duplicates) {
+    if (!is.null(quality$has_duplicates) && !is.na(quality$has_duplicates) && quality$has_duplicates) {
       warning(sprintf("  - Found %d near-duplicate HRFs", quality$n_duplicates))
     }
     if (quality$is_ill_conditioned) {
@@ -1114,20 +1140,24 @@ handle_zero_voxels <- function(Y_data, min_variance = 1e-8, replace_with = "skip
   V <- ncol(Y_data)
   
   # Identify problematic voxels
-  voxel_vars <- apply(Y_data, 2, var)
-  voxel_means <- colMeans(Y_data)
+  voxel_vars <- apply(Y_data, 2, var, na.rm = TRUE)
+  voxel_means <- colMeans(Y_data, na.rm = TRUE)
+  
+  # Check for non-finite values (Inf, -Inf, NaN)
+  has_nonfinite <- apply(Y_data, 2, function(x) any(!is.finite(x)))
   
   all_zero <- abs(voxel_means) < .Machine$double.eps & voxel_vars < .Machine$double.eps
   low_variance <- voxel_vars < min_variance
   
-  zero_indices <- which(all_zero | low_variance)
+  zero_indices <- which(all_zero | low_variance | has_nonfinite)
   n_zero <- sum(all_zero)
   n_low_var <- sum(low_variance & !all_zero)
+  n_nonfinite <- sum(has_nonfinite)
   
   # Report findings
   if (length(zero_indices) > 0) {
-    message(sprintf("Found %d problematic voxels: %d all-zero, %d low-variance", 
-                   length(zero_indices), n_zero, n_low_var))
+    message(sprintf("Found %d problematic voxels: %d all-zero, %d low-variance, %d non-finite", 
+                   length(zero_indices), n_zero, n_low_var, n_nonfinite))
   }
   
   # Handle based on strategy

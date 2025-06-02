@@ -47,8 +47,8 @@ test_that("Corrected LSS implementation matches ground truth", {
   y <- y + rnorm(n, sd = 0.2)
   
   # Prepare projection
-  proj_info <- prepare_projection_matrix(Z, lambda)
-  y_proj <- proj_info$project_fn(y)
+  P_proj <- prepare_projection_matrix(Z, lambda)
+  y_proj <- P_proj %*% y
   
   # METHOD 1: Direct LSS (ground truth)
   betas_direct <- numeric(T_trials)
@@ -61,11 +61,11 @@ test_that("Corrected LSS implementation matches ground truth", {
   }
   
   # METHOD 2: Corrected implementation
-  betas_corrected <- run_lss_for_voxel_corrected(
+  betas_corrected <- run_lss_for_voxel_corrected_full(
     Y_proj_voxel_vector = y_proj,
     X_trial_onset_list_of_matrices = X_trials,
     H_shape_voxel_vector = h,
-    P_confound = proj_info$P,
+    P_confound = P_proj,
     lambda_ridge = lambda
   )
   

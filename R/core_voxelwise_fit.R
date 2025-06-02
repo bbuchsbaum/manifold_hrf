@@ -1,6 +1,181 @@
 # Core Voxel-wise Manifold Fit Functions (Component 1)
 # Implementation of MHRF-CORE-VOXFIT-01 through MHRF-CORE-VOXFIT-05
 
+# Internal helper function for voxel processing in identifiability
+.process_voxel_identifiability <- function(vx, Xi_raw, Beta_raw, B_reconstructor, 
+                                         h_ref, config, Y_proj = NULL, 
+                                         X_list = NULL, verbose = FALSE) {
+  
+  xi_vx <- Xi_raw[, vx]
+  beta_vx <- Beta_raw[, vx]
+  m <- length(xi_vx)
+  k <- length(beta_vx)
+  
+  # Skip if no signal
+  if (all(abs(xi_vx) < .Machine$double.eps)) {
+    return(list(xi = rep(0, m), beta = rep(0, k)))
+  }
+  
+  # Constants
+  CORRELATION_THRESHOLD <- 1e-3
+  SCALE_OVERFLOW_THRESHOLD <- 1 / sqrt(.Machine$double.eps)
+  
+  # Step 1: Determine sign
+  sgn <- 1
+  method_used <- config$sign_method
+  
+  if (config$sign_method == "canonical_correlation") {
+    h_tmp <- B_reconstructor %*% xi_vx
+    # Ensure both are vectors for correlation
+    corr_ref <- tryCatch(cor(as.vector(h_tmp), as.vector(h_ref)), 
+                        warning = function(w) NA, 
+                        error = function(e) NA)
+    if (is.na(corr_ref)) corr_ref <- 0
+    
+    sgn <- sign(corr_ref)
+    if (sgn == 0) sgn <- 1
+    
+    # Fallback if correlation is too low
+    if (abs(corr_ref) < CORRELATION_THRESHOLD && !is.null(Y_proj) && !is.null(X_list)) {
+      # Try data fit
+      best_r2 <- -Inf
+      best_sgn <- 1
+      
+      for (sg in c(1, -1)) {
+        xi_tmp <- xi_vx * sg
+        beta_tmp <- beta_vx * sg
+        h_tmp2 <- B_reconstructor %*% xi_tmp
+        
+        X_design <- matrix(0, nrow(Y_proj), length(X_list))
+        for (c in seq_along(X_list)) {
+          X_design[, c] <- X_list[[c]] %*% h_tmp2
+        }
+        
+        y_pred <- X_design %*% beta_tmp
+        y_true <- Y_proj[, vx]
+        # Ensure both are vectors for correlation
+        r2 <- tryCatch(cor(as.vector(y_pred), as.vector(y_true))^2, 
+                      warning = function(w) NA, 
+                      error = function(e) NA)
+        
+        if (!is.na(r2) && r2 > best_r2) {
+          best_r2 <- r2
+          best_sgn <- sg
+        }
+      }
+      
+      if (best_r2 > 0) {
+        sgn <- best_sgn
+        method_used <- "data_fit_fallback"
+      } else {
+        sgn <- sign(sum(h_tmp))
+        if (sgn == 0) sgn <- 1
+        method_used <- "rms_fallback"
+      }
+    }
+  } else if (config$sign_method == "data_fit_correlation") {
+    # Data fit method
+    best_r2 <- -Inf
+    best_sgn <- 1
+    
+    for (sg in c(1, -1)) {
+      xi_tmp <- xi_vx * sg
+      beta_tmp <- beta_vx * sg
+      h_tmp <- B_reconstructor %*% xi_tmp
+      
+      X_design <- matrix(0, nrow(Y_proj), length(X_list))
+      for (c in seq_along(X_list)) {
+        X_design[, c] <- X_list[[c]] %*% h_tmp
+      }
+      
+      y_pred <- X_design %*% beta_tmp
+      y_true <- Y_proj[, vx]
+      # Ensure both are vectors for correlation
+      r2 <- tryCatch(cor(as.vector(y_pred), as.vector(y_true))^2, 
+                    warning = function(w) NA, 
+                    error = function(e) NA)
+      
+      if (!is.na(r2) && r2 > best_r2) {
+        best_r2 <- r2
+        best_sgn <- sg
+      }
+    }
+    
+    sgn <- best_sgn
+    
+    # Fallback if R² is too low
+    if (best_r2 <= 0) {
+      h_tmp <- B_reconstructor %*% xi_vx
+      # Ensure both are vectors for correlation
+      corr_ref <- tryCatch(cor(as.vector(h_tmp), as.vector(h_ref)), 
+                          warning = function(w) NA, 
+                          error = function(e) NA)
+      
+      if (!is.na(corr_ref) && abs(corr_ref) >= CORRELATION_THRESHOLD) {
+        sgn <- sign(corr_ref)
+        if (sgn == 0) sgn <- 1
+        method_used <- "canonical_fallback"
+      } else {
+        sgn <- sign(sum(h_tmp))
+        if (sgn == 0) sgn <- 1
+        method_used <- "rms_fallback"
+      }
+    }
+  }
+  
+  if (verbose) {
+    message(sprintf("Voxel %d: sign method = %s", vx, method_used))
+  }
+  
+  # Apply sign
+  xi_signed <- xi_vx * sgn
+  beta_signed <- beta_vx * sgn
+  
+  # Step 2: Reconstruct HRF for scaling
+  hrf <- B_reconstructor %*% xi_signed
+  
+  # Step 3: Apply scale normalization
+  if (config$scale_method == "l2_norm") {
+    l2_norm <- sqrt(sum(hrf^2))
+    if (l2_norm < config$zero_tol) {
+      return(list(xi = rep(0, m), beta = rep(0, k)))
+    }
+    scl <- 1 / max(l2_norm, .Machine$double.eps)
+  } else if (config$scale_method == "max_abs_val") {
+    max_abs <- max(abs(hrf))
+    if (max_abs < config$zero_tol) {
+      return(list(xi = rep(0, m), beta = rep(0, k)))
+    }
+    scl <- 1 / max(max_abs, .Machine$double.eps)
+  } else {  # "none"
+    scl <- 1
+  }
+  
+  # Apply scaling
+  xi_out <- xi_signed * scl
+  beta_out <- beta_signed / scl
+  
+  # Handle numerical overflow
+  if (scl > SCALE_OVERFLOW_THRESHOLD) {
+    beta_out <- rep(0, k)
+  }
+  
+  # Step 4: Optional consistency check
+  if (config$consistency_check) {
+    hrf_check <- B_reconstructor %*% xi_out
+    # Ensure both are vectors for correlation
+    corr_check <- tryCatch(cor(as.vector(hrf_check), as.vector(h_ref)), 
+                          warning = function(w) NA, 
+                          error = function(e) NA)
+    if (!is.na(corr_check) && corr_check < 0) {
+      xi_out <- -xi_out
+      beta_out <- -beta_out
+    }
+  }
+  
+  list(xi = xi_out, beta = beta_out)
+}
+
 #' Project Out Confounds (Core)
 #'
 #' Projects out confound variables from both the data matrix and design matrices
@@ -430,6 +605,8 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #'   canonical shape. Voxels failing the check are flipped to ensure
 #'   consistent orientation.
 #' @param n_jobs Number of parallel jobs for voxel processing (default 1).
+#' @param verbose Logical; if TRUE, print progress messages for each voxel.
+#'   Default FALSE to avoid message spam.
 #'   
 #' @return A list containing:
 #'   \itemize{
@@ -482,9 +659,9 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                 Y_proj_matrix = NULL,
                                                 X_condition_list_proj_matrices = NULL,
                                                 consistency_check = FALSE,
-                                                n_jobs = 1) {
+                                                n_jobs = 1,
+                                                verbose = FALSE) {
 
-  
   # Input validation
   if (!is.matrix(Xi_raw_matrix)) {
     stop("Xi_raw_matrix must be a matrix")
@@ -539,149 +716,36 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
     }
   }
   
-  # Compute reference manifold coordinates
-  # xi_ref = (B_reconstructor)^+ * h_ref
-  # Using Moore-Penrose pseudoinverse
+  # Compute reference manifold coordinates (unused but kept for compatibility)
   xi_ref_coord <- MASS::ginv(B_reconstructor_matrix) %*% h_ref_shape_vector
   
-  # Initialize output matrices
-  Xi_ident_matrix <- matrix(0, nrow = m, ncol = V)
-  Beta_ident_matrix <- matrix(0, nrow = k, ncol = V)
-
+  # Set up configuration for voxel processing
+  config <- list(
+    sign_method = ident_sign_method,
+    scale_method = ident_scale_method,
+    zero_tol = zero_tol,
+    consistency_check = consistency_check
+  )
+  
+  # Process each voxel using the helper function
   voxel_fun <- function(vx) {
-    xi_vx <- Xi_raw_matrix[, vx]
-    beta_vx <- Beta_raw_matrix[, vx]
-    
-    # Skip if xi is zero (no signal)
-    if (all(abs(xi_vx) < .Machine$double.eps)) {
-      return(list(xi = xi_vx, beta = rep(0, k)))
-    }
-    
-    # Step 1: Sign alignment with fallback strategies
-    sgn <- 1
-    method_used <- ident_sign_method
-    if (ident_sign_method == "canonical_correlation") {
-      h_tmp <- B_reconstructor_matrix %*% xi_vx
-      corr_ref <- suppressWarnings(cor(h_tmp, h_ref_shape_vector))
-      if (is.na(corr_ref)) corr_ref <- 0
-      if (abs(corr_ref) < 1e-3) {
-        warning(sprintf("Voxel %d: canonical correlation near zero (%.3f)", vx, corr_ref))
-      }
-      sgn <- sign(corr_ref)
-      if (sgn == 0) sgn <- 1
-      if (abs(corr_ref) < 1e-3 && !is.null(Y_proj_matrix) &&
-          !is.null(X_condition_list_proj_matrices)) {
-        best_r2 <- -Inf
-        best_sgn <- 1
-        for (sg in c(1, -1)) {
-          xi_tmp <- xi_vx * sg
-          beta_tmp <- beta_vx * sg
-          h_tmp2 <- B_reconstructor_matrix %*% xi_tmp
-          k2 <- length(X_condition_list_proj_matrices)
-          X_design <- matrix(0, nrow(Y_proj_matrix), k2)
-          for (c in 1:k2) {
-            X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp2
-          }
-          y_pred <- X_design %*% beta_tmp
-          y_true <- Y_proj_matrix[, vx]
-          r2 <- suppressWarnings(cor(y_pred, y_true))^2
-          if (!is.na(r2) && r2 > best_r2) {
-            best_r2 <- r2
-            best_sgn <- sg
-          }
-        }
-        if (best_r2 > 0) {
-          sgn <- best_sgn
-          method_used <- "data_fit_correlation_fallback"
-        } else {
-          sgn <- sign(sum(h_tmp))
-          if (sgn == 0) sgn <- 1
-          method_used <- "rms_fallback"
-        }
-      }
-    } else if (ident_sign_method == "data_fit_correlation") {
-      best_r2 <- -Inf
-      best_sgn <- 1
-      for (sg in c(1, -1)) {
-        xi_tmp <- xi_vx * sg
-        beta_tmp <- beta_vx * sg
-        h_tmp <- B_reconstructor_matrix %*% xi_tmp
-        k2 <- length(X_condition_list_proj_matrices)
-        X_design <- matrix(0, nrow(Y_proj_matrix), k2)
-        for (c in 1:k2) {
-          X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp
-        }
-        y_pred <- X_design %*% beta_tmp
-        y_true <- Y_proj_matrix[, vx]
-        r2 <- suppressWarnings(cor(y_pred, y_true))^2
-        if (!is.na(r2) && r2 > best_r2) {
-          best_r2 <- r2
-          best_sgn <- sg
-        }
-      }
-      sgn <- best_sgn
-      if (!(best_r2 > 0)) {
-        h_tmp <- B_reconstructor_matrix %*% xi_vx
-        corr_ref <- suppressWarnings(cor(h_tmp, h_ref_shape_vector))
-        if (!is.na(corr_ref) && abs(corr_ref) >= 1e-3) {
-          sgn <- sign(corr_ref)
-          method_used <- "canonical_correlation_fallback"
-        } else {
-          sgn <- sign(sum(h_tmp))
-          if (sgn == 0) sgn <- 1
-          method_used <- "rms_fallback"
-        }
-      }
-    }
-    message(sprintf("Voxel %d sign method: %s", vx, method_used))
-    
-    # Apply sign
-    xi_vx_signed <- xi_vx * sgn
-    beta_vx_signed <- beta_vx * sgn
-    
-    # Reconstruct HRF for scaling
-    reconstructed_hrf_vx <- B_reconstructor_matrix %*% xi_vx_signed
-    
-    # Step 2: Scale normalization
-    if (ident_scale_method == "l2_norm") {
-      l2_norm <- sqrt(sum(reconstructed_hrf_vx^2))
-      if (l2_norm < zero_tol) {
-        return(list(xi = rep(0, m), beta = rep(0, k)))
-      }
-      scl <- 1 / max(l2_norm, .Machine$double.eps)
-    } else if (ident_scale_method == "max_abs_val") {
-      # Scale by maximum absolute value
-      max_abs <- max(abs(reconstructed_hrf_vx))
-      if (max_abs < zero_tol) {
-        return(list(xi = rep(0, m), beta = rep(0, k)))
-      }
-      scl <- 1 / max(max_abs, .Machine$double.eps)
-    } else {  # "none"
-      scl <- 1
-    }
-    
-    # Apply scaling
-    # Xi is scaled up, Beta is scaled down to preserve signal
-    xi_out <- xi_vx_signed * scl
-    beta_out <- beta_vx_signed / scl
-
-    if (scl > 1 / sqrt(.Machine$double.eps)) {
-      beta_out <- rep(0, k)
-    }
-
-    if (consistency_check) {
-      hr_check <- B_reconstructor_matrix %*% xi_out
-      corr_check <- suppressWarnings(cor(hr_check, h_ref_shape_vector))
-      if (!is.na(corr_check) && corr_check < 0) {
-        xi_out <- -xi_out
-        beta_out <- -beta_out
-      }
-    }
-
-    list(xi = xi_out, beta = beta_out)
+    .process_voxel_identifiability(
+      vx = vx,
+      Xi_raw = Xi_raw_matrix,
+      Beta_raw = Beta_raw_matrix,
+      B_reconstructor = B_reconstructor_matrix,
+      h_ref = h_ref_shape_vector,
+      config = config,
+      Y_proj = Y_proj_matrix,
+      X_list = X_condition_list_proj_matrices,
+      verbose = verbose
+    )
   }
-
+  
+  # Process voxels in parallel if requested
   res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
+  
+  # Assemble results
   Xi_ident_matrix <- do.call(cbind, lapply(res_list, "[[", "xi"))
   Beta_ident_matrix <- do.call(cbind, lapply(res_list, "[[", "beta"))
   

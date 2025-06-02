@@ -38,7 +38,6 @@ Suggests:
     knitr,
     rmarkdown,
     neuroim2,
-    fmrireg,
     future.apply,
     parallel,
     proxy,

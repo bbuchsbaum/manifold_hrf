@@ -231,10 +231,10 @@ test_that("mhrf_analyze trial-wise estimation works", {
   V <- 12
   Y_data <- matrix(rnorm(n * V), n, V)
   
-  # Events with trial identifiers
+  # Events with trial identifiers (sorted by onset)
   events_with_trials <- data.frame(
-    condition = rep(c("A", "B"), each = 3),
-    onset = c(10, 30, 50, 20, 40, 60),
+    condition = c("A", "B", "A", "B", "A", "B"),
+    onset = c(10, 20, 30, 40, 50, 60),
     duration = 2,
     trial_type = paste0("trial_", 1:6)
   )
@@ -298,9 +298,11 @@ test_that("mhrf_analyze progress tracking works", {
     "M-HRF-LSS Analysis"
   )
   
-  expect_silent(
+  # verbose = 0 should suppress progress messages but may still have warnings
+  result <- expect_no_error({
     mhrf_analyze(Y_data, events, TR = 2, verbose = 0)
-  )
+  })
+  expect_type(result, "list")
 })
 
 

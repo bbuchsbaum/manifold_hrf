@@ -262,7 +262,9 @@ mhrf_analyze <- function(Y_data,
     )
   })
 
-  error_log <- list()
+  # Use environment for error tracking instead of global assignment
+  error_env <- new.env(parent = emptyenv())
+  error_env$log <- list()
   
   # Component 1: Voxel-wise HRF Estimation
   progress$update("  Component 1: Estimating voxel-wise HRFs...", level = 2)
@@ -277,7 +279,8 @@ mhrf_analyze <- function(Y_data,
       logger=logger
     )
   }, error = function(e) {
-    error_log$component1 <<- e$message
+    error_env$log$component1 <- e$message
+    logger$add(sprintf("ERROR in Component 1: %s", e$message))
     stop(e)
   })
   
@@ -302,7 +305,8 @@ mhrf_analyze <- function(Y_data,
       Xi_smoothed_matrix = smoothing_result$Xi_smooth
     )
   }, error = function(e) {
-    error_log$component3 <<- e$message
+    error_env$log$component3 <- e$message
+    logger$add(sprintf("ERROR in Component 3: %s", e$message))
     stop(e)
   })
   
@@ -341,7 +345,7 @@ mhrf_analyze <- function(Y_data,
     amplitudes = voxelwise_result$Beta_ident,
     manifold_coords = smoothing_result$Xi_smooth,
     params = params,
-    error_log = error_log
+    error_log = error_env$log
   )
   qc_metrics$n_truncated_hrfs <- design_info$n_truncated_hrfs
   
@@ -419,21 +423,23 @@ mhrf_analyze <- function(Y_data,
 #' Create progress tracker
 #' @keywords internal
 .create_progress_tracker <- function(verbose_level) {
-  self <- list(
-    level = verbose_level,
-    start_time = NULL
-  )
+  # Use environment for proper encapsulation
+  self_env <- new.env(parent = emptyenv())
+  self_env$level <- verbose_level
+  self_env$start_time <- NULL
+  
+  self <- list(level = verbose_level)
   
   self$start <- function(task) {
-    self$start_time <<- Sys.time()
-    if (self$level >= 1) {
+    self_env$start_time <- Sys.time()
+    if (self_env$level >= 1) {
       cat("\n", task, "\n", sep = "")
       cat(rep("=", nchar(task)), "\n", sep = "")
     }
   }
   
   self$update <- function(message, level = 1) {
-    if (self$level >= level) {
+    if (self_env$level >= level) {
       if (level == 1) {
         cat("\n", message, "\n", sep = "")
       } else {
@@ -443,13 +449,13 @@ mhrf_analyze <- function(Y_data,
   }
   
   self$message <- function(message) {
-    if (self$level >= 1) {
+    if (self_env$level >= 1) {
       cat("  ℹ ", message, "\n", sep = "")
     }
   }
   
   self$complete <- function(message = NULL) {
-    if (self$level >= 1) {
+    if (self_env$level >= 1) {
       if (!is.null(message)) {
         cat("\n✓ ", message, "\n", sep = "")
       } else {
@@ -568,13 +574,24 @@ mhrf_analyze <- function(Y_data,
     warning(sprintf("%d event HRFs truncated at end of run", n_truncated_hrfs))
   }
 
+  # Check if fmrireg is available
+  if (!requireNamespace("fmrireg", quietly = TRUE)) {
+    stop("Package 'fmrireg' is required for this function. Install it with: remotes::install_github('bbuchsbaum/fmrireg')")
+  }
+  
   # Use fmrireg to generate raw design matrices
   sframe <- fmrireg::sampling_frame(blocklens = n_timepoints, TR = TR)
   raw_basis <- HRF_RAW_EVENT_BASIS(hrf_length, TR)
 
+  # Add block column if not present
+  if (!"block" %in% names(events)) {
+    events$block <- 1
+  }
+  
   ev_model <- fmrireg::event_model(
-    formula = ~ hrf(onset, basis = raw_basis, by = condition),
+    formula = onset ~ hrf(condition, basis = raw_basis),
     data = events,
+    block = ~ block,
     sampling_frame = sframe,
     drop_empty = TRUE
   )
@@ -587,7 +604,7 @@ mhrf_analyze <- function(Y_data,
     token <- private_level_token("condition", conditions[i])
     prefix <- paste0(term_tag, "_", token)
     cols <- grep(paste0("^", prefix, "_b"), colnames(X_full))
-    X_condition_list[[i]] <- X_full[, cols, drop = FALSE]
+    X_condition_list[[i]] <- as.matrix(X_full[, cols, drop = FALSE])
   }
   names(X_condition_list) <- conditions
 
@@ -600,10 +617,15 @@ mhrf_analyze <- function(Y_data,
       hrf = raw_basis,
       duration = events$duration[j],
       amplitude = 1,
-      span = raw_basis$span
+      span = attr(raw_basis, "span")
     )
     vals <- fmrireg::evaluate(reg, times)
-    X_trial_list[[j]] <- matrix(vals, ncol = hrf_length)
+    # Ensure matrix has correct dimensions even for truncated events
+    if (length(vals) == 0) {
+      X_trial_list[[j]] <- matrix(0, nrow = n_timepoints, ncol = hrf_length)
+    } else {
+      X_trial_list[[j]] <- matrix(vals, ncol = hrf_length)
+    }
   }
 
   return(list(

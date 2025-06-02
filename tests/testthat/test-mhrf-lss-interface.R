@@ -36,40 +36,42 @@ test_that("mhrf_lss interface validates inputs correctly", {
 test_that("create_hrf_manifold handles different input types", {
   skip_if_not_installed("fmrireg")
   # Test with preset parameters
+  custom_params <- get_preset_params("balanced")
+  custom_params$k_local_nn_for_sigma <- 2  # Small value for canonical (only 3 HRFs)
   expect_silent(
-    manifold1 <- create_hrf_manifold(
-      hrf_library = "canonical",
-      params = "balanced",
-      TR = 2,
-      verbose = FALSE
-    )
-  )
-  
-  # Test with custom parameters
-  custom_params <- list(
-    m_manifold_dim_target = 5,
-    k_local_nn_for_sigma = 5,  # Reduced for safety
-    TR_precision = 0.1
-  )
-  
-  expect_silent(
-    manifold2 <- create_hrf_manifold(
+    manifold1 <- suppressMessages(suppressWarnings(create_hrf_manifold(
       hrf_library = "canonical",
       params = custom_params,
       TR = 2,
       verbose = FALSE
-    )
+    )))
+  )
+  
+  # Test with custom parameters
+  custom_params2 <- list(
+    m_manifold_dim_target = 5,
+    k_local_nn_for_sigma = 2,  # Small value for canonical (only 3 HRFs)
+    TR_precision = 0.1
+  )
+  
+  expect_silent(
+    manifold2 <- suppressMessages(suppressWarnings(create_hrf_manifold(
+      hrf_library = "canonical",
+      params = custom_params2,
+      TR = 2,
+      verbose = FALSE
+    )))
   )
   
   # Test with matrix input
   hrf_matrix <- matrix(rnorm(20 * 10), 20, 10)
   expect_silent(
-    manifold3 <- create_hrf_manifold(
+    manifold3 <- suppressMessages(suppressWarnings(create_hrf_manifold(
       hrf_library = hrf_matrix,
       params = "balanced",
       TR = 2,
       verbose = FALSE
-    )
+    )))
   )
 })
 

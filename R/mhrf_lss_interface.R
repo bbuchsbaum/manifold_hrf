@@ -300,7 +300,7 @@ create_hrf_manifold <- function(hrf_library, params, TR, verbose = TRUE) {
       fallback_to_pca = TRUE
     )
   } else {
-    manifold <- suppressWarnings(
+    manifold <- withCallingHandlers({
       get_manifold_basis_reconstructor_robust(
         S_markov_matrix = S_markov,
         L_library_matrix = L_library,
@@ -308,7 +308,10 @@ create_hrf_manifold <- function(hrf_library, params, TR, verbose = TRUE) {
         m_manifold_dim_min_variance = params$m_manifold_dim_min_variance %||% 0.95,
         fallback_to_pca = TRUE
       )
-    )
+    }, warning = function(w) {
+      if (verbose) message("Warning in manifold construction: ", conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
   }
   
   # Add additional parameters for compatibility
@@ -332,7 +335,24 @@ extract_design_info <- function(event_model, sframe) {
   event_tab <- fmrireg::event_table(event_model)
   
   # Create condition design matrices (for standard GLM)
-  X_condition_list <- term_mats
+  # Convert term_mats to list of matrices if needed
+  if (is.matrix(term_mats)) {
+    # If term_mats is a single matrix, wrap in a list
+    X_condition_list <- list(term_mats)
+  } else if (is.list(term_mats)) {
+    # If it's already a list, ensure each element is a matrix
+    X_condition_list <- lapply(term_mats, function(x) {
+      if (is.matrix(x)) {
+        return(x)
+      } else {
+        # Try to convert to matrix
+        return(as.matrix(x))
+      }
+    })
+  } else {
+    # Fallback: try to convert to matrix and wrap in list
+    X_condition_list <- list(as.matrix(term_mats))
+  }
   
   # Create trial-wise design matrices (for LSS)
   # This requires reconstructing individual trial regressors

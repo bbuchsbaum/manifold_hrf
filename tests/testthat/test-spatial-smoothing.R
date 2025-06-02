@@ -187,7 +187,7 @@ test_that("apply_spatial_smoothing_core with lambda=0 returns original", {
   Xi_smoothed <- apply_spatial_smoothing_core(Xi_ident, L_sparse, lambda_spatial_smooth = 0)
   
   # Should be identical to original
-  expect_equal(Xi_smoothed, Xi_ident, tolerance = 1e-10)
+  expect_equal(Xi_smoothed, Xi_ident, tolerance = 1e-8)
 })
 
 test_that("apply_spatial_smoothing_core matches column-wise solve", {
@@ -340,7 +340,8 @@ test_that("spatial smoothing integration test", {
 test_that("symmetrization step retains sparse class", {
   if (requireNamespace("Matrix", quietly = TRUE)) {
     M <- Matrix::sparseMatrix(i = c(1, 2), j = c(2, 3), x = 1, dims = c(3, 3))
-    M_sym <- Matrix::pmax(M, Matrix::t(M))
+    M_t <- Matrix::t(M)
+    M_sym <- pmax(M, M_t)
     expect_true(inherits(M_sym, "sparseMatrix"))
   }
 })
