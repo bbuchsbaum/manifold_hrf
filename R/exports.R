@@ -11,3 +11,5 @@ mhrf_lss <- mhrf_lss
 
 #' @export
 mhrf_lss_parameters <- mhrf_lss_parameters
+#' @export
+analyze_single_voxel <- analyze_single_voxel
