@@ -4,10 +4,12 @@ set.seed(42)
 
 # Simple identity reconstructor for clarity
 B <- diag(3)
-# reference HRF aligned with third basis vector
-h_ref <- c(0, 0, 1)
+# reference HRF with mean 0 for zero correlation test
+h_ref <- c(1, -1, 0)
 
-Xi_raw <- matrix(c(-1, 0, 0), nrow = 3, ncol = 1)
+# Xi that will produce HRF with zero correlation to h_ref and negative sum
+# Need sum != 0 for sign to work properly
+Xi_raw <- matrix(c(-1.5, -1.5, 2), nrow = 3, ncol = 1)
 Beta_raw <- matrix(1, nrow = 1, ncol = 1)
 
 # provide projected data and designs even though they should be ignored
@@ -31,7 +33,8 @@ test_that("canonical correlation falls back to RMS rule", {
   expect_equal(res$Beta_ident_matrix[1, 1] < 0, TRUE)
 })
 
-Xi_raw2 <- matrix(c(1, 0, 0), nrow = 3, ncol = 1)
+# Second test: Xi that produces positive sum HRF with zero correlation
+Xi_raw2 <- matrix(c(1, 1, -2), nrow = 3, ncol = 1)
 Beta_raw2 <- matrix(1, nrow = 1, ncol = 1)
 res2 <- apply_intrinsic_identifiability_core(
   Xi_raw_matrix = Xi_raw2,

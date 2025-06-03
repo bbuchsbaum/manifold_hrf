@@ -738,8 +738,9 @@ run_pipeline_on_simulated_data <- function(bold_data, design_info, ground_truth_
       Y_proj_voxel_vector = proj_result$Y_proj_matrix[, v],
       X_trial_onset_list_of_matrices = design_info$X_trial_list,
       H_shape_voxel_vector = H_shapes[, v],
-      P_confound = P_confound,
-      lambda_ridge = pipeline_params$lambda_ridge_Alss
+      A_lss_fixed_matrix = bold_data$Z_confounds,
+      P_lss_matrix = lss_prep$P_lss_matrix,
+      p_lss_vector = lss_prep$p_lss_vector
     )
     Beta_trial[, v] <- beta_voxel
   }

@@ -5,8 +5,6 @@
 \title{Extract HRF Statistics}
 \usage{
 extract_hrf_stats(H_shapes, TR_precision = 0.1)
-
-extract_hrf_stats(H_shapes, TR_precision = 0.1)
 }
 \arguments{
 \item{H_shapes}{Matrix of HRF shapes (p x V)}
@@ -19,4 +17,3 @@ Data frame with HRF statistics per voxel
 \description{
 Computes statistics about estimated HRF shapes
 }
-\keyword{internal}

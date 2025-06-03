@@ -15,6 +15,7 @@ mhrf_analyze(
   verbose = TRUE,
   save_intermediate = FALSE,
   output_dir = tempdir(),
+  logger = NULL,
   ...
 )
 }
@@ -87,14 +88,14 @@ amplitudes from fMRI data.
 \examples{
 \dontrun{
 # Basic usage with data frame events
-result <- mhrf_lss(
+result <- mhrf_analyze(
   Y_data = fmri_matrix,
   events = event_df,
   TR = 2
 )
 
 # Use robust preset for noisy data
-result <- mhrf_lss(
+result <- mhrf_analyze(
   Y_data = fmri_matrix,
   events = event_df,
   TR = 2,
@@ -102,7 +103,7 @@ result <- mhrf_lss(
 )
 
 # Parallel processing with custom parameters
-result <- mhrf_lss(
+result <- mhrf_analyze(
   Y_data = fmri_matrix,
   events = event_df,
   TR = 2,
@@ -112,7 +113,7 @@ result <- mhrf_lss(
 )
 
 # With brain mask
-result <- mhrf_lss(
+result <- mhrf_analyze(
   Y_data = fmri_matrix,
   events = event_df,
   TR = 2,

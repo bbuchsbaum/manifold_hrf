@@ -16,16 +16,25 @@ calculate_manifold_affinity_core(
 \item{L_library_matrix}{A p x N matrix of HRF shapes, where p is the number
 of time points and N is the number of HRFs in the library}
 
-\item{k_local_nn_for_sigma}{Positive integer (\< N), k-nearest neighbors for self-tuning
-bandwidth calculation (e.g., 7)}
+\item{k_local_nn_for_sigma}{Positive integer (< N), k-nearest neighbors for
+self-tuning bandwidth calculation (e.g., 7)}
 
 \item{use_sparse_W_params}{List with optional parameters for sparse W matrix:
 \itemize{
 \item \code{sparse_if_N_gt}: Threshold for N to switch to sparse matrix (e.g., 5000)
-\item \code{k_nn_for_W_sparse}: Number of nearest neighbors to keep in sparse W
+\item \code{k_nn_for_W_sparse}: Number of nearest neighbors to keep in sparse W. Must be less
+than the number of HRFs (N); values \code{>= N} are truncated to \code{N - 1}.
 }}
-\item{distance_engine}{Character string specifying the distance computation method. Options are \code{"euclidean"} for exact distances or \code{"ann_euclidean"} for approximate nearest neighbors via RcppHNSW. If \code{"ann_euclidean"} is requested but RcppHNSW is not installed, the function falls back to exact distances with a warning.}
-\item{ann_threshold}{Integer. When \code{distance_engine = "euclidean"} and the number of HRFs exceeds this threshold, the function will attempt to use RcppHNSW for approximate neighbors if available.}
+
+\item{distance_engine}{Character string specifying the distance computation
+method. Options are \code{"euclidean"} for exact distances or
+\code{"ann_euclidean"} for approximate nearest neighbors via RcppHNSW.
+If \code{"ann_euclidean"} is requested but the RcppHNSW package is not
+installed, the function falls back to exact distances with a warning.}
+
+\item{ann_threshold}{Integer. When \code{distance_engine = "euclidean"} and
+the number of HRFs exceeds this threshold, the function will attempt to use
+RcppHNSW for approximate neighbors if available.}
 }
 \value{
 S_markov_matrix An N x N Markov transition matrix (regular or sparse
@@ -40,10 +49,6 @@ This function implements the affinity matrix construction from
 Component 0, Step 1 of the M-HRF-LSS pipeline. It uses the self-tuning
 local scaling method from Zelnik-Manor & Perona (2005) where each HRF's
 bandwidth sigma_i is set to its k-th nearest neighbor distance.
-The \code{distance_engine} argument controls whether exact or approximate
-nearest neighbor distances are used. When \code{"ann_euclidean"} is chosen but
-the \CRANpkg{RcppHNSW} package is unavailable, the function falls back to exact
-distances with a warning.
 }
 \examples{
 \dontrun{

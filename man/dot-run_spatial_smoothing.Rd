@@ -4,7 +4,25 @@
 \alias{.run_spatial_smoothing}
 \title{Run spatial smoothing}
 \usage{
-.run_spatial_smoothing(Xi_matrix, voxel_coords, params, progress, Y_data = NULL)
+.run_spatial_smoothing(
+  Xi_matrix,
+  voxel_coords,
+  params,
+  progress,
+  logger = NULL,
+  Y_data = NULL
+)
+}
+\arguments{
+\item{Xi_matrix}{m x V matrix of manifold coordinates}
+
+\item{voxel_coords}{V x 3 matrix of voxel coordinates}
+
+\item{params}{List of smoothing parameters}
+
+\item{progress}{Progress reporter object}
+
+\item{Y_data}{Optional n x V data matrix for computing local SNR}
 }
 \description{
 Run spatial smoothing

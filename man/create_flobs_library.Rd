@@ -7,6 +7,7 @@
 create_flobs_library(TR_precision, hrf_duration)
 }
 \description{
-Create FLOBS Library
+Generates a small set of FLOBS-like HRF basis functions as a list of
+\code{fmrireg::HRF} objects.
 }
 \keyword{internal}

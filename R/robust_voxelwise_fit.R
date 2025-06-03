@@ -208,7 +208,15 @@ smart_initialize <- function(Y_data, X_condition_list, hrf_canonical,
     y_pred <- X_canonical %*% beta_v
     ss_tot <- sum((Y_data[, v] - mean(Y_data[, v]))^2)
     ss_res <- sum((Y_data[, v] - y_pred)^2)
-    R2_init[v] <- 1 - ss_res / ss_tot
+    
+    # Handle edge cases: if ss_tot is 0 (constant data), R² is undefined
+    if (ss_tot < .Machine$double.eps) {
+      R2_init[v] <- 0  # Constant data has no variance to explain
+    } else {
+      R2_init[v] <- 1 - ss_res / ss_tot
+      # Clamp to [0, 1] to handle numerical issues
+      R2_init[v] <- max(0, min(1, R2_init[v]))
+    }
   }
   
   # Identify well-fit voxels to use as exemplars

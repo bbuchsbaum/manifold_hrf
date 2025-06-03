@@ -12,7 +12,11 @@ apply_intrinsic_identifiability_core(
   ident_scale_method = "l2_norm",
   ident_sign_method = "canonical_correlation",
   zero_tol = 1e-08,
-  consistency_check = FALSE
+  Y_proj_matrix = NULL,
+  X_condition_list_proj_matrices = NULL,
+  consistency_check = FALSE,
+  n_jobs = 1,
+  verbose = FALSE
 )
 
 apply_intrinsic_identifiability_core(
@@ -23,7 +27,11 @@ apply_intrinsic_identifiability_core(
   ident_scale_method = "l2_norm",
   ident_sign_method = "canonical_correlation",
   zero_tol = 1e-08,
-  consistency_check = FALSE
+  Y_proj_matrix = NULL,
+  X_condition_list_proj_matrices = NULL,
+  consistency_check = FALSE,
+  n_jobs = 1,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -46,9 +54,16 @@ when applying scale normalization. If the L2 norm (for "l2_norm") or
 maximum absolute value (for "max_abs_val") of a voxel's HRF is below this
 threshold, both \code{Xi_ident_matrix} and \code{Beta_ident_matrix} are set
 to zero for that voxel.}
+
 \item{consistency_check}{Logical; if TRUE, the reconstructed HRF is
-reprojected and the sign is reverified against the canonical shape. Voxels
-that disagree are flipped.}
+re-projected after sign/scale alignment and verified against the
+canonical shape. Voxels failing the check are flipped to ensure
+consistent orientation.}
+
+\item{n_jobs}{Number of parallel jobs for voxel processing (default 1).}
+
+\item{verbose}{Logical; if TRUE, print progress messages for each voxel.
+Default FALSE to avoid message spam.}
 }
 \value{
 list with Xi_ident_matrix and Beta_ident_matrix
@@ -68,8 +83,9 @@ It ensures that HRF estimates are identifiable by:
 \enumerate{
 \item Aligning sign with a reference HRF (avoiding arbitrary sign flips)
 \item Normalizing scale consistently across voxels
-The chosen sign alignment method is reported via messages. When the
-absolute correlation with the canonical HRF falls below \code{1e-3}, a
+}
+The chosen sign alignment method is reported via \code{message()}.
+When the absolute correlation with the canonical HRF falls below \code{1e-3}, a
 warning is produced and the sign is determined using the RMS rule
 (the sign of the sum of the HRF). Setting
 \code{consistency_check = TRUE} reprojects each HRF and revalidates the sign.

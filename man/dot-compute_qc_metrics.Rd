@@ -4,10 +4,32 @@
 \alias{.compute_qc_metrics}
 \title{Compute QC metrics}
 \usage{
-.compute_qc_metrics(Y_data, X_condition_list, hrf_shapes, amplitudes,
-  manifold_coords, params)
+.compute_qc_metrics(
+  Y_data,
+  X_condition_list,
+  hrf_shapes,
+  amplitudes,
+  manifold_coords,
+  params,
+  error_log = NULL
+)
+}
+\arguments{
+\item{Y_data}{n \times V matrix of observed time series}
+
+\item{X_condition_list}{list of condition design matrices}
+
+\item{hrf_shapes}{p \times V matrix of estimated HRF shapes}
+
+\item{amplitudes}{k \times V matrix of condition amplitudes}
+
+\item{manifold_coords}{m \times V matrix of manifold coordinates}
+
+\item{params}{List of pipeline parameters}
 }
 \description{
-Compute QC metrics
+Estimates basic quality metrics for the fitted model.  A sample of voxels is
+reconstructed using the estimated HRFs and amplitudes and the resulting
+R\eqn{^2} statistics are summarized.
 }
 \keyword{internal}

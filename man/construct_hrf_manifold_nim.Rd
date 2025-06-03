@@ -57,11 +57,8 @@ wrapping the core manifold construction functions with fmrireg integration.
 \details{
 This function provides a neuroimaging-friendly interface to the core
 manifold construction pipeline. It handles conversion between fmrireg HRF
-objects and the matrix format required by core functions. When a list of
-\code{fmrireg} HRF objects is supplied, each HRF is sampled with
-\code{fmrireg::evaluate()} at the requested precision to build the library
-matrix. The resulting manifold basis can be used directly in fmrireg model
-specifications.
+objects and the matrix format required by core functions. The resulting
+manifold basis can be used directly in fmrireg model specifications.
 }
 \examples{
 \dontrun{

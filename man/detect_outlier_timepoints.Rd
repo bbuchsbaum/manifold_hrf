@@ -5,8 +5,6 @@
 \title{Detect and Handle Outlier Timepoints}
 \usage{
 detect_outlier_timepoints(Y_data, threshold = 3, min_weight = 0.1)
-
-detect_outlier_timepoints(Y_data, threshold = 3, min_weight = 0.1)
 }
 \arguments{
 \item{Y_data}{n x V data matrix}
@@ -21,4 +19,3 @@ n x V matrix of weights
 \description{
 Identifies outlier timepoints and returns weights for robust regression
 }
-\keyword{internal}

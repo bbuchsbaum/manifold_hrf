@@ -52,6 +52,7 @@ test_that("run_lss_woodbury_corrected matches LS-S", {
     Y_proj_voxel_vector = as.vector(y_proj),
     X_trial_onset_list_of_matrices = X_trials,
     H_shape_voxel_vector = h,
+    P_confound = P,
     lambda_ridge = 1e-6
   )
   expect_equal(beta_wood, beta_manual, tolerance = 1e-5)

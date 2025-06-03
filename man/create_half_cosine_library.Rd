@@ -7,6 +7,6 @@
 create_half_cosine_library(TR_precision, hrf_duration, n_basis = 20)
 }
 \description{
-Create Half-Cosine Library
+Returns a list of damped cosine basis functions as \code{fmrireg::HRF} objects.
 }
 \keyword{internal}

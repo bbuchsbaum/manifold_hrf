@@ -7,6 +7,6 @@
 create_gamma_grid_library(TR_precision, hrf_duration)
 }
 \description{
-Create Gamma Grid Library
+Generates a grid of gamma HRFs as a list of \code{fmrireg::HRF} objects.
 }
 \keyword{internal}

@@ -50,7 +50,7 @@ test_that("run_lss_voxel_loop_core matches single voxel implementation", {
 
   Beta_manual <- matrix(0, T_trials, V)
   for (v in seq_len(V)) {
-    Beta_manual[, v] <- run_lss_for_voxel_corrected_full(
+    Beta_manual[, v] <- manifoldhrf::run_lss_for_voxel_corrected_full(
       Y_proj_voxel_vector = Y_proj[, v],
       X_trial_onset_list_of_matrices = X_trials,
       H_shape_voxel_vector = H_shapes[, v],
@@ -111,9 +111,8 @@ test_that("run_lss_voxel_loop_core works without precomputation", {
       Y_proj_voxel_vector = Y_proj[, v],
       X_trial_onset_list_of_matrices = X_trials,
       H_shape_voxel_vector = H_shapes[, v],
-      A_lss_fixed_matrix = A_fixed,
-      P_lss_matrix = lss_prep$P_lss_matrix,
-      p_lss_vector = lss_prep$p_lss_vector
+      P_confound = P_conf,
+      lambda_ridge = 1e-6
     )
   }
 

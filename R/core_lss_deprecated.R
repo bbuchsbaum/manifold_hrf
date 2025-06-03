@@ -427,7 +427,7 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
 #'   of trials and V is the number of voxels.
 #' @export
 #' @deprecated Use \code{run_lss_for_voxel_corrected_full()} in a loop instead.
-run_lss_voxel_loop_core <- function(Y_proj_matrix,
+run_lss_voxel_loop_core_deprecated <- function(Y_proj_matrix,
                                    X_trial_onset_list_of_matrices,
                                    H_shapes_allvox_matrix,
                                    A_lss_fixed_matrix,

@@ -53,7 +53,7 @@ Xi_ident <- matrix(rnorm(m * V), m, V)
 
 # Create simple grid coordinates
 coords <- expand.grid(x = 1:10, y = 1:10, z = 1)
-voxel_coords <- as.matrix(coords[1:V, ])
+voxel_coords <- as.matrix(coords[seq_len(V), ])
 
 # Create Laplacian
 L_sparse <- make_voxel_graph_laplacian_core(voxel_coords, num_neighbors_Lsp = 8)

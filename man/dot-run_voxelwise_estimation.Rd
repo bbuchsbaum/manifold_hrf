@@ -4,7 +4,14 @@
 \alias{.run_voxelwise_estimation}
 \title{Run voxelwise estimation}
 \usage{
-.run_voxelwise_estimation(Y_data, X_condition_list, manifold, params, progress)
+.run_voxelwise_estimation(
+  Y_data,
+  X_condition_list,
+  manifold,
+  params,
+  progress,
+  logger = NULL
+)
 }
 \description{
 Run voxelwise estimation

@@ -23,13 +23,16 @@ make_voxel_graph_laplacian_core(
 \item{voxel_coords_matrix}{V x 3 matrix of voxel coordinates}
 
 \item{num_neighbors_Lsp}{number of nearest neighbours}
-\item{distance_engine}{Choice of distance computation engine. "euclidean" uses
-exact search while "ann_euclidean" relies on approximate nearest neighbours via
-the \pkg{RcppHNSW} package. If the package is not installed, this option falls
-back to the exact search with a warning.}
-\item{ann_threshold}{When \code{distance_engine = "euclidean"}, datasets with a
-number of voxels larger than this threshold automatically use the approximate
-engine if \pkg{RcppHNSW} is available.}
+
+\item{distance_engine}{Choice of distance computation engine. "euclidean"
+performs an exact search while "ann_euclidean" uses approximate nearest
+neighbors via the \pkg{RcppHNSW} package. If the package is not available
+and this option is selected, the function falls back to the exact search
+with a warning.}
+
+\item{ann_threshold}{When \code{distance_engine = "euclidean"}, use the
+approximate search for datasets larger than this threshold if
+\pkg{RcppHNSW} is installed.}
 }
 \value{
 L_sp_sparse_matrix A V x V sparse Laplacian matrix (Matrix::sparseMatrix)
@@ -46,9 +49,9 @@ It constructs a k-nearest neighbor graph from voxel coordinates and computes
 the normalized graph Laplacian L = D - W, where W is the adjacency matrix
 and D is the degree matrix. The resulting Laplacian is used for spatial
 smoothing of manifold coordinates.
-If \code{distance_engine = "ann_euclidean"} is requested but the
-\pkg{RcppHNSW} package is not installed, the function falls back to the exact
-search and issues a warning.
+If \code{distance_engine = "ann_euclidean"} but the required
+\pkg{RcppHNSW} package is missing, the function silently falls back to the
+exact search and issues a warning.
 }
 \examples{
 \dontrun{

@@ -13,6 +13,19 @@ compute_pipeline_diagnostics(
   TR_precision = 1
 )
 }
+\arguments{
+\item{Y_data}{Original data matrix}
+
+\item{Y_proj}{Confound-projected data matrix}
+
+\item{H_shapes}{Matrix of reconstructed HRFs}
+
+\item{Beta_condition}{Condition-level beta estimates}
+
+\item{Xi_smoothed}{Smoothed manifold coordinates}
+
+\item{TR_precision}{Sampling rate of the HRFs}
+}
 \description{
 Compute Pipeline Diagnostics
 }

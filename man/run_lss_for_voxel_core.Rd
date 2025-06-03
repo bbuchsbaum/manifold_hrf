@@ -2,8 +2,8 @@
 % Please edit documentation in R/core_lss_deprecated.R
 \name{run_lss_for_voxel_core}
 \alias{run_lss_for_voxel_core}
-\title{Run LSS for Single Voxel (Core)}
-\keyword{internal}
+\title{Run LSS for Single Voxel (Core)
+Run LSS for Single Voxel (Core)}
 \usage{
 run_lss_for_voxel_core(
   Y_proj_voxel_vector,
@@ -35,7 +35,6 @@ prepare_lss_fixed_components_core}
 beta_trial_voxel_vector A T x 1 vector of trial-wise beta estimates
 }
 \description{
-\strong{Deprecated}: use \code{\link{run_lss_for_voxel_corrected_full}} instead.
 Performs Least Squares Separate (LSS) estimation for a single voxel using
 the Woodbury matrix identity for computational efficiency.
 }
@@ -45,10 +44,6 @@ For each trial, it uses the Woodbury matrix identity to efficiently compute
 the beta estimate when that trial's regressor is added to the fixed model.
 This avoids repeated matrix inversions and makes single-trial estimation
 computationally feasible.
-
-This Woodbury-based variant is kept for reference but has been
-replaced by \code{run_lss_for_voxel_corrected_full}, which implements the
-mathematically correct formulation.
 
 The Woodbury identity allows us to update the inverse when adding a single
 column c to the design matrix:

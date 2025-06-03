@@ -9,21 +9,28 @@ estimate_final_condition_betas_core(
   X_condition_list_proj_matrices,
   H_shapes_allvox_matrix,
   lambda_beta_final = 0.01,
-  control_alt_list = list(max_iter = 1)
+  control_alt_list = list(max_iter = 1, rel_change_tol = 1e-04)
 )
 }
 \arguments{
-\item{Y_proj_matrix}{n x V projected BOLD matrix}
+\item{Y_proj_matrix}{The n x V confound-projected data matrix, where n is
+timepoints and V is number of voxels}
 
-\item{X_condition_list_proj_matrices}{list of k n x p design matrices}
+\item{X_condition_list_proj_matrices}{List of k projected design matrices
+(each n x p), where k is number of conditions and p is HRF length}
 
-\item{H_shapes_allvox_matrix}{p x V HRF shapes for all voxels}
+\item{H_shapes_allvox_matrix}{The p x V matrix of smoothed voxel-specific
+HRF shapes from Component 3}
 
-\item{lambda_beta_final}{numeric scalar ridge penalty (default 0.01)}
+\item{lambda_beta_final}{Ridge penalty parameter for final beta estimation
+(scalar, typically small like 0.01)}
 
-\item{control_alt_list}{list with control parameters (default \code{list(max_iter = 1)}).
-Recognized elements are \code{max_iter} (positive integer) and
-\code{rel_change_tol} (non-negative numeric).}
+\item{control_alt_list}{List with control parameters:
+\itemize{
+\item \code{max_iter}: Maximum number of iterations (default 1 for MVP)
+\item \code{rel_change_tol}: Relative change tolerance for convergence
+(default 1e-4)
+}}
 }
 \value{
 Beta_condition_final_matrix A k x V matrix of final condition-level
@@ -36,11 +43,12 @@ HRF shapes from the manifold estimation pipeline.
 \details{
 This function implements Component 4 of the M-HRF-LSS pipeline.
 It re-estimates condition-level amplitudes using the final smoothed HRF
-shapes. Regressors for all voxels are precomputed in a vectorized manner
-to avoid redundant convolutions, improving efficiency. For very large
-data sets, converting this step to C++ via Rcpp could further accelerate
-computation. The MVP version does a single pass (max_iter=1), but the
-framework supports iterative refinement between HRFs and betas.
+shapes. Regressors for all voxels are precomputed in a vectorized manner to
+avoid redundant convolutions, yielding a noticeable efficiency improvement.
+For very large datasets, a C++ (Rcpp) implementation of this step could
+provide further acceleration. The MVP version does a single pass
+(max_iter=1), but the framework supports iterative refinement between HRFs
+and betas.
 }
 \examples{
 \dontrun{

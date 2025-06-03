@@ -7,9 +7,6 @@
 create_manifold_hrf_object(B_reconstructor, name, nbasis)
 }
 \description{
-Wraps the manifold reconstructor matrix as a multi-basis
-\code{\link[fmrireg]{HRF}} object using \code{fmrireg::empirical_hrf} and
-\code{fmrireg::bind_basis}. Each column of \code{B_reconstructor} becomes one
-basis function.
+Create Manifold HRF Object
 }
 \keyword{internal}

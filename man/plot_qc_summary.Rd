@@ -10,8 +10,9 @@ plot_qc_summary(x)
 \item{x}{mhrf_result object}
 }
 \value{
-Invisibly returns \code{x}
+Invisibly returns \code{x}.
 }
 \description{
-Plot QC summary for mhrf_result
+Generates the default QC summary plot used by \code{plot()} for
+\code{mhrf_result} objects, but as a standalone function.
 }

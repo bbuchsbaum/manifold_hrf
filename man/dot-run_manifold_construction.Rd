@@ -4,7 +4,7 @@
 \alias{.run_manifold_construction}
 \title{Run manifold construction}
 \usage{
-.run_manifold_construction(L_library, params, progress)
+.run_manifold_construction(L_library, params, progress, logger = NULL)
 }
 \description{
 Run manifold construction
