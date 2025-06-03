@@ -47,7 +47,7 @@ test_that("run_lss_voxel_loop_core matches single voxel implementation", {
 
   Beta_manual <- matrix(0, T_trials, V)
   for (v in seq_len(V)) {
-    Beta_manual[, v] <- run_lss_for_voxel_corrected_full(
+    Beta_manual[, v] <- run_lss_woodbury_corrected(
       Y_proj_voxel_vector = Y_proj[, v],
       X_trial_onset_list_of_matrices = X_trials,
       H_shape_voxel_vector = H_shapes[, v],
