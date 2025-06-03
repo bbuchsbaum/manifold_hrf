@@ -98,7 +98,10 @@ All components are designed for computational efficiency, primarily relying on c
             *   `xi_vx = Xi_raw_allvox[,vx]`, `beta_vx = Beta_raw_allvox[,vx]`.
             *   `reconstructed_hrf_vx_unscaled = B_reconstructor %*% xi_vx`.
             *   **Sign:**
-                *   If `ident_sign_method == "canonical_correlation"`: `sgn = sign(sum(xi_vx * xi_ref_coord))`.
+                *   If `ident_sign_method == "canonical_correlation"`:
+                    `corr_ref = cor(reconstructed_hrf_vx_unscaled, h_ref_shape_canonical)`;
+                    `sgn = sign(corr_ref)`.
+                    If `abs(corr_ref) < 1e-3`, use `sgn = sign(sum(reconstructed_hrf_vx_unscaled))`.
                 *   If `ident_sign_method == "data_fit_correlation"`: (Requires original `Y_proj` and `X_condition_list_proj` for this voxel) Estimate full model fit for `+sgn` and `-sgn` choice for `xi_vx`, choose sign that maximizes `R^2`.
             *   `xi_vx_signed = xi_vx * sgn`, `beta_vx_signed = beta_vx * sgn`.
             *   `reconstructed_hrf_vx_signed = B_reconstructor %*% xi_vx_signed`.
