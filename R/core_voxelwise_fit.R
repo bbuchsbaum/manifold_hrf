@@ -27,51 +27,19 @@
   if (config$sign_method == "canonical_correlation") {
     h_tmp <- B_reconstructor %*% xi_vx
     # Ensure both are vectors for correlation
-    corr_ref <- tryCatch(cor(as.vector(h_tmp), as.vector(h_ref)), 
-                        warning = function(w) NA, 
+    corr_ref <- tryCatch(cor(as.vector(h_tmp), as.vector(h_ref)),
+                        warning = function(w) NA,
                         error = function(e) NA)
     if (is.na(corr_ref)) corr_ref <- 0
-    
+
     sgn <- sign(corr_ref)
     if (sgn == 0) sgn <- 1
-    
-    # Fallback if correlation is too low
-    if (abs(corr_ref) < CORRELATION_THRESHOLD && !is.null(Y_proj) && !is.null(X_list)) {
-      # Try data fit
-      best_r2 <- -Inf
-      best_sgn <- 1
-      
-      for (sg in c(1, -1)) {
-        xi_tmp <- xi_vx * sg
-        beta_tmp <- beta_vx * sg
-        h_tmp2 <- B_reconstructor %*% xi_tmp
-        
-        X_design <- matrix(0, nrow(Y_proj), length(X_list))
-        for (c in seq_along(X_list)) {
-          X_design[, c] <- X_list[[c]] %*% h_tmp2
-        }
-        
-        y_pred <- X_design %*% beta_tmp
-        y_true <- Y_proj[, vx]
-        # Ensure both are vectors for correlation
-        r2 <- tryCatch(cor(as.vector(y_pred), as.vector(y_true))^2, 
-                      warning = function(w) NA, 
-                      error = function(e) NA)
-        
-        if (!is.na(r2) && r2 > best_r2) {
-          best_r2 <- r2
-          best_sgn <- sg
-        }
-      }
-      
-      if (best_r2 > 0) {
-        sgn <- best_sgn
-        method_used <- "data_fit_fallback"
-      } else {
-        sgn <- sign(sum(h_tmp))
-        if (sgn == 0) sgn <- 1
-        method_used <- "rms_fallback"
-      }
+
+    # Fallback directly to RMS rule if correlation is too low
+    if (abs(corr_ref) < CORRELATION_THRESHOLD) {
+      sgn <- sign(sum(h_tmp))
+      if (sgn == 0) sgn <- 1
+      method_used <- "rms_fallback"
     }
   } else if (config$sign_method == "data_fit_correlation") {
     # Data fit method
@@ -619,8 +587,9 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #'   1. Aligning sign with a reference HRF (avoiding arbitrary sign flips)
 #'   2. Normalizing scale consistently across voxels
 #'   The chosen sign alignment method is reported via \code{message()}.
-#'   If the correlation with the canonical HRF is near zero, a warning is
-#'   issued and a fallback RMS-based alignment is attempted. When
+#'   If the absolute correlation with the canonical HRF is below
+#'   \code{1e-3}, a warning is issued and the sign is determined using
+#'   the RMS rule (sign of the sum of the HRF). When
 #'   \code{consistency_check = TRUE}, each voxel's HRF is reprojected and the
 #'   alignment with the canonical shape is reverified.
 #'   The beta amplitudes are adjusted inversely to preserve the overall signal.

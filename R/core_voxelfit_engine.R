@@ -365,38 +365,11 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
       if (is.na(corr_ref)) corr_ref <- 0
       if (abs(corr_ref) < 1e-3) {
         warning(sprintf("Voxel %d: canonical correlation near zero (%.3f)", v, corr_ref))
-      }
-      sgn <- sign(corr_ref)
-      if (sgn == 0) sgn <- 1
-      if (abs(corr_ref) < 1e-3 && !is.null(Y_proj_matrix) &&
-          !is.null(X_condition_list_proj_matrices)) {
-        best_r2 <- -Inf
-        best_sgn <- 1
-        for (sg in c(1, -1)) {
-          xi_tmp <- xi_v * sg
-          beta_tmp <- beta_v * sg
-          h_tmp2 <- B_reconstructor_matrix %*% xi_tmp
-          k2 <- length(X_condition_list_proj_matrices)
-          X_design <- matrix(0, nrow(Y_proj_matrix), k2)
-          for (c in 1:k2) {
-            X_design[, c] <- X_condition_list_proj_matrices[[c]] %*% h_tmp2
-          }
-          y_pred <- X_design %*% beta_tmp
-          y_true <- Y_proj_matrix[, v]
-          r2 <- tryCatch(cor(as.vector(y_pred), as.vector(y_true))^2, 
-                        warning = function(w) NA, 
-                        error = function(e) NA)
-          if (!is.na(r2) && r2 > best_r2) {
-            best_r2 <- r2
-            best_sgn <- sg
-          }
-        }
-        if (best_r2 > 0) {
-          sgn <- best_sgn
-        } else {
-          sgn <- sign(sum(h_tmp))
-          if (sgn == 0) sgn <- 1
-        }
+        sgn <- sign(sum(h_tmp))
+        if (sgn == 0) sgn <- 1
+      } else {
+        sgn <- sign(corr_ref)
+        if (sgn == 0) sgn <- 1
       }
     } else if (ident_sign_method == "data_fit_correlation") {
       best_r2 <- -Inf
