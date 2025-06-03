@@ -255,7 +255,6 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
   }
 
   voxel_fun <- function(v) {
-##<<<<<<< codex/add-memory-based-precomputation-to-run_lss_voxel_loop_core
     Y_proj_voxel_vector <- Y_proj_matrix[, v]
 
     if (precompute_Rt) {
@@ -280,23 +279,14 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
       beta_trials <- solve(CtC_proj_reg) %*% crossprod(C_proj, Y_proj_voxel_vector)
       as.vector(beta_trials)
     } else {
-      run_lss_for_voxel_corrected_full(
-        Y_proj_voxel_vector = Y_proj_matrix[, v],
+      run_lss_woodbury_corrected(
+        Y_proj_voxel_vector = Y_proj_voxel_vector,
         X_trial_onset_list_of_matrices = X_trial_onset_list_of_matrices,
         H_shape_voxel_vector = H_shapes_allvox_matrix[, v],
         P_confound = P_confound,
         lambda_ridge = lambda_ridge
       )
     }
-##=======
-    run_lss_woodbury_corrected(
-      Y_proj_voxel_vector = Y_proj_matrix[, v],
-      X_trial_onset_list_of_matrices = X_trial_onset_list_of_matrices,
-      H_shape_voxel_vector = H_shapes_allvox_matrix[, v],
-      P_confound = P_confound,
-      lambda_ridge = lambda_ridge
-    )
-##>>>>>>> main
   }
 
   res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
