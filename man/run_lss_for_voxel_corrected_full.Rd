@@ -8,8 +8,9 @@ run_lss_for_voxel_corrected_full(
   Y_proj_voxel_vector,
   X_trial_onset_list_of_matrices,
   H_shape_voxel_vector,
-  P_confound,
-  lambda_ridge = 1e-06
+  A_lss_fixed_matrix,
+  P_lss_matrix,
+  p_lss_vector
 )
 }
 \arguments{
@@ -19,13 +20,15 @@ run_lss_for_voxel_corrected_full(
 
 \item{H_shape_voxel_vector}{HRF shape (p x 1)}
 
-\item{P_confound}{Projection matrix that removes confounds (n x n)}
+\item{A_lss_fixed_matrix}{Matrix of fixed regressors used during projection (n x q)}
 
-\item{lambda_ridge}{Ridge regularization parameter}
+\item{P_lss_matrix}{Precomputed matrix from \code{prepare_lss_fixed_components_core} (q x n)}
+
+\item{p_lss_vector}{Precomputed intercept projection vector of length n}
 }
 \value{
 Vector of trial-wise betas
 }
 \description{
-Complete interface that takes projected data and projection matrices
+Complete interface using precomputed LSS components
 }

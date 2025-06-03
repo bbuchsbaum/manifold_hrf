@@ -235,31 +235,6 @@ reconstruct_hrf_shapes_core <- function(B_reconstructor_matrix,
 }
 
 #' Compute trial-wise betas using the Woodbury identity
-#'
-#' Internal helper used by LSS functions to compute single-trial betas
-#' given the voxel-specific trial regressor matrix.
-#'
-#' @param C_v Matrix of convolved trial regressors (n x T)
-#' @param Y_v Numeric vector of length n with projected voxel data
-#' @param A_fixed Fixed regressors matrix used during projection (n x q)
-#' @param P_lss Precomputed matrix from `prepare_lss_fixed_components_core`
-#'              with dimensions q x n
-#' @param p_lss Precomputed intercept projection vector of length n
-#'
-#' @return Numeric vector of length T containing LSS beta estimates
-#' @keywords internal
-.compute_lss_betas <- function(C_v, Y_v, A_fixed, P_lss, p_lss) {
-  U_v <- P_lss %*% C_v
-  V_regressors_v <- C_v - A_fixed %*% U_v
-  pc_v_row <- as.vector(crossprod(p_lss, C_v))
-  cv_v_row <- colSums(V_regressors_v * V_regressors_v)
-  alpha_v_row <- (1 - pc_v_row) / pmax(cv_v_row, .Machine$double.eps)
-  S_effective_regressors_v <- sweep(V_regressors_v, MARGIN = 2,
-                                    STATS = alpha_v_row, FUN = "*")
-  S_effective_regressors_v <- sweep(S_effective_regressors_v, MARGIN = 1,
-                                    STATS = p_lss, FUN = "+")
-  as.vector(crossprod(S_effective_regressors_v, Y_v))
-}
 
 #' Run LSS for Single Voxel (Core)
 

@@ -61,12 +61,19 @@ test_that("Corrected LSS implementation matches ground truth", {
   }
   
   # METHOD 2: Corrected implementation
+  lss_prep <- prepare_lss_fixed_components_core(
+    A_lss_fixed_matrix = Z,
+    intercept_col_index_in_Alss = 1,
+    lambda_ridge_Alss = lambda
+  )
+
   betas_corrected <- run_lss_for_voxel_corrected_full(
     Y_proj_voxel_vector = y_proj,
     X_trial_onset_list_of_matrices = X_trials,
     H_shape_voxel_vector = h,
-    P_confound = P_proj,
-    lambda_ridge = lambda
+    A_lss_fixed_matrix = Z,
+    P_lss_matrix = lss_prep$P_lss_matrix,
+    p_lss_vector = lss_prep$p_lss_vector
   )
   
   # METHOD 3: Current Woodbury implementation
