@@ -69,8 +69,9 @@ It ensures that HRF estimates are identifiable by:
 \item Aligning sign with a reference HRF (avoiding arbitrary sign flips)
 \item Normalizing scale consistently across voxels
 The chosen sign alignment method is reported via messages. When the
-correlation with the canonical HRF is near zero, a warning is produced and
-a fallback RMS-based alignment is attempted. Setting
+absolute correlation with the canonical HRF falls below \code{1e-3}, a
+warning is produced and the sign is determined using the RMS rule
+(the sign of the sum of the HRF). Setting
 \code{consistency_check = TRUE} reprojects each HRF and revalidates the sign.
 The beta amplitudes are adjusted inversely to preserve the overall signal.
 Voxels whose reconstructed HRFs fall below \code{zero_tol} are zeroed in

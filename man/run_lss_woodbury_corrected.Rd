@@ -8,6 +8,7 @@ run_lss_woodbury_corrected(
   Y_proj_voxel_vector,
   X_trial_onset_list_of_matrices,
   H_shape_voxel_vector,
+  P_confound = NULL,
   lambda_ridge = 1e-06
 )
 }
@@ -17,6 +18,9 @@ run_lss_woodbury_corrected(
 \item{X_trial_onset_list_of_matrices}{List of trial design matrices}
 
 \item{H_shape_voxel_vector}{HRF shape vector (p x 1)}
+
+\item{P_confound}{Projection matrix used to remove confound effects. If
+\code{NULL}, no projection is applied.}
 
 \item{lambda_ridge}{Ridge regularization parameter}
 }

@@ -114,17 +114,25 @@ run_lss_for_voxel_corrected_full <- function(Y_proj_voxel_vector,
 #' @param Y_proj_voxel_vector Projected data vector (n x 1)
 #' @param X_trial_onset_list_of_matrices List of trial design matrices
 #' @param H_shape_voxel_vector HRF shape vector (p x 1)
+#' @param P_confound Projection matrix used to remove confound effects
+#'   (n x n). If \code{NULL}, no projection is applied.
 #' @param lambda_ridge Ridge regularization parameter
 #' @return Vector of trial-wise betas
 #' @export
 run_lss_woodbury_corrected <- function(Y_proj_voxel_vector,
                                       X_trial_onset_list_of_matrices,
                                       H_shape_voxel_vector,
+                                      P_confound = NULL,
                                       lambda_ridge = 1e-6) {
   
   n <- length(Y_proj_voxel_vector)
   T_trials <- length(X_trial_onset_list_of_matrices)
   
+  if (is.null(P_confound)) {
+    # Identity projection if none supplied
+    P_confound <- diag(n)
+  }
+
   beta_trials <- numeric(T_trials)
   
   # For each trial, solve the LSS problem
@@ -133,6 +141,7 @@ run_lss_woodbury_corrected <- function(Y_proj_voxel_vector,
     # Create design matrix for this trial
     X_t <- X_trial_onset_list_of_matrices[[t]]
     C_t <- X_t %*% H_shape_voxel_vector
+    C_t <- P_confound %*% C_t
     
     # Create design matrix for all other trials
     other_trials <- setdiff(1:T_trials, t)
@@ -141,7 +150,7 @@ run_lss_woodbury_corrected <- function(Y_proj_voxel_vector,
       for (i in seq_along(other_trials)) {
         trial_idx <- other_trials[i]
         X_other <- X_trial_onset_list_of_matrices[[trial_idx]]
-        C_others[, i] <- X_other %*% H_shape_voxel_vector
+        C_others[, i] <- P_confound %*% (X_other %*% H_shape_voxel_vector)
       }
       
       # Full design matrix
@@ -193,7 +202,7 @@ prepare_projection_matrix <- function(Z_confounds, lambda = 1e-6) {
 #' Run LSS Across Voxels (Core)
 #'
 #' Computes trial-wise LSS estimates for all voxels using the
-#' mathematically correct implementation.
+#' Woodbury-based implementation.
 #'
 #' @param Y_proj_matrix n x V projected BOLD data matrix.
 #' @param X_trial_onset_list_of_matrices List of length T with n x p design matrices.
@@ -246,6 +255,7 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
   }
 
   voxel_fun <- function(v) {
+##<<<<<<< codex/add-memory-based-precomputation-to-run_lss_voxel_loop_core
     Y_proj_voxel_vector <- Y_proj_matrix[, v]
 
     if (precompute_Rt) {
@@ -278,6 +288,15 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
         lambda_ridge = lambda_ridge
       )
     }
+##=======
+    run_lss_woodbury_corrected(
+      Y_proj_voxel_vector = Y_proj_matrix[, v],
+      X_trial_onset_list_of_matrices = X_trial_onset_list_of_matrices,
+      H_shape_voxel_vector = H_shapes_allvox_matrix[, v],
+      P_confound = P_confound,
+      lambda_ridge = lambda_ridge
+    )
+##>>>>>>> main
   }
 
   res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
