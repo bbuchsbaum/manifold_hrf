@@ -9,7 +9,7 @@ run_lss_voxel_loop_corrected_test <- function(Y_matrix,
   Beta <- matrix(0, T_trials, V)
   for (v in seq_len(V)) {
     y_proj <- as.vector(P_conf %*% Y_matrix[, v])
-    Beta[, v] <- run_lss_for_voxel_corrected_full(
+    Beta[, v] <- run_lss_woodbury_corrected(
       Y_proj_voxel_vector = y_proj,
       X_trial_onset_list_of_matrices = X_trial_onset_list,
       H_shape_voxel_vector = H_shapes_matrix[, v],

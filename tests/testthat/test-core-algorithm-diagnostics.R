@@ -413,7 +413,7 @@ test_that("M-HRF-LSS trial-wise estimation is unbiased and efficient compared to
   test_voxel <- 5
   h_v <- hrf_true
   
-  beta_single <- run_lss_for_voxel_corrected_full(
+  beta_single <- run_lss_woodbury_corrected(
     Y_proj_voxel_vector = as.vector(Y_proj[, test_voxel]),
     X_trial_onset_list_of_matrices = X_trials,
     H_shape_voxel_vector = h_v,
