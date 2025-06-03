@@ -17,38 +17,25 @@ run_lss_for_voxel_corrected <- function(y_voxel,
                                        h_voxel,
                                        TR = 2,
                                        lambda = 1e-6) {
-  
+
   n <- length(y_voxel)
   T_trials <- length(X_trial_list)
-  p <- length(h_voxel)
-  
+
   # Create convolved regressors
   C <- matrix(0, n, T_trials)
-  for (t in 1:T_trials) {
-    X_trial <- X_trial_list[[t]]
-    # Convolve with HRF
-    regressor <- X_trial %*% h_voxel
-    C[, t] <- regressor
+  for (t in seq_len(T_trials)) {
+    C[, t] <- X_trial_list[[t]] %*% h_voxel
   }
 
-  # Check for rank deficiency
-  qr_C <- qr(C)
-  if (qr_C$rank < T_trials) {
-    warning(
-      sprintf(
-        "Trial regressors are rank deficient for this voxel: rank %d < %d",
-        qr_C$rank,
-        T_trials
-      )
-    )
-  }
-  
-  # Ridge regression
-  CTC <- t(C) %*% C
-  diag(CTC) <- diag(CTC) + lambda
-  beta_trials <- solve(CTC) %*% t(C) %*% y_voxel
+  # Project out intercept
+  X_base <- matrix(1, n, 1)
+  P_base <- MASS::ginv(X_base)
+  Q_base <- diag(n) - X_base %*% P_base
+  y_res <- Q_base %*% y_voxel
+  Q_dmat <- Q_base %*% C
 
-  return(list(beta_trials = as.vector(beta_trials)))
+  betas <- lss_compute_r(Q_dmat, as.matrix(y_res))
+  list(beta_trials = as.vector(betas))
 }
 
 
@@ -67,16 +54,10 @@ run_lss_for_voxel_corrected <- function(y_voxel,
 #' @return Numeric vector of length T containing LSS beta estimates
 #' @keywords internal
 .compute_lss_betas <- function(C_v, Y_v, A_fixed, P_lss, p_lss) {
-  U_v <- P_lss %*% C_v
-  V_regressors_v <- C_v - A_fixed %*% U_v
-  pc_v_row <- as.vector(crossprod(p_lss, C_v))
-  cv_v_row <- colSums(V_regressors_v * V_regressors_v)
-  alpha_v_row <- (1 - pc_v_row) / pmax(cv_v_row, .Machine$double.eps)
-  S_effective_regressors_v <- sweep(V_regressors_v, MARGIN = 2,
-                                    STATS = alpha_v_row, FUN = "*")
-  S_effective_regressors_v <- sweep(S_effective_regressors_v, MARGIN = 1,
-                                    STATS = p_lss, FUN = "+")
-  as.vector(crossprod(S_effective_regressors_v, Y_v))
+  n <- nrow(C_v)
+  P_confound <- diag(n) - A_fixed %*% P_lss
+  Q_dmat <- P_confound %*% C_v
+  lss_compute_r(Q_dmat, as.matrix(Y_v))
 }
 
 
@@ -106,7 +87,7 @@ run_lss_for_voxel_corrected_full <- function(Y_proj_voxel_vector,
   
   # Step 1: Create all trial regressors
   C <- matrix(0, n, T_trials)
-  for (t in 1:T_trials) {
+  for (t in seq_len(T_trials)) {
     C[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_shape_voxel_vector
   }
 
@@ -158,41 +139,15 @@ run_lss_woodbury_corrected <- function(Y_proj_voxel_vector,
     P_confound <- diag(n)
   }
 
-  beta_trials <- numeric(T_trials)
-  
-  # For each trial, solve the LSS problem
-  for (t in 1:T_trials) {
-    
-    # Create design matrix for this trial
-    X_t <- X_trial_onset_list_of_matrices[[t]]
-    C_t <- X_t %*% H_shape_voxel_vector
-    C_t <- P_confound %*% C_t
-    
-    # Create design matrix for all other trials
-    other_trials <- setdiff(1:T_trials, t)
-    if (length(other_trials) > 0) {
-      C_others <- matrix(0, n, length(other_trials))
-      for (i in seq_along(other_trials)) {
-        trial_idx <- other_trials[i]
-        X_other <- X_trial_onset_list_of_matrices[[trial_idx]]
-        C_others[, i] <- P_confound %*% (X_other %*% H_shape_voxel_vector)
-      }
-      
-      # Full design matrix
-      X_full <- cbind(C_t, C_others)
-    } else {
-      X_full <- matrix(C_t, ncol = 1)
-    }
-    
-    # Solve regularized system
-    XTX <- crossprod(X_full)
-    diag(XTX) <- diag(XTX) + lambda_ridge
-    
-    beta_full <- solve(XTX) %*% crossprod(X_full, Y_proj_voxel_vector)
-    beta_trials[t] <- beta_full[1]  # First coefficient is for trial t
+  # Build convolved trial regressors and project
+  C <- matrix(0, n, T_trials)
+  for (t in seq_len(T_trials)) {
+    C[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_shape_voxel_vector
   }
-  
-  return(beta_trials)
+  Q_dmat <- P_confound %*% C
+
+  # Compute betas via numerically stable formula
+  as.vector(lss_compute_r(Q_dmat, as.matrix(Y_proj_voxel_vector)))
 }
 
 
