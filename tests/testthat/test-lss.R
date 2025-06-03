@@ -227,15 +227,16 @@ test_that("run_lss_for_voxel_corrected_full works correctly", {
   
   # Fixed regressors (intercept + drift)
   A_fixed <- cbind(1, seq_len(n) / n)
-  
+  lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-6)
   P_conf <- prepare_projection_matrix(A_fixed, 1e-6)
   Y_proj <- as.vector(P_conf %*% Y_voxel)
   estimated_betas <- run_lss_for_voxel_corrected_full(
-    Y_proj,
-    X_trials,
-    H_voxel,
-    P_conf,
-    lambda_ridge = 1e-6
+    Y_proj_voxel_vector = Y_proj,
+    X_trial_onset_list_of_matrices = X_trials,
+    H_shape_voxel_vector = H_voxel,
+    A_lss_fixed_matrix = A_fixed,
+    P_lss_matrix = lss_prep$P_lss_matrix,
+    p_lss_vector = lss_prep$p_lss_vector
   )
   
   # Check output
@@ -260,29 +261,46 @@ test_that("run_lss_for_voxel_corrected_full validates inputs", {
   X_list <- lapply(1:T, function(i) matrix(rnorm(n*p), n, p))
   H <- rnorm(p)
   A <- cbind(1, rnorm(n))
+  lss_prep <- prepare_lss_fixed_components_core(A, 1, 0)
   P <- prepare_projection_matrix(A, 0)
   
   # Test non-numeric Y
   expect_error(
-    run_lss_for_voxel_corrected_full(as.character(Y), X_list, H, P),
+    run_lss_for_voxel_corrected_full(as.character(Y), X_list, H,
+      A_lss_fixed_matrix = A,
+      P_lss_matrix = lss_prep$P_lss_matrix,
+      p_lss_vector = lss_prep$p_lss_vector
+    ),
     "numeric"
   )
   
   # Test non-list X - this will result in dimension mismatch warning
   expect_warning(
-    run_lss_for_voxel_corrected_full(Y, X_list[[1]], H, P),
+    run_lss_for_voxel_corrected_full(Y, X_list[[1]], H,
+      A_lss_fixed_matrix = A,
+      P_lss_matrix = lss_prep$P_lss_matrix,
+      p_lss_vector = lss_prep$p_lss_vector
+    ),
     "rank deficient"
   )
   
   # Test empty trial list
   expect_error(
-    run_lss_for_voxel_corrected_full(Y, list(), H, P),
+    run_lss_for_voxel_corrected_full(Y, list(), H,
+      A_lss_fixed_matrix = A,
+      P_lss_matrix = lss_prep$P_lss_matrix,
+      p_lss_vector = lss_prep$p_lss_vector
+    ),
     "subscript out of bounds"
   )
   
   # Test dimension mismatches
   expect_error(
-    run_lss_for_voxel_corrected_full(Y, X_list, H, diag(1, 50)),
+    run_lss_for_voxel_corrected_full(Y, X_list, H,
+      A_lss_fixed_matrix = diag(1, 50),
+      P_lss_matrix = lss_prep$P_lss_matrix,
+      p_lss_vector = lss_prep$p_lss_vector
+    ),
     "non-conformable arguments"
   )
 })
@@ -497,7 +515,14 @@ test_that("rank deficient trial regressors trigger warning", {
   P_conf <- prepare_projection_matrix(A_fixed, 0)
   Y_proj <- as.vector(P_conf %*% Y)
   expect_warning(
-    run_lss_for_voxel_corrected_full(Y_proj, X_list, H, P_conf),
+    run_lss_for_voxel_corrected_full(
+      Y_proj_voxel_vector = Y_proj,
+      X_trial_onset_list_of_matrices = X_list,
+      H_shape_voxel_vector = H,
+      A_lss_fixed_matrix = A_fixed,
+      P_lss_matrix = lss_prep$P_lss_matrix,
+      p_lss_vector = lss_prep$p_lss_vector
+    ),
     "rank deficient"
   )
 })

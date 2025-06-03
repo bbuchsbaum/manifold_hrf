@@ -25,6 +25,7 @@ test_that("run_lss_voxel_loop_core matches single voxel implementation", {
 
   # Confounds and projection
   A_fixed <- cbind(1, rnorm(n))
+  lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-6)
   P_conf <- prepare_projection_matrix(A_fixed, 1e-6)
 
   # Generate projected data
@@ -41,7 +42,8 @@ test_that("run_lss_voxel_loop_core matches single voxel implementation", {
     X_trial_onset_list_of_matrices = X_trials,
     H_shapes_allvox_matrix = H_shapes,
     A_lss_fixed_matrix = A_fixed,
-    lambda_ridge = 1e-6,
+    P_lss_matrix = lss_prep$P_lss_matrix,
+    p_lss_vector = lss_prep$p_lss_vector,
     n_jobs = 1,
     ram_heuristic_GB_for_Rt = 1.0
   )
@@ -52,8 +54,9 @@ test_that("run_lss_voxel_loop_core matches single voxel implementation", {
       Y_proj_voxel_vector = Y_proj[, v],
       X_trial_onset_list_of_matrices = X_trials,
       H_shape_voxel_vector = H_shapes[, v],
-      P_confound = P_conf,
-      lambda_ridge = 1e-6
+      A_lss_fixed_matrix = A_fixed,
+      P_lss_matrix = lss_prep$P_lss_matrix,
+      p_lss_vector = lss_prep$p_lss_vector
     )
   }
 
@@ -80,6 +83,7 @@ test_that("run_lss_voxel_loop_core works without precomputation", {
   Beta_true <- matrix(rnorm(T_trials * V), T_trials, V)
 
   A_fixed <- cbind(1, rnorm(n))
+  lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-6)
   P_conf <- prepare_projection_matrix(A_fixed, 1e-6)
 
   Y_clean <- matrix(0, n, V)
@@ -95,7 +99,8 @@ test_that("run_lss_voxel_loop_core works without precomputation", {
     X_trial_onset_list_of_matrices = X_trials,
     H_shapes_allvox_matrix = H_shapes,
     A_lss_fixed_matrix = A_fixed,
-    lambda_ridge = 1e-6,
+    P_lss_matrix = lss_prep$P_lss_matrix,
+    p_lss_vector = lss_prep$p_lss_vector,
     n_jobs = 1,
     ram_heuristic_GB_for_Rt = 0
   )
@@ -106,8 +111,9 @@ test_that("run_lss_voxel_loop_core works without precomputation", {
       Y_proj_voxel_vector = Y_proj[, v],
       X_trial_onset_list_of_matrices = X_trials,
       H_shape_voxel_vector = H_shapes[, v],
-      P_confound = P_conf,
-      lambda_ridge = 1e-6
+      A_lss_fixed_matrix = A_fixed,
+      P_lss_matrix = lss_prep$P_lss_matrix,
+      p_lss_vector = lss_prep$p_lss_vector
     )
   }
 
