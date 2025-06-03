@@ -82,6 +82,8 @@ The pipeline consists of 5 main components (0-4) plus pre-flight QC (-1):
 - `reconstruct_hrf_shapes_core()`: Transform smoothed manifold coords back to HRF shapes
 - `run_lss_for_voxel_core()`: Woodbury-optimized LSS for single voxel
 - `run_lss_voxel_loop_core()`: Main loop with optional RAM-based precomputation
+  controlled by `ram_heuristic_GB_for_Rt`. Trial regressors are precomputed
+  when `T * V * 8 / 1e9` is below this limit.
 
 **Component 4: Alternating Optimization**
 - `estimate_final_condition_betas_core()`: Re-estimate condition betas using final HRFs
@@ -97,7 +99,8 @@ The pipeline consists of 5 main components (0-4) plus pre-flight QC (-1):
 2. **Memory Management**:
    - Sparse matrix support for large HRF libraries (N > 5000)
    - Optional HDF5 backing for very large datasets
-   - RAM heuristics for trial-wise precomputation
+  - RAM heuristics for trial-wise precomputation via
+    `ram_heuristic_GB_for_Rt` in `run_lss_voxel_loop_core`
 
 3. **Numerical Stability**:
    - Ridge regularization throughout

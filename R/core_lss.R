@@ -210,6 +210,9 @@ prepare_projection_matrix <- function(Z_confounds, lambda = 1e-6) {
 #' @param A_lss_fixed_matrix n x q matrix of fixed regressors.
 #' @param lambda_ridge Ridge regularization applied when projecting out confounds.
 #' @param n_jobs Number of parallel workers for voxel-wise computation.
+#' @param ram_heuristic_GB_for_Rt RAM limit in gigabytes for optional
+#'   precomputation of trial regressors. Precomputation is used when the
+#'   estimated memory footprint \code{T * V * 8 / 1e9} is below this limit.
 #' 
 #' @return A T x V matrix of trial-wise beta estimates.
 #' @export
@@ -218,7 +221,8 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
                                    H_shapes_allvox_matrix,
                                    A_lss_fixed_matrix,
                                    lambda_ridge = 1e-6,
-                                   n_jobs = 1) {
+                                   n_jobs = 1,
+                                   ram_heuristic_GB_for_Rt = 1.0) {
 
   if (!is.matrix(Y_proj_matrix)) {
     stop("Y_proj_matrix must be a matrix")
@@ -241,7 +245,50 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
 
   P_confound <- prepare_projection_matrix(A_lss_fixed_matrix, lambda_ridge)
 
+  precompute_Rt <- check_ram_feasibility(T_trials, V, ram_heuristic_GB_for_Rt)
+
+  if (precompute_Rt) {
+    R_t_allvox_list <- vector("list", T_trials)
+    for (t in seq_len(T_trials)) {
+      R_t_allvox_list[[t]] <- X_trial_onset_list_of_matrices[[t]] %*% H_shapes_allvox_matrix
+    }
+  }
+
   voxel_fun <- function(v) {
+##<<<<<<< codex/add-memory-based-precomputation-to-run_lss_voxel_loop_core
+    Y_proj_voxel_vector <- Y_proj_matrix[, v]
+
+    if (precompute_Rt) {
+      C_v <- matrix(0, n, T_trials)
+      for (t in seq_len(T_trials)) {
+        C_v[, t] <- R_t_allvox_list[[t]][, v]
+      }
+
+      qr_C <- qr(C_v)
+      if (qr_C$rank < T_trials) {
+        warning(
+          sprintf(
+            "Trial regressors are rank deficient for voxel %d: rank %d < %d",
+            v, qr_C$rank, T_trials
+          )
+        )
+      }
+
+      C_proj <- P_confound %*% C_v
+      CtC_proj <- crossprod(C_proj)
+      CtC_proj_reg <- CtC_proj + lambda_ridge * diag(T_trials)
+      beta_trials <- solve(CtC_proj_reg) %*% crossprod(C_proj, Y_proj_voxel_vector)
+      as.vector(beta_trials)
+    } else {
+      run_lss_for_voxel_corrected_full(
+        Y_proj_voxel_vector = Y_proj_matrix[, v],
+        X_trial_onset_list_of_matrices = X_trial_onset_list_of_matrices,
+        H_shape_voxel_vector = H_shapes_allvox_matrix[, v],
+        P_confound = P_confound,
+        lambda_ridge = lambda_ridge
+      )
+    }
+##=======
     run_lss_woodbury_corrected(
       Y_proj_voxel_vector = Y_proj_matrix[, v],
       X_trial_onset_list_of_matrices = X_trial_onset_list_of_matrices,
@@ -249,6 +296,7 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
       P_confound = P_confound,
       lambda_ridge = lambda_ridge
     )
+##>>>>>>> main
   }
 
   res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
