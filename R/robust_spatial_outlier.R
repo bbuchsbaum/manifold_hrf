@@ -201,45 +201,40 @@ compute_edge_weights <- function(Xi_matrix, voxel_coords, edge_threshold = 2) {
 #' @return n x V matrix of weights
 #' @export
 detect_outlier_timepoints <- function(Y_data, threshold = 3, min_weight = 0.1) {
-  
+
   n <- nrow(Y_data)
   V <- ncol(Y_data)
-  
+
   # Initialize weights
   weights <- matrix(1, n, V)
-  
-  # Detect outliers per voxel
+
+  # Column-wise robust center and scale
+  y_median <- matrixStats::colMedians(Y_data)
+  y_mad <- matrixStats::colMads(Y_data, center = y_median, constant = 1.4826)
+
+  valid_cols <- which(y_mad > .Machine$double.eps)
   n_outliers_total <- 0
-  
-  for (v in 1:V) {
-    y <- Y_data[, v]
-    
-    # Robust center and scale
-    y_median <- median(y)
-    y_mad <- median(abs(y - y_median)) * 1.4826
-    
-    if (y_mad > .Machine$double.eps) {
-      # Standardized values
-      z_scores <- abs(y - y_median) / y_mad
-      
-      # Identify outliers
-      outliers <- which(z_scores > threshold)
-      n_outliers_total <- n_outliers_total + length(outliers)
-      
-      # Soft downweighting using Huber-like weights
-      if (length(outliers) > 0) {
-        # Linear downweighting beyond threshold
-        weights[outliers, v] <- pmax(min_weight, 
-                                    1 - (z_scores[outliers] - threshold) / threshold)
-      }
+
+  if (length(valid_cols) > 0) {
+    z_scores <- abs(sweep(Y_data[, valid_cols, drop = FALSE], 2,
+                          y_median[valid_cols], "-")) / y_mad[valid_cols]
+    outlier_mask <- z_scores > threshold
+    n_outliers_total <- sum(outlier_mask)
+
+    if (n_outliers_total > 0) {
+      adjust <- 1 - (z_scores - threshold) / threshold
+      adjust <- pmax(min_weight, adjust)
+      weights_subset <- weights[, valid_cols, drop = FALSE]
+      weights_subset[outlier_mask] <- adjust[outlier_mask]
+      weights[, valid_cols] <- weights_subset
     }
   }
-  
+
   if (n_outliers_total > 0) {
     message(sprintf("Detected %d outlier timepoints (%.1f%% of data)",
-                   n_outliers_total, 100 * n_outliers_total / (n * V)))
+                    n_outliers_total, 100 * n_outliers_total / (n * V)))
   }
-  
+
   return(weights)
 }
 
@@ -253,66 +248,55 @@ detect_outlier_timepoints <- function(Y_data, threshold = 3, min_weight = 0.1) {
 #' @param max_spike_fraction Maximum fraction of spike-like values
 #' @return List with keep/flag indicators and quality metrics
 #' @export
-screen_voxels <- function(Y_data, 
+screen_voxels <- function(Y_data,
                          min_variance = 1e-6,
                          max_spike_fraction = 0.1) {
-  
+
   n <- nrow(Y_data)
   V <- ncol(Y_data)
-  
+
   # Initialize
   keep_voxel <- rep(TRUE, V)
   flag_voxel <- rep(FALSE, V)
   quality_scores <- numeric(V)
-  
-  for (v in 1:V) {
-    y <- Y_data[, v]
-    
-    # Handle NA/Inf values
-    if (any(!is.finite(y))) {
-      keep_voxel[v] <- FALSE
-      quality_scores[v] <- 0
-      flag_voxel[v] <- TRUE
-      next
-    }
-    
-    # Check variance
-    y_var <- var(y)
-    if (is.na(y_var) || y_var < min_variance) {
-      keep_voxel[v] <- FALSE
-      quality_scores[v] <- 0
-      next
-    }
-    
-    # Check for spikes (sudden large changes)
-    y_diff <- abs(diff(y))
-    y_diff_median <- median(y_diff)
-    y_diff_mad <- median(abs(y_diff - y_diff_median)) * 1.4826
-    
-    if (y_diff_mad > 0) {
-      spike_threshold <- y_diff_median + 5 * y_diff_mad
-      n_spikes <- sum(y_diff > spike_threshold)
-      spike_fraction <- n_spikes / (n - 1)
-      
-      if (spike_fraction > max_spike_fraction) {
-        flag_voxel[v] <- TRUE
-      }
-    }
-    
-    # Quality score based on temporal smoothness
-    quality_scores[v] <- 1 / (1 + mean(y_diff^2) / y_var)
+
+  non_finite <- !matrixStats::colAlls(is.finite(Y_data))
+  y_var <- matrixStats::colVars(Y_data)
+  low_variance <- is.na(y_var) | y_var < min_variance
+
+  keep_voxel[non_finite | low_variance] <- FALSE
+  flag_voxel[non_finite] <- TRUE
+
+  Y_diff <- abs(diff(Y_data))
+  y_diff_median <- matrixStats::colMedians(Y_diff)
+  y_diff_mad <- matrixStats::colMads(Y_diff, center = y_diff_median, constant = 1.4826)
+
+  valid_mad <- y_diff_mad > 0
+  if (any(valid_mad)) {
+    spike_threshold <- y_diff_median + 5 * y_diff_mad
+    spike_mask <- Y_diff[, valid_mad, drop = FALSE] >
+      matrix(spike_threshold[valid_mad], nrow = n - 1, ncol = sum(valid_mad), byrow = TRUE)
+    spike_fraction <- colMeans(spike_mask)
+    flag_voxel[valid_mad][spike_fraction > max_spike_fraction] <- TRUE
   }
-  
+
+  q_mask <- !(non_finite | low_variance)
+  if (any(q_mask)) {
+    quality_scores[q_mask] <- 1 /
+      (1 + colMeans(Y_diff[, q_mask, drop = FALSE]^2) / y_var[q_mask])
+  }
+  quality_scores[!q_mask] <- 0
+
   n_excluded <- sum(!keep_voxel)
   n_flagged <- sum(flag_voxel)
-  
+
   if (n_excluded > 0) {
     warning(sprintf("Excluded %d low-quality voxels", n_excluded))
   }
   if (n_flagged > 0) {
     warning(sprintf("Flagged %d voxels with potential artifacts", n_flagged))
   }
-  
+
   return(list(
     keep = keep_voxel,
     flag = flag_voxel,
