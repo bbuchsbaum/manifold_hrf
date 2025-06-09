@@ -157,36 +157,34 @@ apply_spatial_smoothing_adaptive <- function(Xi_ident_matrix,
 #' @param Xi_matrix m x V manifold coordinates
 #' @param voxel_coords V x 3 spatial coordinates
 #' @param edge_threshold Threshold for edge detection
+#' @param n_neighbors Number of nearest neighbors used for gradient computation
 #' @return Vector of edge weights (0 = edge, 1 = smooth region)
 #' @keywords internal
-compute_edge_weights <- function(Xi_matrix, voxel_coords, edge_threshold = 2) {
-  
+compute_edge_weights <- function(Xi_matrix, voxel_coords,
+                                 edge_threshold = 2, n_neighbors = 26) {
+
   V <- ncol(Xi_matrix)
   edge_weights <- rep(1, V)
-  
-  # Compute local gradient magnitude
-  for (v in 1:V) {
-    # Find spatial neighbors
-    # Fix array recycling: use rep() to properly expand the vector
-    voxel_v_matrix <- matrix(rep(voxel_coords[v, ], each = V), nrow = V, ncol = 3)
-    distances <- sqrt(rowSums((voxel_coords - voxel_v_matrix)^2))
-    neighbors <- which(distances > 0 & distances < 2)
-    
-    if (length(neighbors) > 0) {
-      # Compute gradient in manifold space
-      xi_v <- Xi_matrix[, v]
-      xi_neighbors <- Xi_matrix[, neighbors, drop = FALSE]
-      
-      # Mean squared difference to neighbors
-      gradient_mag <- mean(colSums((xi_neighbors - xi_v)^2))
-      
-      # Convert to weight (high gradient → low weight)
-      if (gradient_mag > edge_threshold) {
-        edge_weights[v] <- exp(-gradient_mag / edge_threshold)
-      }
+
+  # Pre-compute nearest neighbors for all voxels
+  nn_res <- knn_search_cpp(t(voxel_coords), t(voxel_coords), n_neighbors + 1)
+  neighbor_idx <- t(nn_res$idx)[, -1, drop = FALSE]
+
+  # Compute local gradient magnitude using neighbor lists
+  for (v in seq_len(V)) {
+    neighbors <- neighbor_idx[v, ]
+    xi_v <- Xi_matrix[, v, drop = FALSE]
+    xi_neighbors <- Xi_matrix[, neighbors, drop = FALSE]
+
+    # Mean squared difference to neighbors
+    gradient_mag <- mean(colSums((xi_neighbors - xi_v)^2))
+
+    # Convert to weight (high gradient → low weight)
+    if (gradient_mag > edge_threshold) {
+      edge_weights[v] <- exp(-gradient_mag / edge_threshold)
     }
   }
-  
+
   return(edge_weights)
 }
 
