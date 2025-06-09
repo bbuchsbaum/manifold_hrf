@@ -4,7 +4,12 @@
 \alias{compute_edge_weights}
 \title{Compute Edge Weights for Edge-Preserving Smoothing}
 \usage{
-compute_edge_weights(Xi_matrix, voxel_coords, edge_threshold = 2)
+compute_edge_weights(
+  Xi_matrix,
+  voxel_coords,
+  edge_threshold = 2,
+  n_neighbors = 26
+)
 }
 \arguments{
 \item{Xi_matrix}{m x V manifold coordinates}
@@ -12,6 +17,8 @@ compute_edge_weights(Xi_matrix, voxel_coords, edge_threshold = 2)
 \item{voxel_coords}{V x 3 spatial coordinates}
 
 \item{edge_threshold}{Threshold for edge detection}
+
+\item{n_neighbors}{Number of nearest neighbors used for gradient computation}
 }
 \value{
 Vector of edge weights (0 = edge, 1 = smooth region)

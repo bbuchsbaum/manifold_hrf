@@ -41,7 +41,8 @@ Suggests:
     future.apply,
     parallel,
     proxy,
-    RcppHNSW
+    RcppHNSW,
+    microbenchmark
 VignetteBuilder: knitr, rmarkdown
 URL: https://github.com/bbuchsbaum/manifold_hrf
 BugReports: https://github.com/bbuchsbaum/manifold_hrf/issues 
