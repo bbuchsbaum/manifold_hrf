@@ -17,9 +17,10 @@
 #' @param control_alt_list List with control parameters:
 #'   \itemize{
 #'     \item \code{max_iter}: Maximum number of iterations (default 1 for MVP)
-#'     \item \code{rel_change_tol}: Relative change tolerance for convergence 
+#'     \item \code{rel_change_tol}: Relative change tolerance for convergence
 #'       (default 1e-4)
 #'   }
+#' @param n_jobs Number of parallel workers for voxel-wise computation.
 #'   
 #' @return Beta_condition_final_matrix A k x V matrix of final condition-level 
 #'   beta estimates
@@ -72,8 +73,9 @@ estimate_final_condition_betas_core <- function(Y_proj_matrix,
                                               X_condition_list_proj_matrices,
                                               H_shapes_allvox_matrix,
                                               lambda_beta_final = 0.01,
-                                              control_alt_list = list(max_iter = 1, 
-                                                                    rel_change_tol = 1e-4)) {
+                                              control_alt_list = list(max_iter = 1,
+                                                                    rel_change_tol = 1e-4),
+                                              n_jobs = 1) {
   
   # Input validation
   if (!is.matrix(Y_proj_matrix)) {
@@ -185,29 +187,26 @@ estimate_final_condition_betas_core <- function(Y_proj_matrix,
       Beta_previous <- Beta_condition_final_matrix
     }
     
-    # Main voxel loop
-    # This could be parallelized in future versions
-    for (v in 1:V) {
-
+    voxel_fun <- function(v) {
       XtX_voxel_reg <- XtX_array[, , v] + lambda_beta_final * diag(k)
       XtY_voxel <- XtY_matrix[, v]
 
-      # Solve for beta
-      # Check for numerical issues
       if (any(is.na(XtX_voxel_reg)) || any(is.infinite(XtX_voxel_reg))) {
         warning(sprintf("Numerical issues in voxel %d, setting betas to zero", v))
-        Beta_condition_final_matrix[, v] <- 0
+        rep(0, k)
       } else {
         tryCatch({
-          beta_voxel <- solve(XtX_voxel_reg, XtY_voxel)
-          Beta_condition_final_matrix[, v] <- as.vector(beta_voxel)
+          as.vector(solve(XtX_voxel_reg, XtY_voxel))
         }, error = function(e) {
-          warning(sprintf("Failed to solve for voxel %d: %s. Setting betas to zero.", 
-                         v, e$message))
-          Beta_condition_final_matrix[, v] <- 0
+          warning(sprintf("Failed to solve for voxel %d: %s. Setting betas to zero.",
+                          v, e$message))
+          rep(0, k)
         })
       }
     }
+
+    res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
+    Beta_condition_final_matrix <- do.call(cbind, res_list)
     
     # Check convergence (only relevant if max_iter > 1)
     if (iter > 1) {
