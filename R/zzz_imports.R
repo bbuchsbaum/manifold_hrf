@@ -4,7 +4,7 @@
 #' @importFrom utils modifyList setTxtProgressBar txtProgressBar
 #' @import rsvd
 #' @import fmrireg
-#' @import matrixStats
+#' @importFrom matrixStats colVars colMedians rowDiffs
 #' @name imports
 #' @keywords internal
 NULL

@@ -10,33 +10,26 @@
 #' @param method Method for SNR estimation
 #' @return Vector of SNR values for each voxel
 #' @keywords internal
-compute_local_snr <- function(Y_data, Y_predicted = NULL, 
+compute_local_snr <- function(Y_data, Y_predicted = NULL,
                              method = c("temporal_variance", "residual")) {
-  
+
   method <- match.arg(method)
-  V <- ncol(Y_data)
-  snr <- numeric(V)
-  
+
   if (method == "temporal_variance") {
-    # SNR based on temporal variance
-    for (v in 1:V) {
-      y <- Y_data[, v]
-      # Robust estimate using MAD
-      signal_var <- var(y)
-      noise_mad <- median(abs(diff(y))) * 1.4826
-      noise_var <- noise_mad^2
-      
-      snr[v] <- signal_var / (noise_var + .Machine$double.eps)
-    }
+    # SNR based on temporal variance using matrixStats
+    signal_var <- matrixStats::colVars(Y_data)
+    diff_mat <- matrixStats::rowDiffs(Y_data)
+    noise_mad <- matrixStats::colMedians(abs(diff_mat)) * 1.4826
+    noise_var <- noise_mad^2
+    snr <- signal_var / (noise_var + .Machine$double.eps)
   } else if (method == "residual" && !is.null(Y_predicted)) {
     # SNR based on fit residuals
-    for (v in 1:V) {
-      signal_var <- var(Y_predicted[, v])
-      residuals <- Y_data[, v] - Y_predicted[, v]
-      noise_var <- var(residuals)
-      
-      snr[v] <- signal_var / (noise_var + .Machine$double.eps)
-    }
+    signal_var <- matrixStats::colVars(Y_predicted)
+    residuals <- Y_data - Y_predicted
+    noise_var <- matrixStats::colVars(residuals)
+    snr <- signal_var / (noise_var + .Machine$double.eps)
+  } else {
+    snr <- rep(1, ncol(Y_data))
   }
   
   # Cap extreme values
