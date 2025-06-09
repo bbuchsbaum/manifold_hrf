@@ -150,36 +150,34 @@ apply_spatial_smoothing_adaptive <- function(Xi_ident_matrix,
 #' @param Xi_matrix m x V manifold coordinates
 #' @param voxel_coords V x 3 spatial coordinates
 #' @param edge_threshold Threshold for edge detection
+#' @param n_neighbors Number of nearest neighbors used for gradient computation
 #' @return Vector of edge weights (0 = edge, 1 = smooth region)
 #' @keywords internal
-compute_edge_weights <- function(Xi_matrix, voxel_coords, edge_threshold = 2) {
-  
+compute_edge_weights <- function(Xi_matrix, voxel_coords,
+                                 edge_threshold = 2, n_neighbors = 26) {
+
   V <- ncol(Xi_matrix)
   edge_weights <- rep(1, V)
-  
-  # Compute local gradient magnitude
-  for (v in 1:V) {
-    # Find spatial neighbors
-    # Fix array recycling: use rep() to properly expand the vector
-    voxel_v_matrix <- matrix(rep(voxel_coords[v, ], each = V), nrow = V, ncol = 3)
-    distances <- sqrt(rowSums((voxel_coords - voxel_v_matrix)^2))
-    neighbors <- which(distances > 0 & distances < 2)
-    
-    if (length(neighbors) > 0) {
-      # Compute gradient in manifold space
-      xi_v <- Xi_matrix[, v]
-      xi_neighbors <- Xi_matrix[, neighbors, drop = FALSE]
-      
-      # Mean squared difference to neighbors
-      gradient_mag <- mean(colSums((xi_neighbors - xi_v)^2))
-      
-      # Convert to weight (high gradient → low weight)
-      if (gradient_mag > edge_threshold) {
-        edge_weights[v] <- exp(-gradient_mag / edge_threshold)
-      }
+
+  # Pre-compute nearest neighbors for all voxels
+  nn_res <- knn_search_cpp(t(voxel_coords), t(voxel_coords), n_neighbors + 1)
+  neighbor_idx <- t(nn_res$idx)[, -1, drop = FALSE]
+
+  # Compute local gradient magnitude using neighbor lists
+  for (v in seq_len(V)) {
+    neighbors <- neighbor_idx[v, ]
+    xi_v <- Xi_matrix[, v, drop = FALSE]
+    xi_neighbors <- Xi_matrix[, neighbors, drop = FALSE]
+
+    # Mean squared difference to neighbors
+    gradient_mag <- mean(colSums((xi_neighbors - xi_v)^2))
+
+    # Convert to weight (high gradient → low weight)
+    if (gradient_mag > edge_threshold) {
+      edge_weights[v] <- exp(-gradient_mag / edge_threshold)
     }
   }
-  
+
   return(edge_weights)
 }
 
@@ -194,45 +192,40 @@ compute_edge_weights <- function(Xi_matrix, voxel_coords, edge_threshold = 2) {
 #' @return n x V matrix of weights
 #' @export
 detect_outlier_timepoints <- function(Y_data, threshold = 3, min_weight = 0.1) {
-  
+
   n <- nrow(Y_data)
   V <- ncol(Y_data)
-  
+
   # Initialize weights
   weights <- matrix(1, n, V)
-  
-  # Detect outliers per voxel
+
+  # Column-wise robust center and scale
+  y_median <- matrixStats::colMedians(Y_data)
+  y_mad <- matrixStats::colMads(Y_data, center = y_median, constant = 1.4826)
+
+  valid_cols <- which(y_mad > .Machine$double.eps)
   n_outliers_total <- 0
-  
-  for (v in 1:V) {
-    y <- Y_data[, v]
-    
-    # Robust center and scale
-    y_median <- median(y)
-    y_mad <- median(abs(y - y_median)) * 1.4826
-    
-    if (y_mad > .Machine$double.eps) {
-      # Standardized values
-      z_scores <- abs(y - y_median) / y_mad
-      
-      # Identify outliers
-      outliers <- which(z_scores > threshold)
-      n_outliers_total <- n_outliers_total + length(outliers)
-      
-      # Soft downweighting using Huber-like weights
-      if (length(outliers) > 0) {
-        # Linear downweighting beyond threshold
-        weights[outliers, v] <- pmax(min_weight, 
-                                    1 - (z_scores[outliers] - threshold) / threshold)
-      }
+
+  if (length(valid_cols) > 0) {
+    z_scores <- abs(sweep(Y_data[, valid_cols, drop = FALSE], 2,
+                          y_median[valid_cols], "-")) / y_mad[valid_cols]
+    outlier_mask <- z_scores > threshold
+    n_outliers_total <- sum(outlier_mask)
+
+    if (n_outliers_total > 0) {
+      adjust <- 1 - (z_scores - threshold) / threshold
+      adjust <- pmax(min_weight, adjust)
+      weights_subset <- weights[, valid_cols, drop = FALSE]
+      weights_subset[outlier_mask] <- adjust[outlier_mask]
+      weights[, valid_cols] <- weights_subset
     }
   }
-  
+
   if (n_outliers_total > 0) {
     message(sprintf("Detected %d outlier timepoints (%.1f%% of data)",
-                   n_outliers_total, 100 * n_outliers_total / (n * V)))
+                    n_outliers_total, 100 * n_outliers_total / (n * V)))
   }
-  
+
   return(weights)
 }
 
@@ -246,66 +239,55 @@ detect_outlier_timepoints <- function(Y_data, threshold = 3, min_weight = 0.1) {
 #' @param max_spike_fraction Maximum fraction of spike-like values
 #' @return List with keep/flag indicators and quality metrics
 #' @export
-screen_voxels <- function(Y_data, 
+screen_voxels <- function(Y_data,
                          min_variance = 1e-6,
                          max_spike_fraction = 0.1) {
-  
+
   n <- nrow(Y_data)
   V <- ncol(Y_data)
-  
+
   # Initialize
   keep_voxel <- rep(TRUE, V)
   flag_voxel <- rep(FALSE, V)
   quality_scores <- numeric(V)
-  
-  for (v in 1:V) {
-    y <- Y_data[, v]
-    
-    # Handle NA/Inf values
-    if (any(!is.finite(y))) {
-      keep_voxel[v] <- FALSE
-      quality_scores[v] <- 0
-      flag_voxel[v] <- TRUE
-      next
-    }
-    
-    # Check variance
-    y_var <- var(y)
-    if (is.na(y_var) || y_var < min_variance) {
-      keep_voxel[v] <- FALSE
-      quality_scores[v] <- 0
-      next
-    }
-    
-    # Check for spikes (sudden large changes)
-    y_diff <- abs(diff(y))
-    y_diff_median <- median(y_diff)
-    y_diff_mad <- median(abs(y_diff - y_diff_median)) * 1.4826
-    
-    if (y_diff_mad > 0) {
-      spike_threshold <- y_diff_median + 5 * y_diff_mad
-      n_spikes <- sum(y_diff > spike_threshold)
-      spike_fraction <- n_spikes / (n - 1)
-      
-      if (spike_fraction > max_spike_fraction) {
-        flag_voxel[v] <- TRUE
-      }
-    }
-    
-    # Quality score based on temporal smoothness
-    quality_scores[v] <- 1 / (1 + mean(y_diff^2) / y_var)
+
+  non_finite <- !matrixStats::colAlls(is.finite(Y_data))
+  y_var <- matrixStats::colVars(Y_data)
+  low_variance <- is.na(y_var) | y_var < min_variance
+
+  keep_voxel[non_finite | low_variance] <- FALSE
+  flag_voxel[non_finite] <- TRUE
+
+  Y_diff <- abs(diff(Y_data))
+  y_diff_median <- matrixStats::colMedians(Y_diff)
+  y_diff_mad <- matrixStats::colMads(Y_diff, center = y_diff_median, constant = 1.4826)
+
+  valid_mad <- y_diff_mad > 0
+  if (any(valid_mad)) {
+    spike_threshold <- y_diff_median + 5 * y_diff_mad
+    spike_mask <- Y_diff[, valid_mad, drop = FALSE] >
+      matrix(spike_threshold[valid_mad], nrow = n - 1, ncol = sum(valid_mad), byrow = TRUE)
+    spike_fraction <- colMeans(spike_mask)
+    flag_voxel[valid_mad][spike_fraction > max_spike_fraction] <- TRUE
   }
-  
+
+  q_mask <- !(non_finite | low_variance)
+  if (any(q_mask)) {
+    quality_scores[q_mask] <- 1 /
+      (1 + colMeans(Y_diff[, q_mask, drop = FALSE]^2) / y_var[q_mask])
+  }
+  quality_scores[!q_mask] <- 0
+
   n_excluded <- sum(!keep_voxel)
   n_flagged <- sum(flag_voxel)
-  
+
   if (n_excluded > 0) {
     warning(sprintf("Excluded %d low-quality voxels", n_excluded))
   }
   if (n_flagged > 0) {
     warning(sprintf("Flagged %d voxels with potential artifacts", n_flagged))
   }
-  
+
   return(list(
     keep = keep_voxel,
     flag = flag_voxel,

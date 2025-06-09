@@ -307,3 +307,27 @@ test_that("estimate_final_condition_betas_core recovers known signal patterns", 
   cor_clean <- cor(as.vector(true_betas), as.vector(Beta_estimated))
   expect_gt(cor_clean, 0.9)
 })
+
+test_that("estimate_final_condition_betas_core parallel matches serial", {
+  set.seed(111)
+  n <- 40
+  p <- 10
+  k <- 2
+  V <- 8
+
+  Y <- matrix(rnorm(n * V), n, V)
+  X_list <- lapply(seq_len(k), function(i) matrix(rnorm(n * p), n, p))
+  H <- matrix(rnorm(p * V), p, V)
+
+  beta_seq <- estimate_final_condition_betas_core(
+    Y, X_list, H,
+    n_jobs = 1
+  )
+
+  beta_par <- estimate_final_condition_betas_core(
+    Y, X_list, H,
+    n_jobs = 2
+  )
+
+  expect_equal(beta_seq, beta_par)
+})
