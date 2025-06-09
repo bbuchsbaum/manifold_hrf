@@ -32,6 +32,7 @@ Imports:
     RcppArmadillo,
     hrfals,
     rsvd,
+    matrixStats,
     fmrireg
 Suggests:
     testthat (>= 3.0.0),
