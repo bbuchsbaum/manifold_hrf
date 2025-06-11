@@ -126,6 +126,14 @@ mhrf_lss <- function(formula,
     drop_empty = TRUE
   )
 
+  
+  # Extract design matrices for conditions and trials
+  term <- stats::terms(event_mod)[[1]]
+  raw_hrf <- term$hrf
+  design_info <- extract_design_info(event_mod, sframe, raw_hrf)
+  validate_design_matrix_list(design_info$X_condition_list, n_time)
+  
+
   # Step 2: Create HRF manifold
   if (verbose) message("Constructing HRF manifold...")
 
@@ -382,6 +390,29 @@ extract_design_info <- function(event_model, sframe, raw_hrf = NULL) {
     }
   }
   
+
+#' @param event_model fmrireg event model object
+#' @param sframe Sampling frame describing acquisition timing
+#' @param raw_hrf HRF object used for raw design matrices
+#' @keywords internal
+extract_design_info <- function(event_model, sframe, raw_hrf) {
+
+  term <- stats::terms(event_model)[[1]]
+
+  X_condition_list <- fmrireg::condition_basis_list(
+    term,
+    hrf = raw_hrf,
+    sampling_frame = sframe
+  )
+
+  event_tab <- fmrireg::event_table(event_model)
+
+  X_trial_list <- create_trial_matrices_from_events(
+    event_tab,
+    raw_hrf,
+    sframe
+  )
+
   return(list(
     X_condition_list = X_condition_list,
     X_trial_list = X_trial_list,

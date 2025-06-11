@@ -490,6 +490,10 @@ process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
     manifold_objects$parameters$TR_precision
   )
 
+
+  term <- stats::terms(ev_model)[[1]]
+  raw_hrf <- term$hrf
+
   design_info <- extract_design_info(ev_model, sframe, raw_hrf)
 
   result <- run_mhrf_lss_standard(
