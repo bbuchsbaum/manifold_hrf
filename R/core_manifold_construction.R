@@ -264,17 +264,35 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
     row_sums[is.na(row_sums)] <- 1
   }
   
-  # Step 5: Create Markov matrix S = D^(-1) * W
-  # D is the degree matrix (diagonal matrix of row sums)
+  # Step 5: Ensure positive definiteness and create normalized matrix
+  # Add small regularization to diagonal to ensure positive definiteness
+  # Handle sparse matrices carefully to avoid long vector issues
+  if (inherits(W, "Matrix")) {
+    # For sparse matrices, use a fixed small regularization
+    eps_reg <- 1e-6
+    W <- W + Matrix::Diagonal(N, x = eps_reg)
+  } else {
+    # For dense matrices, scale by mean diagonal
+    eps_reg <- 1e-6 * mean(diag(W))
+    diag(W) <- diag(W) + eps_reg
+  }
   
-  # Compute Markov matrix S
+  # Recompute row sums after regularization
+  if (inherits(W, "Matrix")) {
+    row_sums <- Matrix::rowSums(W)
+  } else {
+    row_sums <- rowSums(W)
+  }
+  
+  # Create symmetric normalized Laplacian S = D^(-1/2) * W * D^(-1/2)
+  # This ensures symmetric matrix with real eigenvalues for diffusion maps
   if (inherits(W, "Matrix")) {
     # If W is sparse, keep S sparse
-    D_inv <- Matrix::Diagonal(x = 1 / row_sums)
+    D_inv_sqrt <- Matrix::Diagonal(x = 1 / sqrt(row_sums))
   } else {
-    D_inv <- diag(1 / row_sums)
+    D_inv_sqrt <- diag(1 / sqrt(row_sums))
   }
-  S_markov_matrix <- D_inv %*% W
+  S_markov_matrix <- D_inv_sqrt %*% W %*% D_inv_sqrt
 
   return(S_markov_matrix)
 }

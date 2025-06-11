@@ -178,13 +178,18 @@ construct_hrf_manifold_nim <- function(hrf_library_source,
     ))
   }
   
-  if (use_sparse) {
+  # Disable sparsification for small libraries to avoid negative eigenvalues
+  # Sparsification breaks positive definiteness and causes numerical issues
+  if (use_sparse && N > 200) {
     message(sprintf("Using sparse matrices for large library (N = %d)", N))
     use_sparse_params <- list(
       sparse_if_N_gt = sparse_threshold,
       k_nn_for_W_sparse = min(k_local_nn_for_sigma_adj * 3, N - 1)
     )
   } else {
+    if (use_sparse && N <= 200) {
+      message(sprintf("Disabling sparsification for small library (N = %d) to ensure numerical stability", N))
+    }
     use_sparse_params <- list(
       sparse_if_N_gt = Inf,
       k_nn_for_W_sparse = NULL

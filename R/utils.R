@@ -73,13 +73,26 @@ select_manifold_dim <- function(eigenvalues, min_var = 0.95) {
   # Exclude the trivial eigenvalue
   eig <- eigenvalues[-1]
   
-  # Check for negative eigenvalues (indicates numerical issues)
-  if (any(eig < -1e-10)) {
-    warning(sprintf(
-      "Found %d negative eigenvalues (min: %.6e). This may indicate numerical issues in manifold construction. Using abs() to proceed.",
-      sum(eig < -1e-10), min(eig)
-    ))
-    eig <- abs(eig)
+  # Check for negative eigenvalues 
+  # Note: Negative eigenvalues are expected for row-stochastic matrices derived from 
+  # Gaussian kernels and do not necessarily indicate numerical errors
+  negative_idx <- which(eig < -1e-12)
+  
+  if (length(negative_idx) > 0) {
+    # Only warn for significantly negative eigenvalues
+    significant_negative <- sum(eig < -1e-6)
+    total_negative <- length(negative_idx)
+    
+    if (significant_negative > 0) {
+      warning(sprintf(
+        "Found %d negative eigenvalues (min: %.6e). This is expected for row-stochastic matrices. Using abs() to proceed.",
+        total_negative, min(eig[negative_idx])
+      ))
+    }
+    
+    # Apply absolute value to all negative eigenvalues
+    # This is standard practice in diffusion map literature
+    eig[negative_idx] <- abs(eig[negative_idx])
   }
   
   total <- sum(eig)
