@@ -393,8 +393,8 @@ test_that("M-HRF-LSS performs trial-wise estimation correctly", {
     Xi_smoothed_matrix = voxelfit_result$Xi_ident_matrix
   )
   
-  # Run trial-wise LSS
-  lss_result <- run_lss_for_voxel_corrected(
+  # Run trial-wise LSS using new interface
+  lss_result <- run_lss_for_voxel(
     y_voxel = Y_data[, 1],  # Test on first voxel
     X_trial_list = X_trial_list,
     h_voxel = hrf_shapes[, 1],
