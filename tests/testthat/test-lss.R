@@ -197,13 +197,13 @@ test_that("validate_design_matrix_list catches errors", {
   # Not a list
   expect_error(
     validate_design_matrix_list(matrix(1:50, 50, 1), n),
-    "X_list must be a list"
+    "Design matrices must be provided as a non-empty list"
   )
   
   # Empty list
   expect_error(
     validate_design_matrix_list(list(), n),
-    "X_list must contain at least one matrix"
+    "Design matrices must be provided as a non-empty list"
   )
   
   # Wrong dimensions
@@ -213,6 +213,6 @@ test_that("validate_design_matrix_list catches errors", {
   )
   expect_error(
     validate_design_matrix_list(X_wrong, n),
-    "must have 50 rows"
+    "Design matrix 1 has 40 rows but expected 50"
   )
 })

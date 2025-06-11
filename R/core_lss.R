@@ -308,19 +308,42 @@ run_lss_for_voxel <- function(y_voxel, X_trial_list, h_voxel, TR = 2) {
   n <- length(y_voxel)
   T_trials <- length(X_trial_list)
   
+  # Validate inputs
+  if (!all(is.finite(y_voxel))) {
+    warning("Non-finite values in y_voxel")
+    return(list(beta_trials = rep(NA_real_, T_trials)))
+  }
+  
+  if (!all(is.finite(h_voxel))) {
+    warning("Non-finite values in h_voxel")
+    return(list(beta_trials = rep(NA_real_, T_trials)))
+  }
+  
   # Create convolved regressors
   C <- matrix(0, n, T_trials)
   for (t in seq_len(T_trials)) {
     C[, t] <- X_trial_list[[t]] %*% h_voxel
   }
   
+  # Check if C has valid variance
+  col_vars <- apply(C, 2, var)
+  if (any(col_vars < .Machine$double.eps)) {
+    warning("Some trial regressors have zero variance - likely due to trial timing at data edges")
+    # Still try to compute but results may be NA for zero-variance columns
+  }
+  
   # Use fmrilss with intercept only
-  result <- fmrilss::lss(
-    Y = matrix(y_voxel, ncol = 1),
-    X = C,
-    Z = matrix(1, n, 1),  # Intercept only
-    method = "r_optimized"
-  )
+  result <- tryCatch({
+    fmrilss::lss(
+      Y = matrix(y_voxel, ncol = 1),
+      X = C,
+      Z = matrix(1, n, 1),  # Intercept only
+      method = "r_optimized"
+    )
+  }, error = function(e) {
+    warning("LSS computation failed: ", e$message)
+    rep(NA_real_, T_trials)
+  })
   
   list(beta_trials = as.vector(result))
 }

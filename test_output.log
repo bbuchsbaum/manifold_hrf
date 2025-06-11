@@ -22,41 +22,36 @@ Type 'q()' to quit R.
 Registered S3 method overwritten by 'future':
   method               from      
   all.equal.connection parallelly
+Registered S3 method overwritten by 'fmrireg':
+  method                from   
+  as.character.AFNI_HRF fmrihrf
 ✔ | F W  S  OK | Context
 
+⠏ |          0 | adjust_hrf_utils                                               
+✔ |         10 | adjust_hrf_utils
+
 ⠏ |          0 | alternating-optimization                                       
-✔ |         41 | alternating-optimization
+✔ |         42 | alternating-optimization
+
+⠏ |          0 | compute-local-snr                                              
+⠏ |          0 | compute_local_snr                                              
+✔ |          2 | compute_local_snr
 
 ⠏ |          0 | core-algorithm-diagnostics                                     
-⠸ |          4 | core-algorithm-diagnostics                                     
-⠏ |         10 | core-algorithm-diagnostics                                     
-⠙ |         12 | core-algorithm-diagnostics                                     
-⠸ |         14 | core-algorithm-diagnostics                                     
-✔ |         59 | core-algorithm-diagnostics [2.2s]
+⠼ |   1      4 | core-algorithm-diagnostics                                     
+✔ |   1      9 | core-algorithm-diagnostics
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-core-algorithm-diagnostics.R:63:3'): M-HRF-LSS preserves signal reconstruction fidelity and manifold geometry
+Found 4 negative eigenvalues (min: -2.216355e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at test-core-algorithm-diagnostics.R:63:3
+ 2.   └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | core-voxelfit-engine                                           
 ⠏ |          0 | core voxel fit engine                                          
-✔ |   1     13 | core voxel fit engine
-────────────────────────────────────────────────────────────────────────────────
-Warning ('test-core-voxelfit-engine.R:52:3'): prepare_lss_fixed_components_core returns matrices of correct size
-data length [18] is not a sub-multiple or multiple of the number of rows [10]
-Backtrace:
-    ▆
- 1. ├─base::cbind(1, matrix(rnorm(18), nrow = 10, ncol = 2)) at test-core-voxelfit-engine.R:52:3
- 2. └─base::matrix(rnorm(18), nrow = 10, ncol = 2)
-────────────────────────────────────────────────────────────────────────────────
-
-⠏ |          0 | debug-woodbury                                                 Woodbury beta: 0.5432732 
-Naive beta: 1.128166 
-True beta: 1 
-Difference: 0.5848926 
-
-Debug info:
-P_lss dimensions: 2 100 
-C_v dimensions: 100 5 
-U_v dimensions: 2 5 
-V_reg dimensions: 100 5 
-p_lss vector length: 100 
+✔ |         13 | core voxel fit engine
 
 ⠏ |          0 | design-truncation                                              
 ⠏ |          0 | Design matrix truncation                                       
@@ -71,6 +66,17 @@ Backtrace:
 
 ⠏ |          0 | determine-n-jobs                                               
 ✔ |          3 | determine-n-jobs
+
+⠏ |          0 | edge-weight-benchmark                                          
+⠙ |   1      1 | edge-weight-benchmark                                          
+✔ |   1      3 | edge-weight-benchmark
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-edge-weight-benchmark.R:41:3'): optimized compute_edge_weights produces consistent results
+less accurate nanosecond times to avoid potential integer overflows
+Backtrace:
+    ▆
+ 1. └─microbenchmark::microbenchmark(...) at test-edge-weight-benchmark.R:41:3
+────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | fallback-cascade                                               
 ⠏ |          0 | fallback cascade                                               
@@ -89,8 +95,8 @@ Backtrace:
 
 ⠏ |          0 | fmrireg-benchmarks                                             
 ⠋ |          1 | fmrireg-benchmarks                                             
-⠴ |   2  1   3 | fmrireg-benchmarks                                             
-✔ |   7  1  10 | fmrireg-benchmarks
+⠴ |   1  1   4 | fmrireg-benchmarks                                             
+✖ | 1 7  2   6 | fmrireg-benchmarks
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-fmrireg-benchmarks.R:282:3'): M-HRF-LSS handles variable HRFs across voxels
 the standard deviation is zero
@@ -98,41 +104,50 @@ Backtrace:
     ▆
  1. └─stats::cor(hrf_shapes) at test-fmrireg-benchmarks.R:282:3
 
-Warning ('test-fmrireg-benchmarks.R:397:3'): M-HRF-LSS performs trial-wise estimation correctly
-Trial regressors are rank deficient for this voxel: rank 0 < 20
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_lss_for_voxel_corrected(...) at test-fmrireg-benchmarks.R:397:3
+Failure ('test-fmrireg-benchmarks.R:412:3'): M-HRF-LSS performs trial-wise estimation correctly
+`n_finite` is not strictly more than 0. Difference: 0
 
-Warning ('test-fmrireg-benchmarks.R:496:3'): M-HRF-LSS handles complex realistic scenario
+Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
 HRF library has quality issues:
 Backtrace:
     ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:496:3
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
 
-Warning ('test-fmrireg-benchmarks.R:496:3'): M-HRF-LSS handles complex realistic scenario
+Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:496:3
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
 
-Warning ('test-fmrireg-benchmarks.R:496:3'): M-HRF-LSS handles complex realistic scenario
+Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
   - Library is ill-conditioned (condition number: 5.05e+16)
 Backtrace:
     ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:496:3
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
 
-Warning ('test-fmrireg-benchmarks.R:496:3'): M-HRF-LSS handles complex realistic scenario
+Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
   - Low diversity in HRF shapes
 Backtrace:
     ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:496:3
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
 
-Warning ('test-fmrireg-benchmarks.R:496:3'): M-HRF-LSS handles complex realistic scenario
+Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+ 3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 6.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 7.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+
+Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
 Target dimension 4 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:496:3
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
  2.   ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
@@ -146,24 +161,7 @@ Backtrace:
 
 ⠏ |          0 | identifiability-fallback                                       
 ⠏ |          0 | identifiability fallback                                       
-✖ | 4        0 | identifiability fallback
-────────────────────────────────────────────────────────────────────────────────
-Failure ('test-identifiability-fallback.R:30:3'): canonical correlation falls back to RMS rule
-res$Xi_ident_matrix[1, 1] > 0 not equal to TRUE.
-1 element mismatch
-
-Failure ('test-identifiability-fallback.R:31:3'): canonical correlation falls back to RMS rule
-res$Beta_ident_matrix[1, 1] < 0 not equal to TRUE.
-1 element mismatch
-
-Failure ('test-identifiability-fallback.R:47:3'): RMS fallback preserves positive sign
-res2$Xi_ident_matrix[1, 1] > 0 not equal to TRUE.
-1 element mismatch
-
-Failure ('test-identifiability-fallback.R:48:3'): RMS fallback preserves positive sign
-res2$Beta_ident_matrix[1, 1] > 0 not equal to TRUE.
-1 element mismatch
-────────────────────────────────────────────────────────────────────────────────
+✔ |          4 | identifiability fallback
 
 ⠏ |          0 | input-validation-core                                          
 ⠏ |          0 | input validation core                                          
@@ -173,157 +171,148 @@ res2$Beta_ident_matrix[1, 1] > 0 not equal to TRUE.
 === LSS Implementation Comparison ===
 True betas:      1 -0.5 2 0 1.5 -1 0.8 0.3 
 Direct LSS:      0.903 -0.469 1.9 0.875 1.462 -1.71 0.663 0 
-Corrected:       0.991 -0.958 1.726 0.56 1.448 -1.997 0.869 0 
-Current Wood:    0.777 -0.826 1.436 0.476 1.254 -1.717 0.75 0 
+fmrilss:         1.107 -0.793 1.793 0.722 1.598 -1.81 0.935 NaN 
 
 === Differences from Direct ===
-Corrected diff:  0.087238 -0.488495 -0.173263 -0.314975 -0.014198 -0.286566 0.206483 1e-06 
-Current diff:    -0.126688 -0.357235 -0.463824 -0.399184 -0.208858 -0.006519 0.087647 0 
+fmrilss diff:    0.203588 -0.324309 -0.106797 -0.153517 0.135818 -0.099671 0.27179 NaN 
 
 === Mean Squared Errors ===
 Direct MSE:      0.1752 
-Corrected MSE:   0.2113 
-Current MSE:     0.1711 
+fmrilss MSE:     NaN 
 
 === Simultaneous Estimation ===
 Simultaneous:    0.903 -0.469 1.9 0.875 1.462 -1.71 0.663 0 
 Diff from true:  -0.097 0.031 -0.1 0.875 -0.038 -0.71 -0.137 -0.3 
 
-=== True LSS vs Woodbury ===
-True betas:   2 -1 0 1.5 0.5 
-True LSS:     1.839 -1.031 0.044 1.95 0.603 
-Woodbury:     1.619 -1.265 -0.205 1.688 0.326 
-Difference:   -0.2197 -0.234 -0.2483 -0.2626 -0.2769 
-
-✖ | 1 1  1   0 | lss-correction-validation
-────────────────────────────────────────────────────────────────────────────────
-Warning ('test-lss-correction-validation.R:70:3'): Corrected LSS implementation matches ground truth
-Trial regressors are rank deficient for this voxel: rank 7 < 8
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_lss_for_voxel_corrected_full(...) at test-lss-correction-validation.R:70:3
-
-Failure ('test-lss-correction-validation.R:126:3'): Corrected LSS implementation matches ground truth
-Corrected implementation should match simultaneous estimation is not strictly less than 1e-04. Difference: 0.488
-────────────────────────────────────────────────────────────────────────────────
-
-⠏ |          0 | lss-formula-verification                                       
-P_lss error:  2.775558e-17 
-V matrix difference:  4.440892e-16 
-
-Betas comparison:
-Reference:   0.0643 -1.199 -1.2024 -0.2411 -2.2547 0.5362 
-Current:     0.0643 -1.199 -1.2024 -0.2411 -2.2547 0.5362 
-Difference:  0 0 0 0 0 0 
-
-=== Simple Non-overlapping Trials ===
-True betas:  2 -1 1.5 
-LSS betas:   0.997 -1.508 3.751 
-Error:       -1.003 -0.508 2.251 
-
-=== p_lss_vector computation ===
-Current implementation norm:  0.1828823 
-Manual method 1 norm:         0.1828823 
-Manual method 2 norm:         0.1828823 
-
-Difference (current vs P_lss[1,]):  0 
-
-✔ |   6      4 | lss-formula-verification
-────────────────────────────────────────────────────────────────────────────────
-Warning ('test-lss-formula-verification.R:88:5'): Current LSS formula matches reference implementation
-Trial regressors are rank deficient for this voxel: rank 1 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_lss_for_voxel_corrected_full(...) at test-lss-formula-verification.R:88:5
-
-Warning ('test-lss-formula-verification.R:88:5'): Current LSS formula matches reference implementation
-Trial regressors are rank deficient for this voxel: rank 1 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_lss_for_voxel_corrected_full(...) at test-lss-formula-verification.R:88:5
-
-Warning ('test-lss-formula-verification.R:88:5'): Current LSS formula matches reference implementation
-Trial regressors are rank deficient for this voxel: rank 1 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_lss_for_voxel_corrected_full(...) at test-lss-formula-verification.R:88:5
-
-Warning ('test-lss-formula-verification.R:88:5'): Current LSS formula matches reference implementation
-Trial regressors are rank deficient for this voxel: rank 1 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_lss_for_voxel_corrected_full(...) at test-lss-formula-verification.R:88:5
-
-Warning ('test-lss-formula-verification.R:88:5'): Current LSS formula matches reference implementation
-Trial regressors are rank deficient for this voxel: rank 1 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_lss_for_voxel_corrected_full(...) at test-lss-formula-verification.R:88:5
-
-Warning ('test-lss-formula-verification.R:88:5'): Current LSS formula matches reference implementation
-Trial regressors are rank deficient for this voxel: rank 1 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_lss_for_voxel_corrected_full(...) at test-lss-formula-verification.R:88:5
-────────────────────────────────────────────────────────────────────────────────
+✔ |          1 | lss-correction-validation
 
 ⠏ |          0 | lss-loop-core                                                  
-✖ | 1        1 | lss-loop-core
-────────────────────────────────────────────────────────────────────────────────
-Error ('test-lss-loop-core.R:110:5'): run_lss_voxel_loop_core works without precomputation
-Error in `run_lss_woodbury_corrected(Y_proj_voxel_vector = Y_proj[, v], 
-    X_trial_onset_list_of_matrices = X_trials, H_shape_voxel_vector = H_shapes[, 
-        v], A_lss_fixed_matrix = A_fixed, P_lss_matrix = lss_prep$P_lss_matrix, 
-    p_lss_vector = lss_prep$p_lss_vector)`: unused arguments (A_lss_fixed_matrix = A_fixed, P_lss_matrix = lss_prep$P_lss_matrix, p_lss_vector = lss_prep$p_lss_vector)
-────────────────────────────────────────────────────────────────────────────────
+✔ |          2 | lss-loop-core
 
-⠏ |          0 | lss-separate                                                   
-✖ | 2        0 | lss-separate
+⠏ |          0 | lss-lsa-equivalence                                            
+✔ |   1  1   2 | lss-lsa-equivalence
 ────────────────────────────────────────────────────────────────────────────────
-Failure ('test-lss-separate.R:57:3'): run_lss_woodbury_corrected matches LS-S
-`beta_wood` not equal to `beta_manual`.
-4/4 mismatches (average diff: 0.249)
-[1]  1.311 -  1.825 == -0.515
-[2] -0.880 - -0.718 == -0.162
-[3]  0.167 -  0.337 == -0.171
-[4]  0.481 -  0.628 == -0.147
-
-Failure ('test-lss-separate.R:99:3'): run_lss_for_voxel_corrected_full matches LS-S
-`beta_full` not equal to `beta_manual`.
-3/3 mismatches (average diff: 0.0431)
-[1] -0.0416 -  0.0224 == -0.06402
-[2]  0.5802 -  0.5869 == -0.00678
-[3] -0.1965 - -0.1379 == -0.05865
-────────────────────────────────────────────────────────────────────────────────
-
-⠏ |          0 | lss                                                            
-⠸ |   1     33 | lss                                                            
-⠦ |   1     36 | lss                                                            
-⠙ |   1     41 | lss                                                            
-✔ |   1     48 | lss [1.3s]
-────────────────────────────────────────────────────────────────────────────────
-Warning ('test-lss.R:233:3'): run_lss_for_voxel_corrected_full works correctly
-Trial regressors are rank deficient for this voxel: rank 28 < 30
+Warning ('test-lss-lsa-equivalence.R:74:3'): LS-A and LS-S are equivalent for T=2 with confounds
+No intercept detected in dmat_base. Consider adding one for proper baseline modeling.
 Backtrace:
     ▆
- 1. └─manifoldhrf::run_lss_for_voxel_corrected_full(...) at test-lss.R:233:3
+ 1. └─fmrilss::lss(...) at test-lss-lsa-equivalence.R:74:3
+ 2.   └─fmrilss:::.lss_r_optimized(Y_clean, X_clean, Z)
+ 3.     └─fmrilss::lss_optimized(Y, bdes)
+ 4.       └─fmrilss:::.lss_engine_optimized(...)
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | lss-safety-net                                                 
+✔ |          2 | lss-safety-net
+
+⠏ |          0 | lss                                                            
+✖ | 3       19 | lss
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-lss.R:198:3'): validate_design_matrix_list catches errors
+`validate_design_matrix_list(matrix(1:50, 50, 1), n)` threw an error with unexpected message.
+Expected match: "X_list must be a list"
+Actual message: "Design matrices must be provided as a non-empty list"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-lss.R:198:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf:::validate_design_matrix_list(...)
+
+Failure ('test-lss.R:204:3'): validate_design_matrix_list catches errors
+`validate_design_matrix_list(list(), n)` threw an error with unexpected message.
+Expected match: "X_list must contain at least one matrix"
+Actual message: "Design matrices must be provided as a non-empty list"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-lss.R:204:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf:::validate_design_matrix_list(list(), n)
+
+Failure ('test-lss.R:214:3'): validate_design_matrix_list catches errors
+`validate_design_matrix_list(X_wrong, n)` threw an error with unexpected message.
+Expected match: "must have 50 rows"
+Actual message: "Design matrix 1 has 40 rows but expected 50"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-lss.R:214:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf:::validate_design_matrix_list(X_wrong, n)
 ────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | manifold-construction                                          
-⠸ |      1  33 | manifold-construction                                          
-✔ |      1  33 | manifold-construction
+⠏ |   6  1  33 | manifold-construction                                          
+✔ |   6  1  33 | manifold-construction
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-manifold-construction.R:43:3'): calculate_manifold_affinity_core handles sparse matrix parameters
+Manual sparsification of dense matrix is inefficient for N = 100 . Consider using distance_engine = 'ann_euclidean' instead.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::calculate_manifold_affinity_core(...) at test-manifold-construction.R:43:3
+
+Warning ('test-manifold-construction.R:78:3'): k_nn_for_W_sparse larger than N is truncated
+Manual sparsification of dense matrix is inefficient for N = 10 . Consider using distance_engine = 'ann_euclidean' instead.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::calculate_manifold_affinity_core(...) at test-manifold-construction.R:78:3
+
+Warning ('test-manifold-construction.R:147:3'): get_manifold_basis_reconstructor_core works with basic inputs
+Found 9 negative eigenvalues (min: -8.697041e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at test-manifold-construction.R:147:3
+ 2.   └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+
+Warning ('test-manifold-construction.R:183:3'): get_manifold_basis_reconstructor_core handles variance threshold
+Found 11 negative eigenvalues (min: -3.953779e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at test-manifold-construction.R:183:3
+ 2.   └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+
+Warning ('test-manifold-construction.R:190:3'): get_manifold_basis_reconstructor_core handles variance threshold
+Found 11 negative eigenvalues (min: -3.953779e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at test-manifold-construction.R:190:3
+ 2.   └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+
+Warning ('test-manifold-construction.R:237:3'): get_manifold_basis_reconstructor_core reconstruction works
+Found 13 negative eigenvalues (min: -6.392901e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at test-manifold-construction.R:237:3
+ 2.   └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | mhrf-lss-interface                                             
-⠙ |      2  30 | mhrf-lss-interface                                             
+⠸ |      2  32 | mhrf-lss-interface                                             
 ✔ |      2  41 | mhrf-lss-interface
 
 ⠏ |          0 | mhrf-lss-parameters                                            
 ✔ |          4 | mhrf-lss-parameters
 
 ⠏ |          0 | neuroimaging-wrappers                                          
-⠼ |   2     23 | neuroimaging-wrappers                                          
-✔ |   6  1  44 | neuroimaging-wrappers [5.6s]
+⠧ |   6     22 | neuroimaging-wrappers                                          
+⠇ |   6     23 | neuroimaging-wrappers                                          
+✔ |   12  1  44 | neuroimaging-wrappers [4.0s]
 ────────────────────────────────────────────────────────────────────────────────
+Warning ('test-neuroimaging-wrappers.R:38:3'): construct_hrf_manifold_nim works with half-cosine library
+Found 9 negative eigenvalues (min: -5.263158e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:38:3
+ 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
+ 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+
 Warning ('test-neuroimaging-wrappers.R:38:3'): construct_hrf_manifold_nim works with half-cosine library
 Target dimension 4 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
@@ -331,12 +320,48 @@ Backtrace:
  1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:38:3
  2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
 
+Warning ('test-neuroimaging-wrappers.R:51:3'): construct_hrf_manifold_nim works with gamma grid library
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:51:3
+ 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
+ 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+
+Warning ('test-neuroimaging-wrappers.R:75:3'): construct_hrf_manifold_nim handles custom matrix input
+Found 7 negative eigenvalues (min: -2.354368e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:75:3
+ 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
+ 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+
 Warning ('test-neuroimaging-wrappers.R:75:3'): construct_hrf_manifold_nim handles custom matrix input
 Target dimension 4 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
  1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:75:3
  2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
+
+Warning ('test-neuroimaging-wrappers.R:118:3'): construct_hrf_manifold_nim handles sparse matrices for large libraries
+Manual sparsification of dense matrix is inefficient for N = 6000 . Consider using distance_engine = 'ann_euclidean' instead.
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_message(...) at test-neuroimaging-wrappers.R:118:3
+ 2. │ └─testthat:::quasi_capture(enquo(object), label, capture_messages)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf::construct_hrf_manifold_nim(...)
+ 7.   └─manifoldhrf::calculate_manifold_affinity_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:196:3
+
+Warning ('test-neuroimaging-wrappers.R:152:3'): print and summary methods work for mhrf_manifold
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:152:3
+ 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
+ 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-neuroimaging-wrappers.R:152:3'): print and summary methods work for mhrf_manifold
 Target dimension 4 is much lower than auto-selected 9 (for 95.0% variance)
@@ -358,6 +383,14 @@ Backtrace:
  1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:219:3
 
 Warning ('test-neuroimaging-wrappers.R:241:3'): subject-level wrapper runs on minimal data
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:241:3
+ 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
+ 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+
+Warning ('test-neuroimaging-wrappers.R:241:3'): subject-level wrapper runs on minimal data
 Target dimension 2 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
@@ -369,8 +402,8 @@ Backtrace:
 ⠏ |          0 | Output directory handling                                      Validating data compatibility with preset...
 ✓ Data appears compatible with preset
 
-⠦ |   6      1 | Output directory handling                                      
-✔ |   10      4 | Output directory handling
+⠧ |   6      2 | Output directory handling                                      
+✔ |   6      4 | Output directory handling
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
 HRF library has quality issues. Consider using a different library.
@@ -428,44 +461,22 @@ Backtrace:
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
-Trial regressors are rank deficient for this voxel: rank 0 < 2
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 ────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | parallel-utils                                                 
@@ -480,14 +491,17 @@ Backtrace:
 ⠋ |          1 | qc-report                                                      [WARNING] Div at mhrf_qc_report.knit.md line 26 column 1 unclosed at mhrf_qc_report.knit.md line 196 column 1, closing implicitly.
 
 ⠦ |         27 | qc-report                                                      
-✔ |         36 | qc-report [2.7s]
+✔ |         36 | qc-report [2.5s]
+
+⠏ |          0 | robust-spatial-outlier-regression                              
+✔ |          6 | robust-spatial-outlier-regression
 
 ⠏ |          0 | select-manifold-dim                                            
 ✔ |          5 | select-manifold-dim
 
 ⠏ |          0 | simulate-dataset                                               
 ⠏ |          0 | simulate_mhrf_dataset                                          
-✔ |          5 | simulate_mhrf_dataset
+✔ |          7 | simulate_mhrf_dataset
 
 ⠏ |          0 | smart-initialize                                               
 ✔ |          9 | smart-initialize
@@ -538,12 +552,12 @@ Backtrace:
 
 ⠏ |          0 | soundness-improvements                                         Validating data compatibility with preset...
 ✓ Data appears compatible with preset
-[2025-06-03 16:33:37] INFO: M-HRF-LSS workflow initialized with 'balanced' preset
-[2025-06-03 16:33:37] INFO: Test message
+[2025-06-11 05:05:48] INFO: M-HRF-LSS workflow initialized with 'balanced' preset
+[2025-06-11 05:05:48] INFO: Test message
 
-⠙ |   2     70 | soundness-improvements                                         
-⠴ |   4     82 | soundness-improvements                                         
-✔ |   6    131 | soundness-improvements
+⠧ |   4     74 | soundness-improvements                                         
+⠦ |   5     82 | soundness-improvements                                         
+✔ |   7    131 | soundness-improvements
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-soundness-improvements.R:42:3'): HRF library quality check works correctly
 the standard deviation is zero
@@ -555,6 +569,18 @@ Backtrace:
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
  6.   └─stats::cor(L_library_matrix) at manifold_hrf/R/soundness_improvements.R:21:5
+
+Warning ('test-soundness-improvements.R:100:3'): Robust manifold construction with fallback works
+Found 4 negative eigenvalues (min: -1.283356e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-soundness-improvements.R:100:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+ 3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 6.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 7.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-soundness-improvements.R:100:3'): Robust manifold construction with fallback works
 Target dimension 3 is much lower than auto-selected 9 (for 95.0% variance)
@@ -603,21 +629,20 @@ Backtrace:
 ⠏ |          0 | unified-interface                                              Validating data compatibility with preset...
 ✓ Data appears compatible with preset
 
-⠸ |   4      0 | unified-interface                                              Validating data compatibility with preset...
+⠙ |   2      0 | unified-interface                                              Validating data compatibility with preset...
 ✓ Data appears compatible with preset
 
-⠧ |   27     11 | unified-interface                                             Validating data compatibility with preset...
-✓ Data appears compatible with preset
-
-⠋ |   57     14 | unified-interface                                             Validating data compatibility with preset...
+⠇ |   8     11 | unified-interface                                              Validating data compatibility with preset...
 ✓ Data appears compatible with preset
 Validating data compatibility with preset...
 ✓ Data appears compatible with preset
 
-⠼ |   85     20 | unified-interface                                             Validating data compatibility with preset...
+⠧ |   21     17 | unified-interface                                             Validating data compatibility with preset...
+✓ Data appears compatible with preset
+Validating data compatibility with preset...
 ✓ Data appears compatible with preset
 
-⠦ |   113     24 | unified-interface                                            
+⠸ |   31     23 | unified-interface                                             
 M-HRF-LSS Analysis
 ==================
 
@@ -637,23 +662,23 @@ Validating data compatibility with preset...
 Validating data compatibility with preset...
 ✓ Data appears compatible with preset
 
-⠋ |   120     41 | unified-interface                                            Validating data compatibility with preset...
+⠸ |   43     41 | unified-interface                                             Validating data compatibility with preset...
 ⚠️  Potential issues detected:
    - Design matrix 1 is rank deficient
    - Design matrix 2 is rank deficient
 
 Consider using 'robust' preset or addressing these issues.
-
-⠏ |   145     45 | unified-interface                                            Validating data compatibility with preset...
-✓ Data appears compatible with preset
-
-⠏ |   161     49 | unified-interface                                            Validating data compatibility with preset...
-✓ Data appears compatible with preset
 Validating data compatibility with preset...
 ✓ Data appears compatible with preset
 
-⠹ |   181     52 | unified-interface                                            
-✔ |   190     69 | unified-interface [1.0s]
+⠹ |   57     46 | unified-interface                                             Validating data compatibility with preset...
+✓ Data appears compatible with preset
+
+⠇ |   69     50 | unified-interface                                             Validating data compatibility with preset...
+✓ Data appears compatible with preset
+
+⠦ |   80     57 | unified-interface                                             
+✔ |   80     69 | unified-interface [1.4s]
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
 Some events are very close together (min gap: 0.68 s)
@@ -719,164 +744,22 @@ Backtrace:
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Trial regressors are rank deficient for this voxel: rank 0 < 10
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 HRF library has quality issues. Consider using a different library.
@@ -932,6 +815,24 @@ Backtrace:
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+
+Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 Target dimension 3 is much lower than auto-selected 9 (for 90.0% variance)
@@ -951,126 +852,6 @@ Backtrace:
  12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
@@ -1126,124 +907,22 @@ Backtrace:
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 HRF library has quality issues. Consider using a different library.
@@ -1251,6 +930,19 @@ Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
  2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+
+Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/mhrf_lss.R:731:5
+ 8.       └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 Target dimension 4 is much lower than auto-selected 9 (for 90.0% variance)
@@ -1264,126 +956,6 @@ Backtrace:
  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/mhrf_lss.R:731:5
 
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
 Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
 HRF library has quality issues. Consider using a different library.
 Backtrace:
@@ -1438,6 +1010,24 @@ Backtrace:
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+
+Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
 Target dimension 3 is much lower than auto-selected 9 (for 95.0% variance)
@@ -1456,86 +1046,6 @@ Backtrace:
  11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
  12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
 
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
 Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
 HRF library has quality issues. Consider using a different library.
 Backtrace:
@@ -1592,68 +1102,22 @@ Backtrace:
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
-Trial regressors are rank deficient for this voxel: rank 0 < 2
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:197:3'): mhrf_analyze handles edge cases
 HRF library has quality issues. Consider using a different library.
@@ -1711,12 +1175,22 @@ Backtrace:
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-unified-interface.R:197:3'): mhrf_analyze handles edge cases
-Trial regressors are rank deficient for this voxel: rank 0 < 2
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:197:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:197:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:215:3'): mhrf_analyze handles edge cases
 HRF library has quality issues. Consider using a different library.
@@ -1774,20 +1248,22 @@ Backtrace:
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-unified-interface.R:215:3'): mhrf_analyze handles edge cases
-Trial regressors are rank deficient for this voxel: rank 0 < 3
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:215:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:215:3'): mhrf_analyze handles edge cases
-Trial regressors are rank deficient for this voxel: rank 0 < 3
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:215:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:215:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
 Design matrix is rank deficient: rank 15 < 25 columns
@@ -1861,100 +1337,22 @@ Backtrace:
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Trial regressors are rank deficient for this voxel: rank 0 < 6
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
 HRF library has quality issues. Consider using a different library.
@@ -2012,84 +1410,22 @@ Backtrace:
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Trial regressors are rank deficient for this voxel: rank 0 < 2
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
 HRF library has quality issues. Consider using a different library.
@@ -2192,7 +1528,7 @@ Backtrace:
  16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
-Trial regressors are rank deficient for this voxel: rank 0 < 2
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
      ▆
   1. ├─testthat::expect_output(...) at test-unified-interface.R:296:3
@@ -2205,76 +1541,18 @@ Backtrace:
   8. │   │     └─base::withVisible(code)
   9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 12.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-     ▆
-  1. ├─testthat::expect_output(...) at test-unified-interface.R:296:3
-  2. │ └─testthat:::quasi_capture(...)
-  3. │   ├─testthat (local) .capture(...)
-  4. │   │ └─testthat::capture_output_lines(code, print, width = width)
-  5. │   │   └─testthat:::eval_with_output(code, print = print, width = width)
-  6. │   │     ├─withr::with_output_sink(path, withVisible(code))
-  7. │   │     │ └─base::force(code)
-  8. │   │     └─base::withVisible(code)
-  9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 12.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-     ▆
-  1. ├─testthat::expect_output(...) at test-unified-interface.R:296:3
-  2. │ └─testthat:::quasi_capture(...)
-  3. │   ├─testthat (local) .capture(...)
-  4. │   │ └─testthat::capture_output_lines(code, print, width = width)
-  5. │   │   └─testthat:::eval_with_output(code, print = print, width = width)
-  6. │   │     ├─withr::with_output_sink(path, withVisible(code))
-  7. │   │     │ └─base::force(code)
-  8. │   │     └─base::withVisible(code)
-  9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 12.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-     ▆
-  1. ├─testthat::expect_output(...) at test-unified-interface.R:296:3
-  2. │ └─testthat:::quasi_capture(...)
-  3. │   ├─testthat (local) .capture(...)
-  4. │   │ └─testthat::capture_output_lines(code, print, width = width)
-  5. │   │   └─testthat:::eval_with_output(code, print = print, width = width)
-  6. │   │     ├─withr::with_output_sink(path, withVisible(code))
-  7. │   │     │ └─base::force(code)
-  8. │   │     └─base::withVisible(code)
-  9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 12.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-     ▆
-  1. ├─testthat::expect_output(...) at test-unified-interface.R:296:3
-  2. │ └─testthat:::quasi_capture(...)
-  3. │   ├─testthat (local) .capture(...)
-  4. │   │ └─testthat::capture_output_lines(code, print, width = width)
-  5. │   │   └─testthat:::eval_with_output(code, print = print, width = width)
-  6. │   │     ├─withr::with_output_sink(path, withVisible(code))
-  7. │   │     │ └─base::force(code)
-  8. │   │     └─base::withVisible(code)
-  9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 12.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+ 11.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 12.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+ 16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 17.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+ 18.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 19.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 20.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 21.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 22.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
 HRF library has quality issues. Consider using a different library.
@@ -2387,7 +1665,7 @@ Backtrace:
  18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
-Trial regressors are rank deficient for this voxel: rank 0 < 2
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
      ▆
   1. ├─testthat::expect_no_error(...) at test-unified-interface.R:302:3
@@ -2402,84 +1680,18 @@ Backtrace:
  10. │     │   └─base::withCallingHandlers(...)
  11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 14.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-     ▆
-  1. ├─testthat::expect_no_error(...) at test-unified-interface.R:302:3
-  2. │ └─testthat:::expect_no_(...)
-  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
-  4. │     ├─testthat (local) .capture(...)
-  5. │     │ └─rlang::try_fetch(...)
-  6. │     │   ├─base::tryCatch(...)
-  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 10. │     │   └─base::withCallingHandlers(...)
- 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 14.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-     ▆
-  1. ├─testthat::expect_no_error(...) at test-unified-interface.R:302:3
-  2. │ └─testthat:::expect_no_(...)
-  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
-  4. │     ├─testthat (local) .capture(...)
-  5. │     │ └─rlang::try_fetch(...)
-  6. │     │   ├─base::tryCatch(...)
-  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 10. │     │   └─base::withCallingHandlers(...)
- 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 14.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-     ▆
-  1. ├─testthat::expect_no_error(...) at test-unified-interface.R:302:3
-  2. │ └─testthat:::expect_no_(...)
-  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
-  4. │     ├─testthat (local) .capture(...)
-  5. │     │ └─rlang::try_fetch(...)
-  6. │     │   ├─base::tryCatch(...)
-  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 10. │     │   └─base::withCallingHandlers(...)
- 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 14.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-     ▆
-  1. ├─testthat::expect_no_error(...) at test-unified-interface.R:302:3
-  2. │ └─testthat:::expect_no_(...)
-  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
-  4. │     ├─testthat (local) .capture(...)
-  5. │     │ └─rlang::try_fetch(...)
-  6. │     │   ├─base::tryCatch(...)
-  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 10. │     │   └─base::withCallingHandlers(...)
- 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 14.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+ 13.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 14.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 15.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 16.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 17.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+ 18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 19.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+ 20.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 21.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 22.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 23.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 24.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
 HRF library has quality issues. Consider using a different library.
@@ -2537,54 +1749,41 @@ Backtrace:
  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
 
 Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
-Trial regressors are rank deficient for this voxel: rank 0 < 2
+Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
-
-Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
-Trial regressors are rank deficient for this voxel: rank 0 < 2
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
- 2.   └─manifoldhrf:::.run_trial_estimation(...) at manifold_hrf/R/mhrf_lss.R:329:5
- 3.     └─manifoldhrf::run_lss_for_voxel_corrected(...) at manifold_hrf/R/mhrf_lss.R:987:7
+     ▆
+  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 ────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | utils-operators                                                
 ✔ |          3 | utils-operators
 
 ⠏ |          0 | validation-simulation                                          
-⠸ | 1 3     40 | validation-simulation                                          
-⠙ | 3 24     75 | validation-simulation                                         
-✖ | 4 44     79 | validation-simulation
+⠦ |   6      1 | validation-simulation                                          
+⠧ |   8     90 | validation-simulation                                          
+✔ |   14     98 | validation-simulation
 ────────────────────────────────────────────────────────────────────────────────
+Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
+Found 4 negative eigenvalues (min: -1.455669e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:8:3
+ 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
+ 3.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
+ 4.       └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+
 Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
 Z_confounds_matrix is rank deficient; using independent columns only
 Backtrace:
@@ -2601,15 +1800,38 @@ Backtrace:
  2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
  3.     └─manifoldhrf::prepare_lss_fixed_components_core(...) at manifold_hrf/R/validation_simulation.R:721:3
 
-Error ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
-Error in `run_lss_for_voxel_corrected_full(Y_proj_voxel_vector = proj_result$Y_proj_matrix[, 
-    v], X_trial_onset_list_of_matrices = design_info$X_trial_list, 
-    H_shape_voxel_vector = H_shapes[, v], P_confound = P_confound, 
-    lambda_ridge = pipeline_params$lambda_ridge_Alss)`: unused arguments (P_confound = P_confound, lambda_ridge = pipeline_params$lambda_ridge_Alss)
+Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
+Found 4 negative eigenvalues (min: -1.358716e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
     ▆
  1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:8:3
  2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
+ 3.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
+ 4.       └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+
+Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
+Z_confounds_matrix is rank deficient; using independent columns only
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:8:3
+ 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
+ 3.     └─manifoldhrf::project_out_confounds_core(...) at manifold_hrf/R/validation_simulation.R:663:3
+
+Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
+Fixed regressor matrix is poorly conditioned (condition number = 1.41e+08). Added jitter = 2.03e-05 to diagonal.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:8:3
+ 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
+ 3.     └─manifoldhrf::prepare_lss_fixed_components_core(...) at manifold_hrf/R/validation_simulation.R:721:3
+
+Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
+Found 5 negative eigenvalues (min: -1.304988e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
+ 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
+ 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
 Target dimension 3 is much lower than auto-selected 9 (for 95.0% variance)
@@ -2618,186 +1840,14 @@ Backtrace:
  1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
  2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
 
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 1: Applied regularization due to condition number 4.70e+12
+Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
+Found 9 negative eigenvalues (min: -3.839752e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
     ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 2: Applied regularization due to condition number 2.63e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 3: Applied regularization due to condition number 3.69e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 4: Applied regularization due to condition number 3.23e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 5: Applied regularization due to condition number 4.92e+11
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 6: Applied regularization due to condition number 1.34e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 7: Applied regularization due to condition number 1.65e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 8: Applied regularization due to condition number 6.80e+11
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 9: Applied regularization due to condition number 9.32e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 10: Applied regularization due to condition number 4.18e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 11: Applied regularization due to condition number 1.71e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 12: Applied regularization due to condition number 4.20e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 13: Applied regularization due to condition number 1.23e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 14: Applied regularization due to condition number 1.31e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 15: Applied regularization due to condition number 1.22e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 16: Applied regularization due to condition number 4.57e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 17: Applied regularization due to condition number 1.08e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 18: Applied regularization due to condition number 7.19e+11
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 19: Applied regularization due to condition number 1.54e+12
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Voxel 20: Applied regularization due to condition number 1.20e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Error ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Error in `run_lss_for_voxel_corrected_full(Y_proj_voxel_vector = proj_result$Y_proj_matrix[, 
-    v], X_trial_onset_list_of_matrices = design_info$X_trial_list, 
-    H_shape_voxel_vector = H_shapes[, v], P_confound = P_confound, 
-    lambda_ridge = pipeline_params$lambda_ridge_Alss)`: unused arguments (P_confound = P_confound, lambda_ridge = pipeline_params$lambda_ridge_Alss)
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
-
-Error ('test-validation-simulation.R:368:3'): simulation handles edge cases gracefully
-Error in `run_lss_for_voxel_corrected_full(Y_proj_voxel_vector = proj_result$Y_proj_matrix[, 
-    v], X_trial_onset_list_of_matrices = design_info$X_trial_list, 
-    H_shape_voxel_vector = H_shapes[, v], P_confound = P_confound, 
-    lambda_ridge = pipeline_params$lambda_ridge_Alss)`: unused arguments (P_confound = P_confound, lambda_ridge = pipeline_params$lambda_ridge_Alss)
-Backtrace:
-    ▆
- 1. ├─base::suppressWarnings(...) at test-validation-simulation.R:368:3
- 2. │ └─base::withCallingHandlers(...)
- 3. └─manifoldhrf::run_mhrf_lss_simulation(...)
- 4.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
+ 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
+ 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
+ 3.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
+ 4.       └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
 Target dimension 3 is much lower than auto-selected 9 (for 95.0% variance)
@@ -2816,288 +1866,107 @@ Backtrace:
  3.     └─manifoldhrf::project_out_confounds_core(...) at manifold_hrf/R/validation_simulation.R:663:3
 
 Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 1: Applied regularization due to condition number 3.33e+14
+Found 9 negative eigenvalues (min: -3.801822e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
 Backtrace:
     ▆
  1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
  2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
+ 3.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
+ 4.       └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 2: Applied regularization due to condition number 2.57e+13
+Target dimension 3 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
  1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
  2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
+ 3.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
 
 Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 3: Applied regularization due to condition number 1.19e+14
+Z_confounds_matrix is rank deficient; using independent columns only
 Backtrace:
     ▆
  1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
  2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 4: Applied regularization due to condition number 3.75e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 5: Applied regularization due to condition number 1.18e+14
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 6: Applied regularization due to condition number 1.24e+14
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 7: Applied regularization due to condition number 2.36e+14
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 8: Applied regularization due to condition number 2.41e+15
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 9: Applied regularization due to condition number 8.30e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 11: Applied regularization due to condition number 4.54e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 12: Applied regularization due to condition number 6.69e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 13: Applied regularization due to condition number 6.74e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 14: Applied regularization due to condition number 1.08e+14
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 15: Applied regularization due to condition number 2.18e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 16: Applied regularization due to condition number 4.57e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 17: Applied regularization due to condition number 2.18e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 18: Applied regularization due to condition number 4.84e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 19: Applied regularization due to condition number 5.04e+13
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Voxel 20: Applied regularization due to condition number 8.28e+14
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::extract_xi_beta_raw_svd_core(...) at manifold_hrf/R/validation_simulation.R:684:3
- 4.       └─manifoldhrf::extract_xi_beta_raw_svd_robust(...) at manifold_hrf/R/core_voxelwise_fit.R:531:3
-
-Error ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Error in `run_lss_for_voxel_corrected_full(Y_proj_voxel_vector = proj_result$Y_proj_matrix[, 
-    v], X_trial_onset_list_of_matrices = design_info$X_trial_list, 
-    H_shape_voxel_vector = H_shapes[, v], P_confound = P_confound, 
-    lambda_ridge = pipeline_params$lambda_ridge_Alss)`: unused arguments (P_confound = P_confound, lambda_ridge = pipeline_params$lambda_ridge_Alss)
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
+ 3.     └─manifoldhrf::project_out_confounds_core(...) at manifold_hrf/R/validation_simulation.R:663:3
 ────────────────────────────────────────────────────────────────────────────────
-Maximum number of failures exceeded; quitting at end of file.
-ℹ Increase this number with (e.g.) `testthat::set_max_fails(Inf)` 
+
+⠏ |          0 | voxelwise-fit                                                  
+⠴ |        106 | voxelwise-fit                                                  
+⠸ |        324 | voxelwise-fit                                                  
+✔ |        331 | voxelwise-fit
+
+⠏ |          0 | warning-control                                                
+✔ |          6 | warning-control
 
 ══ Results ═════════════════════════════════════════════════════════════════════
-Duration: 17.0 s
+Duration: 11.9 s
 
-── Skipped tests (6) ───────────────────────────────────────────────────────────
-• empty test (2): 'test-lss-correction-validation.R:131:1',
-  'test-mhrf-lss-interface.R:3:1'
+── Skipped tests (7) ───────────────────────────────────────────────────────────
+• {pryr} is not installed (1): 'test-lss-lsa-equivalence.R:96:3'
+• empty test (1): 'test-mhrf-lss-interface.R:3:1'
 • HRF correlation test is too sensitive to random initialization (1):
   'test-fmrireg-benchmarks.R:167:3'
 • Neuroimaging dimension mismatch - fixing in next iteration (1):
   'test-neuroimaging-wrappers.R:246:3'
+• Not enough finite beta estimates to test variance recovery (1):
+  'test-fmrireg-benchmarks.R:425:5'
 • RcppHNSW installed; cannot test fallback (1):
   'test-manifold-construction.R:277:3'
 • Requires fmrireg integration (1): 'test-mhrf-lss-interface.R:102:3'
 
 ── Failed tests ────────────────────────────────────────────────────────────────
-Failure ('test-identifiability-fallback.R:30:3'): canonical correlation falls back to RMS rule
-res$Xi_ident_matrix[1, 1] > 0 not equal to TRUE.
-1 element mismatch
+Failure ('test-fmrireg-benchmarks.R:412:3'): M-HRF-LSS performs trial-wise estimation correctly
+`n_finite` is not strictly more than 0. Difference: 0
 
-Failure ('test-identifiability-fallback.R:31:3'): canonical correlation falls back to RMS rule
-res$Beta_ident_matrix[1, 1] < 0 not equal to TRUE.
-1 element mismatch
-
-Failure ('test-identifiability-fallback.R:47:3'): RMS fallback preserves positive sign
-res2$Xi_ident_matrix[1, 1] > 0 not equal to TRUE.
-1 element mismatch
-
-Failure ('test-identifiability-fallback.R:48:3'): RMS fallback preserves positive sign
-res2$Beta_ident_matrix[1, 1] > 0 not equal to TRUE.
-1 element mismatch
-
-Failure ('test-lss-correction-validation.R:126:3'): Corrected LSS implementation matches ground truth
-Corrected implementation should match simultaneous estimation is not strictly less than 1e-04. Difference: 0.488
-
-Error ('test-lss-loop-core.R:110:5'): run_lss_voxel_loop_core works without precomputation
-Error in `run_lss_woodbury_corrected(Y_proj_voxel_vector = Y_proj[, v], 
-    X_trial_onset_list_of_matrices = X_trials, H_shape_voxel_vector = H_shapes[, 
-        v], A_lss_fixed_matrix = A_fixed, P_lss_matrix = lss_prep$P_lss_matrix, 
-    p_lss_vector = lss_prep$p_lss_vector)`: unused arguments (A_lss_fixed_matrix = A_fixed, P_lss_matrix = lss_prep$P_lss_matrix, p_lss_vector = lss_prep$p_lss_vector)
-
-Failure ('test-lss-separate.R:57:3'): run_lss_woodbury_corrected matches LS-S
-`beta_wood` not equal to `beta_manual`.
-4/4 mismatches (average diff: 0.249)
-[1]  1.311 -  1.825 == -0.515
-[2] -0.880 - -0.718 == -0.162
-[3]  0.167 -  0.337 == -0.171
-[4]  0.481 -  0.628 == -0.147
-
-Failure ('test-lss-separate.R:99:3'): run_lss_for_voxel_corrected_full matches LS-S
-`beta_full` not equal to `beta_manual`.
-3/3 mismatches (average diff: 0.0431)
-[1] -0.0416 -  0.0224 == -0.06402
-[2]  0.5802 -  0.5869 == -0.00678
-[3] -0.1965 - -0.1379 == -0.05865
-
-Error ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
-Error in `run_lss_for_voxel_corrected_full(Y_proj_voxel_vector = proj_result$Y_proj_matrix[, 
-    v], X_trial_onset_list_of_matrices = design_info$X_trial_list, 
-    H_shape_voxel_vector = H_shapes[, v], P_confound = P_confound, 
-    lambda_ridge = pipeline_params$lambda_ridge_Alss)`: unused arguments (P_confound = P_confound, lambda_ridge = pipeline_params$lambda_ridge_Alss)
+Failure ('test-lss.R:198:3'): validate_design_matrix_list catches errors
+`validate_design_matrix_list(matrix(1:50, 50, 1), n)` threw an error with unexpected message.
+Expected match: "X_list must be a list"
+Actual message: "Design matrices must be provided as a non-empty list"
 Backtrace:
     ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:8:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
+ 1. ├─testthat::expect_error(...) at test-lss.R:198:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf:::validate_design_matrix_list(...)
 
-Error ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Error in `run_lss_for_voxel_corrected_full(Y_proj_voxel_vector = proj_result$Y_proj_matrix[, 
-    v], X_trial_onset_list_of_matrices = design_info$X_trial_list, 
-    H_shape_voxel_vector = H_shapes[, v], P_confound = P_confound, 
-    lambda_ridge = pipeline_params$lambda_ridge_Alss)`: unused arguments (P_confound = P_confound, lambda_ridge = pipeline_params$lambda_ridge_Alss)
+Failure ('test-lss.R:204:3'): validate_design_matrix_list catches errors
+`validate_design_matrix_list(list(), n)` threw an error with unexpected message.
+Expected match: "X_list must contain at least one matrix"
+Actual message: "Design matrices must be provided as a non-empty list"
 Backtrace:
     ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
+ 1. ├─testthat::expect_error(...) at test-lss.R:204:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf:::validate_design_matrix_list(list(), n)
 
-Error ('test-validation-simulation.R:368:3'): simulation handles edge cases gracefully
-Error in `run_lss_for_voxel_corrected_full(Y_proj_voxel_vector = proj_result$Y_proj_matrix[, 
-    v], X_trial_onset_list_of_matrices = design_info$X_trial_list, 
-    H_shape_voxel_vector = H_shapes[, v], P_confound = P_confound, 
-    lambda_ridge = pipeline_params$lambda_ridge_Alss)`: unused arguments (P_confound = P_confound, lambda_ridge = pipeline_params$lambda_ridge_Alss)
+Failure ('test-lss.R:214:3'): validate_design_matrix_list catches errors
+`validate_design_matrix_list(X_wrong, n)` threw an error with unexpected message.
+Expected match: "must have 50 rows"
+Actual message: "Design matrix 1 has 40 rows but expected 50"
 Backtrace:
     ▆
- 1. ├─base::suppressWarnings(...) at test-validation-simulation.R:368:3
- 2. │ └─base::withCallingHandlers(...)
- 3. └─manifoldhrf::run_mhrf_lss_simulation(...)
- 4.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
+ 1. ├─testthat::expect_error(...) at test-lss.R:214:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf:::validate_design_matrix_list(X_wrong, n)
 
-Error ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Error in `run_lss_for_voxel_corrected_full(Y_proj_voxel_vector = proj_result$Y_proj_matrix[, 
-    v], X_trial_onset_list_of_matrices = design_info$X_trial_list, 
-    H_shape_voxel_vector = H_shapes[, v], P_confound = P_confound, 
-    lambda_ridge = pipeline_params$lambda_ridge_Alss)`: unused arguments (P_confound = P_confound, lambda_ridge = pipeline_params$lambda_ridge_Alss)
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
+[ FAIL 4 | WARN 141 | SKIP 7 | PASS 1069 ]
 
-[ FAIL 12 | WARN 278 | SKIP 6 | PASS 766 ]
-══ Terminated early ════════════════════════════════════════════════════════════
-Warning message:
-package ‘testthat’ was built under R version 4.3.3 
+No one gets it right on their first try
+Warning messages:
+1: package ‘testthat’ was built under R version 4.3.3 
+2: replacing previous import ‘fmridataset::blockids’ by ‘fmrihrf::blockids’ when loading ‘fmrireg’ 
+3: replacing previous import ‘fmridataset::blocklens’ by ‘fmrihrf::blocklens’ when loading ‘fmrireg’ 
+4: replacing previous import ‘fmridataset::global_onsets’ by ‘fmrihrf::global_onsets’ when loading ‘fmrireg’ 
+5: replacing previous import ‘fmridataset::samples’ by ‘fmrihrf::samples’ when loading ‘fmrireg’ 
+6: replacing previous import ‘fmrilss::get_data_matrix’ by ‘fmrireg::get_data_matrix’ when loading ‘manifoldhrf’ 
 > 
 > 
