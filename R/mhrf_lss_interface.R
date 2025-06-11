@@ -127,7 +127,9 @@ mhrf_lss <- function(formula,
   )
   
   # Extract design matrices for conditions and trials
-  design_info <- extract_design_info(event_mod, sframe)
+  term <- stats::terms(event_mod)[[1]]
+  raw_hrf <- term$hrf
+  design_info <- extract_design_info(event_mod, sframe, raw_hrf)
   validate_design_matrix_list(design_info$X_condition_list, n_time)
   
   # Step 2: Create HRF manifold
@@ -332,46 +334,28 @@ create_hrf_manifold <- function(hrf_library, params, TR, verbose = TRUE) {
 
 #' Extract Design Information from fmrireg Event Model
 #'
+#' @param event_model fmrireg event model object
+#' @param sframe Sampling frame describing acquisition timing
+#' @param raw_hrf HRF object used for raw design matrices
 #' @keywords internal
-extract_design_info <- function(event_model, sframe) {
-  
-  # Use the full design matrix from fmrireg - this should work correctly
-  X_full <- fmrireg::design_matrix(event_model)
-  X_full <- as.matrix(X_full)  # Ensure it's a regular matrix
-  
-  # For now, use the full design matrix as a single condition
-  # This is simpler and avoids the complexity of extracting terms
-  X_condition_list <- list(A = X_full)
-  
-  # Try to get the actual event table
-  event_tab <- tryCatch({
-    fmrireg::event_table(event_model)
-  }, error = function(e) {
-    # If that fails, create a simple table based on the events data from the model
-    if ("event_data" %in% names(event_model)) {
-      event_model$event_data
-    } else {
-      # Final fallback
-      data.frame(
-        onset = c(0),
-        condition = c("A"),
-        block = c(1),
-        stringsAsFactors = FALSE
-      )
-    }
-  })
-  
-  # Create trial-wise design matrices
-  # Since we can't easily extract the HRF, create simple per-trial matrices
-  n_trials <- nrow(event_tab)
-  X_trial_list <- list()
-  
-  for (i in 1:n_trials) {
-    # For simplicity, use the full design matrix for each trial
-    # This is not ideal but gets the test working
-    X_trial_list[[i]] <- X_full
-  }
-  
+extract_design_info <- function(event_model, sframe, raw_hrf) {
+
+  term <- stats::terms(event_model)[[1]]
+
+  X_condition_list <- fmrireg::condition_basis_list(
+    term,
+    hrf = raw_hrf,
+    sampling_frame = sframe
+  )
+
+  event_tab <- fmrireg::event_table(event_model)
+
+  X_trial_list <- create_trial_matrices_from_events(
+    event_tab,
+    raw_hrf,
+    sframe
+  )
+
   return(list(
     X_condition_list = X_condition_list,
     X_trial_list = X_trial_list,
