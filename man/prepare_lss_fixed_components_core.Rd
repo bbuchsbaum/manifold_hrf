@@ -4,11 +4,20 @@
 \alias{prepare_lss_fixed_components_core}
 \title{Prepare LSS Fixed Components (Core)}
 \usage{
-prepare_lss_fixed_components_core(A_fixed_regressors_matrix, lambda_fixed = 0)
+prepare_lss_fixed_components_core(
+  A_fixed_regressors_matrix = NULL,
+  intercept_column = NULL,
+  lambda_fixed = 0,
+  A_lss_fixed_matrix = NULL,
+  intercept_col_index_in_Alss = NULL,
+  lambda_ridge_Alss = NULL
+)
 }
 \arguments{
 \item{A_fixed_regressors_matrix}{An n x q matrix of fixed regressors
 (e.g., intercept, motion parameters, drift terms)}
+
+\item{intercept_column}{Index of intercept column (deprecated, ignored)}
 
 \item{lambda_fixed}{Ridge penalty for fixed effects (scalar >= 0, default 0)}
 }

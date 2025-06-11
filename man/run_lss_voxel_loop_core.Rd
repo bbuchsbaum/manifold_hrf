@@ -2,8 +2,6 @@
 % Please edit documentation in R/core_lss.R
 \name{run_lss_voxel_loop_core}
 \alias{run_lss_voxel_loop_core}
-\alias{run_lsa_voxel_loop}
-\alias{run_lsa_for_voxel_corrected_full}
 \title{Run LSS Across Voxels (Core)}
 \usage{
 run_lss_voxel_loop_core(
@@ -15,26 +13,6 @@ run_lss_voxel_loop_core(
   p_lss_vector,
   n_jobs = 1,
   ram_heuristic_GB_for_Rt = 1
-)
-
-run_lsa_voxel_loop(
-  Y_proj_matrix,
-  X_trial_onset_list_of_matrices,
-  H_shapes_allvox_matrix,
-  A_lss_fixed_matrix,
-  P_lss_matrix,
-  p_lss_vector,
-  n_jobs = 1,
-  ram_heuristic_GB_for_Rt = 1
-)
-
-run_lsa_for_voxel_corrected_full(
-  Y_proj_voxel_vector,
-  X_trial_onset_list_of_matrices,
-  H_shape_voxel_vector,
-  A_lss_fixed_matrix,
-  P_lss_matrix,
-  p_lss_vector
 )
 }
 \arguments{

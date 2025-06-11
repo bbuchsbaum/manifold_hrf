@@ -2,29 +2,9 @@
 % Please edit documentation in R/core_lss.R, R/core_lss_deprecated.R
 \name{run_lss_for_voxel_core}
 \alias{run_lss_for_voxel_core}
-\alias{run_lss_for_voxel_corrected}
-\alias{run_lss_for_voxel_corrected_full}
 \title{Run LSS for Single Voxel (Core)}
 \usage{
 run_lss_for_voxel_core(...)
-
-run_lss_for_voxel_corrected(
-  Y_proj_voxel_vector,
-  X_trial_onset_list_of_matrices,
-  H_shape_voxel_vector,
-  A_lss_fixed_matrix,
-  P_lss_matrix,
-  p_lss_vector
-)
-
-run_lss_for_voxel_corrected_full(
-  Y_proj_voxel_vector,
-  X_trial_onset_list_of_matrices,
-  H_shape_voxel_vector,
-  A_lss_fixed_matrix,
-  P_lss_matrix,
-  p_lss_vector
-)
 
 run_lss_for_voxel_core(...)
 }
@@ -46,7 +26,14 @@ Vector of trial-wise betas
 }
 \description{
 Computes trial-wise beta estimates using Least Squares Separate (LSS)
-for a single voxel. Routes through fmrilss package.
+for a single voxel. This function delegates the actual LSS computation
+to the fmrilss package for improved performance and consistency.
 
 This function is deprecated. Use appropriate LS-A or LS-S functions instead.
+}
+\details{
+The LSS approach fits each trial separately, with all other trials
+treated as nuisance regressors. This implementation uses fmrilss::lss()
+internally. Note that the input data (Y_proj_voxel_vector) should already
+be projected to remove confounds to avoid double projection.
 }

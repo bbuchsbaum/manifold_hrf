@@ -294,22 +294,6 @@ run_lss_voxel_loop_core <- function(Y_proj_matrix,
   do.call(cbind, res_list)
 }
 
-# Compatibility aliases for deprecated function names
-#' @rdname run_lss_for_voxel_core
-#' @export
-run_lss_for_voxel_corrected <- run_lss_for_voxel_core
-
-#' @rdname run_lss_for_voxel_core
-#' @export
-run_lss_for_voxel_corrected_full <- run_lss_for_voxel_core
-
-#' @rdname run_lss_voxel_loop_core
-#' @export
-run_lsa_voxel_loop <- run_lss_voxel_loop_core
-
-#' @rdname run_lss_voxel_loop_core
-#' @export
-run_lsa_for_voxel_corrected_full <- run_lss_for_voxel_core
 
 # Simple wrapper for single voxel with HRF convolution
 #' Run LSS for Single Voxel with Simple Interface
@@ -341,112 +325,7 @@ run_lss_for_voxel <- function(y_voxel, X_trial_list, h_voxel, TR = 2) {
   list(beta_trials = as.vector(result))
 }
 
-# Woodbury interface for backward compatibility
-#' Run LSS Woodbury for Single Voxel (Backward Compatibility)
-#'
-#' @param Y_proj_voxel_vector Projected data vector (n x 1)
-#' @param X_trial_onset_list_of_matrices List of trial design matrices
-#' @param H_shape_voxel_vector HRF shape vector (p x 1)
-#' @param P_confound Projection matrix (n x n) - deprecated parameter
-#' @param Z_confounds Confound matrix (n x q)
-#' @param lambda Ridge regularization (unused)
-#' @return Vector of trial-wise betas
-#' @export
-run_lss_woodbury_corrected <- function(Y_proj_voxel_vector,
-                                      X_trial_onset_list_of_matrices,
-                                      H_shape_voxel_vector,
-                                      P_confound = NULL,
-                                      Z_confounds = NULL,
-                                      lambda = 0) {
-  
-  n <- length(Y_proj_voxel_vector)
-  T_trials <- length(X_trial_onset_list_of_matrices)
-  
-  # Create convolved regressors
-  C <- matrix(0, n, T_trials)
-  for (t in seq_len(T_trials)) {
-    C[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_shape_voxel_vector
-  }
-  
-  # Handle old P_confound interface
-  if (!is.null(P_confound) && is.null(Z_confounds)) {
-    # Apply projection matrix directly
-    Y_proj <- P_confound %*% Y_proj_voxel_vector
-    C_proj <- P_confound %*% C
-    
-    # For pre-projected data, we need to handle this specially
-    # since fmrilss::lss expects to do its own projection
-    # We'll use the fact that the data is already projected
-    betas <- numeric(T_trials)
-    for (t in seq_len(T_trials)) {
-      # Fit each trial separately with other trials as nuisance
-      other_trials <- setdiff(seq_len(T_trials), t)
-      if (length(other_trials) > 0) {
-        Z_other <- C_proj[, other_trials, drop = FALSE]
-        fit <- lm(Y_proj ~ C_proj[, t] + Z_other - 1)
-        betas[t] <- coef(fit)[1]
-      } else {
-        fit <- lm(Y_proj ~ C_proj[, t] - 1)
-        betas[t] <- coef(fit)[1]
-      }
-    }
-    return(betas)
-  }
-  
-  # Use modern interface
-  # If no P_confound or Z_confounds provided, assume data is already projected
-  # (as indicated by the variable name Y_proj_voxel_vector)
-  if (is.null(P_confound) && is.null(Z_confounds)) {
-    # Data is already projected, don't pass any confounds
-    result <- fmrilss::lss(
-      Y = matrix(Y_proj_voxel_vector, ncol = 1),
-      X = C,
-      Z = NULL,
-      method = "r_optimized"
-    )
-  } else {
-    # Use confounds if provided
-    Z <- if (is.null(Z_confounds)) matrix(1, n, 1) else Z_confounds
-    result <- fmrilss::lss(
-      Y = matrix(Y_proj_voxel_vector, ncol = 1),
-      X = C,
-      Z = Z,
-      method = "r_optimized"
-    )
-  }
-  
-  as.vector(result)
-}
 
-#' @rdname run_lss_woodbury_corrected
-#' @export
-run_lsa_woodbury <- run_lss_woodbury_corrected
-
-# Prepare projection matrix for backward compatibility
-#' Prepare Projection Matrix (Deprecated)
-#'
-#' @param Z_confounds Confound matrix (n x q)
-#' @param lambda Ridge regularization parameter
-#' @return Projection matrix (n x n)
-#' @export
-prepare_projection_matrix <- function(Z_confounds, lambda = 1e-6) {
-  .Deprecated("Use Z matrix directly with fmrilss::lss")
-  
-  n <- nrow(Z_confounds)
-  q <- ncol(Z_confounds)
-  
-  if (q == 0) {
-    return(diag(n))
-  }
-  
-  # Regularized projection: P = I - Z(Z'Z + λI)^(-1)Z'
-  ZTZ <- crossprod(Z_confounds)
-  ZTZ_reg <- ZTZ + lambda * diag(q)
-  ZTZ_inv <- solve(ZTZ_reg)
-  P_confound <- diag(n) - Z_confounds %*% ZTZ_inv %*% t(Z_confounds)
-  
-  return(P_confound)
-}
 
 # Removed internal adapter functions - all LSS computation now goes through fmrilss::lss
 
@@ -469,61 +348,9 @@ lss_fast <- function(Y, dmat_base, dmat_ran, dmat_fixed = NULL) {
   return(result)
 }
 
-# Additional compatibility functions
-#' Compute LSS Beta Series
-#' @keywords internal
-.compute_lss_beta_series <- function(y, C, eps = 1e-10) {
-  # For backward compatibility - routes to fmrilss
-  result <- fmrilss::lss(
-    Y = matrix(y, ncol = 1),
-    X = C,
-    Z = matrix(1, length(y), 1),
-    method = "r_optimized"
-  )
-  as.vector(result)
-}
 
-#' Compute LSS Betas
-#' @keywords internal
-.compute_lss_betas <- function(C_v, Y_v, A_fixed, P_lss, p_lss) {
-  # Routes to fmrilss
-  result <- fmrilss::lss(
-    Y = matrix(Y_v, ncol = 1),
-    X = C_v,
-    Z = A_fixed,
-    method = "r_optimized"
-  )
-  as.vector(result)
-}
 
-#' LSA Beta (Least Squares All)
-#' @keywords internal
-.lsa_beta <- function(C, y) {
-  # Single GLM fit - all trials at once
-  XtX <- crossprod(C)
-  if (qr(XtX)$rank < ncol(C)) {
-    warning("Design matrix is not full rank")
-  }
-  drop(solve(XtX, crossprod(C, y)))
-}
 
-#' Project Confounds
-#' @keywords internal
-.project_confounds <- function(y, C, Z = NULL, lambda = 0) {
-  if (is.null(Z) || ncol(Z) == 0) {
-    Z <- matrix(1, nrow = length(y), ncol = 1)
-  } else {
-    has_intercept <- any(apply(Z, 2, var) == 0)
-    if (!has_intercept) {
-      Z <- cbind(Intercept = 1, Z)
-    }
-  }
-  
-  Zinv <- solve(crossprod(Z) + lambda * diag(ncol(Z)))
-  y_out <- y - Z %*% (Zinv %*% crossprod(Z, y))
-  C_out <- C - Z %*% (Zinv %*% crossprod(Z, C))
-  list(y = y_out, C = C_out)
-}
 
 # Validation functions
 #' Validate Design Matrix List
@@ -565,7 +392,7 @@ validate_hrf_shape_matrix <- function(H_matrix, n_timepoints, n_voxels) {
   }
 }
 
-# Additional backward compatibility wrappers
+# User-facing wrapper functions
 #' Run LSS Voxel Loop
 #' @export
 run_lss_voxel_loop <- function(Y_matrix, X_trial_list, H_matrix, 
