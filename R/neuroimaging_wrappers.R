@@ -484,7 +484,13 @@ process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
   
   ev_model <- fmrireg::event_model(onset ~ hrf(condition, basis = manifold_objects$manifold_hrf_basis),
                                    data = events, block = ~ block, sampling_frame = sframe, drop_empty = TRUE)
-  design_info <- extract_design_info(ev_model, sframe)
+
+  raw_hrf <- HRF_RAW_EVENT_BASIS(
+    nrow(manifold_objects$B_reconstructor_matrix),
+    manifold_objects$parameters$TR_precision
+  )
+
+  design_info <- extract_design_info(ev_model, sframe, raw_hrf)
 
   result <- run_mhrf_lss_standard(
     Y_data = Y_mat,

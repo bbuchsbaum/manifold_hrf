@@ -125,20 +125,26 @@ mhrf_lss <- function(formula,
     sampling_frame = sframe,
     drop_empty = TRUE
   )
-  
-  # Extract design matrices for conditions and trials
-  design_info <- extract_design_info(event_mod, sframe)
-  validate_design_matrix_list(design_info$X_condition_list, n_time)
-  
+
   # Step 2: Create HRF manifold
   if (verbose) message("Constructing HRF manifold...")
-  
+
   manifold <- create_hrf_manifold(
     hrf_library = hrf_library,
     params = manifold_params,
     TR = dataset$TR,
     verbose = verbose
   )
+
+  # FIR basis for extracting raw event time courses
+  raw_hrf <- HRF_RAW_EVENT_BASIS(
+    nrow(manifold$B_reconstructor_matrix),
+    manifold$parameters$TR_precision
+  )
+
+  # Extract design matrices for conditions and trials
+  design_info <- extract_design_info(event_mod, sframe, raw_hrf)
+  validate_design_matrix_list(design_info$X_condition_list, n_time)
   
   # Step 3: Prepare spatial information if provided
   voxel_coords <- NULL
@@ -332,8 +338,12 @@ create_hrf_manifold <- function(hrf_library, params, TR, verbose = TRUE) {
 
 #' Extract Design Information from fmrireg Event Model
 #'
+#' @param event_model fmrireg event_model object
+#' @param sframe Sampling frame used for evaluation
+#' @param raw_hrf Optional HRF object used to build trial-wise matrices
+#'
 #' @keywords internal
-extract_design_info <- function(event_model, sframe) {
+extract_design_info <- function(event_model, sframe, raw_hrf = NULL) {
   
   # Use the full design matrix from fmrireg - this should work correctly
   X_full <- fmrireg::design_matrix(event_model)
@@ -362,14 +372,14 @@ extract_design_info <- function(event_model, sframe) {
   })
   
   # Create trial-wise design matrices
-  # Since we can't easily extract the HRF, create simple per-trial matrices
   n_trials <- nrow(event_tab)
-  X_trial_list <- list()
-  
-  for (i in 1:n_trials) {
-    # For simplicity, use the full design matrix for each trial
-    # This is not ideal but gets the test working
-    X_trial_list[[i]] <- X_full
+  if (!is.null(raw_hrf)) {
+    X_trial_list <- create_trial_matrices_from_events(event_tab, raw_hrf, sframe)
+  } else {
+    X_trial_list <- vector("list", n_trials)
+    for (i in seq_len(n_trials)) {
+      X_trial_list[[i]] <- X_full
+    }
   }
   
   return(list(
