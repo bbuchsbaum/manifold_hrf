@@ -231,21 +231,35 @@ test_that("subject-level wrapper runs on minimal data", {
   skip_if_not_installed("neuroim2")
   skip_if_not_installed("fmrireg")
 
-  space <- neuroim2::NeuroSpace(c(2, 2, 1, 10), spacing = c(1, 1, 1), origin = c(0, 0, 0))
-  bold <- neuroim2::NeuroVec(array(rnorm(2 * 2 * 1 * 10), dim = c(2, 2, 1, 10)), space)
-  # Create 3D mask space (without time dimension)
-  mask_space <- neuroim2::NeuroSpace(c(2, 2, 1), spacing = c(1, 1, 1), origin = c(0, 0, 0))
-  mask <- neuroim2::LogicalNeuroVol(array(TRUE, c(2, 2, 1)), mask_space)
-  events <- data.frame(onset = 0, condition = "A")
+  # Define dimensions clearly to avoid magic numbers
+  vol_dims <- c(2, 2, 1)
+  n_time <- 10
+  
+  # Create 4D space for BOLD data
+  space <- neuroim2::NeuroSpace(c(vol_dims, n_time), spacing = c(1, 1, 1), origin = c(0, 0, 0))
+  bold_data <- array(rnorm(prod(vol_dims) * n_time), dim = c(vol_dims, n_time))
+  bold <- neuroim2::NeuroVec(bold_data, space)
+  
+  # Create 3D mask space that matches BOLD spatial dimensions
+  mask_space <- neuroim2::NeuroSpace(vol_dims, spacing = c(1, 1, 1), origin = c(0, 0, 0))
+  mask_data <- array(TRUE, vol_dims)
+  mask <- neuroim2::LogicalNeuroVol(mask_data, mask_space)
+  
+  # Create more realistic events with duration
+  events <- data.frame(onset = c(0, 5), duration = c(1, 1), condition = "A")
 
   manifold <- construct_hrf_manifold_nim("gamma_grid", TR_precision = 1, m_manifold_dim_target = 2)
   params <- get_preset_params("fast")
   params$TR <- 1
 
-  # Try to run the test to see the actual error
-  # skip("Neuroimaging dimension mismatch - fixing in next iteration")
-  
   res <- process_subject_mhrf_lss_nim(bold, mask, events, NULL, manifold, params)
+  
   expect_type(res, "list")
   expect_true("H_shapes" %in% names(res))
+  expect_true("beta_series" %in% names(res))
+  
+  # Check output dimensions
+  n_trials <- nrow(events)
+  n_voxels <- sum(mask)
+  expect_equal(dim(res$beta_series), c(n_trials, n_voxels))
 })

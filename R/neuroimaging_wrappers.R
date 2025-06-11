@@ -468,13 +468,22 @@ process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
 
   TR <- params_list$TR %||% stop("TR must be specified in params_list")
 
-  Y_mat <- as.matrix(bold)
+  # Convert BOLD to matrix form: timepoints × voxels
+  # Note: neuroim2::as.matrix() returns voxels × timepoints, so we transpose
+  Y_mat_raw <- as.matrix(bold)
+  Y_mat <- t(Y_mat_raw)  # Now: timepoints × voxels
+  
   mask_idx <- which(as.logical(mask))
   Y_mat <- Y_mat[, mask_idx, drop = FALSE]
 
   sframe <- fmrihrf::sampling_frame(blocklens = nrow(Y_mat), TR = TR)
-  ev_model <- fmrireg::event_model(~ hrf(onset, basis = manifold_objects$manifold_hrf_basis),
-                                   data = events, sampling_frame = sframe, drop_empty = TRUE)
+  # Add block column if missing (for single run scenarios)
+  if (!"block" %in% names(events)) {
+    events$block <- 1
+  }
+  
+  ev_model <- fmrireg::event_model(onset ~ hrf(condition, basis = manifold_objects$manifold_hrf_basis),
+                                   data = events, block = ~ block, sampling_frame = sframe, drop_empty = TRUE)
   design_info <- extract_design_info(ev_model, sframe)
 
   result <- run_mhrf_lss_standard(
