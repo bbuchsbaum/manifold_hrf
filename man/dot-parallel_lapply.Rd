@@ -19,7 +19,7 @@ A list of results from applying \code{FUN}.
 \description{
 Applies a function over a set of elements using base parallel backends when
 requested. If \code{n_jobs == 1}, a regular \code{lapply} is used. On
-systems where the \pkg{parallel} package is available, \code{parallel::mclapply}
-is used for multi-core processing.
+Unix-like systems, \code{parallel::mclapply} is used for multi-core processing.
+On Windows, a socket cluster is created for compatibility.
 }
 \keyword{internal}

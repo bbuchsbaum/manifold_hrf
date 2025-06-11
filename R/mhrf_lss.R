@@ -575,12 +575,12 @@ mhrf_analyze <- function(Y_data,
   }
 
   # Check if fmrireg is available
-  if (!requireNamespace("fmrireg", quietly = TRUE)) {
-    stop("Package 'fmrireg' is required for this function. Install it with: remotes::install_github('bbuchsbaum/fmrireg')")
+  if (!requireNamespace("fmrihrf", quietly = TRUE)) {
+    stop("Package 'fmrihrf' is required for this function. Install it with: remotes::install_github('bbuchsbaum/fmrihrf')")
   }
   
-  # Use fmrireg to generate raw design matrices
-  sframe <- fmrireg::sampling_frame(blocklens = n_timepoints, TR = TR)
+  # Use fmrihrf to generate raw design matrices
+  sframe <- fmrihrf::sampling_frame(blocklens = n_timepoints, TR = TR)
   raw_basis <- HRF_RAW_EVENT_BASIS(hrf_length, TR)
 
   # Add block column if not present
@@ -588,7 +588,7 @@ mhrf_analyze <- function(Y_data,
     events$block <- 1
   }
   
-  ev_model <- fmrireg::event_model(
+      ev_model <- fmrireg::event_model(
     formula = onset ~ hrf(condition, basis = raw_basis),
     data = events,
     block = ~ block,
@@ -596,7 +596,7 @@ mhrf_analyze <- function(Y_data,
     drop_empty = TRUE
   )
 
-  X_full <- fmrireg::design_matrix(ev_model)
+      X_full <- fmrireg::design_matrix(ev_model)
 
   term_tag <- names(ev_model$terms)[1]
   X_condition_list <- vector("list", n_conditions)
@@ -609,17 +609,17 @@ mhrf_analyze <- function(Y_data,
   names(X_condition_list) <- conditions
 
   # Trial-wise design matrices using regressor evaluation
-  times <- sframe$time
+  times <- fmrihrf::samples(sframe)
   X_trial_list <- vector("list", n_trials)
   for (j in seq_len(n_trials)) {
-    reg <- fmrireg::regressor(
+    reg <- fmrihrf::regressor(
       onsets = events$onset[j],
       hrf = raw_basis,
       duration = events$duration[j],
       amplitude = 1,
       span = attr(raw_basis, "span")
     )
-    vals <- fmrireg::evaluate(reg, times)
+    vals <- fmrihrf::evaluate(reg, times)
     # Ensure matrix has correct dimensions even for truncated events
     if (length(vals) == 0) {
       X_trial_list[[j]] <- matrix(0, nrow = n_timepoints, ncol = hrf_length)
@@ -646,7 +646,7 @@ mhrf_analyze <- function(Y_data,
 
   if (inherits(hrf_library, "HRF")) {
     # Single fmrireg HRF object
-    L_library <- matrix(as.numeric(fmrireg::evaluate(hrf_library, time_points)),
+    L_library <- matrix(as.numeric(fmrihrf::evaluate(hrf_library, time_points)),
                         ncol = 1)
     n_hrfs <- 1L
     library_type <- "hrf_object"
@@ -654,7 +654,7 @@ mhrf_analyze <- function(Y_data,
   } else if (is.list(hrf_library) && all(sapply(hrf_library, inherits, "HRF"))) {
     # List of fmrireg HRF objects
     L_library <- do.call(cbind, lapply(hrf_library, function(h) {
-      as.numeric(fmrireg::evaluate(h, time_points))
+      as.numeric(fmrihrf::evaluate(h, time_points))
     }))
     n_hrfs <- length(hrf_library)
     library_type <- "hrf_list"
@@ -666,9 +666,9 @@ mhrf_analyze <- function(Y_data,
                                             hrf_duration = TR * (p_hrf - 1))
     } else if (hrf_library == "spmg1") {
       hrf_objs <- list(
-        fmrireg::HRF_SPMG1,
-        fmrireg::HRF_SPMG2,
-        fmrireg::HRF_SPMG3
+        fmrihrf::HRF_SPMG1,
+        fmrihrf::HRF_SPMG2,
+        fmrihrf::HRF_SPMG3
       )
     } else if (hrf_library == "flobs") {
       hrf_objs <- create_flobs_library(TR_precision = TR,
@@ -678,7 +678,7 @@ mhrf_analyze <- function(Y_data,
     }
 
     L_library <- do.call(cbind, lapply(hrf_objs, function(h) {
-      as.numeric(fmrireg::evaluate(h, time_points))
+      as.numeric(fmrihrf::evaluate(h, time_points))
     }))
     n_hrfs <- length(hrf_objs)
     library_type <- hrf_library
@@ -808,6 +808,7 @@ mhrf_analyze <- function(Y_data,
       Gamma_coeffs_matrix = Gamma,
       m_manifold_dim = manifold$m_final,
       k_conditions = length(X_condition_list),
+      verbose_warnings = FALSE,
       logger = logger
     )
   } else {
@@ -960,8 +961,7 @@ mhrf_analyze <- function(Y_data,
           y_voxel = Y_data[, v],
           X_trial_list = X_trial_list,
           h_voxel = hrf_shapes[, v],
-          TR = params$TR,
-          lambda = params$lambda_ridge_Alss
+          TR = params$TR
         )
         
         chunk_result[, v_idx] <- lss_result$beta_trials
@@ -988,8 +988,7 @@ mhrf_analyze <- function(Y_data,
         y_voxel = Y_data[, v],
         X_trial_list = X_trial_list,
         h_voxel = hrf_shapes[, v],
-        TR = params$TR,
-        lambda = params$lambda_ridge_Alss
+        TR = params$TR
       )
       
       trial_amplitudes[, v] <- lss_result$beta_trials

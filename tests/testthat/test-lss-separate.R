@@ -52,8 +52,7 @@ test_that("run_lss_woodbury_corrected matches LS-S", {
     Y_proj_voxel_vector = as.vector(y_proj),
     X_trial_onset_list_of_matrices = X_trials,
     H_shape_voxel_vector = h,
-    P_confound = P,
-    lambda_ridge = 1e-6
+    P_confound = P
   )
   expect_equal(beta_wood, beta_manual, tolerance = 1e-5)
 })
@@ -97,5 +96,7 @@ test_that("run_lss_for_voxel_corrected_full matches LS-S", {
     P_lss_matrix = lss_prep$P_lss_matrix,
     p_lss_vector = lss_prep$p_lss_vector
   )
+  # Convert matrix result to vector since we have single voxel
+  beta_full <- as.vector(beta_full)
   expect_equal(beta_full, beta_manual, tolerance = 1e-5)
 })

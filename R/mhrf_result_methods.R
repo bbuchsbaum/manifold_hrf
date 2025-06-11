@@ -267,8 +267,8 @@ plot.mhrf_result <- function(x, type = "diagnostic", voxels = NULL,
   lines(time_vec, mean_hrf, col = "red", lwd = 3)
   
   # Add canonical for reference if available
-  if (requireNamespace("fmrireg", quietly = TRUE)) {
-    canonical <- fmrireg::HRF_SPMG1(time_vec)
+  if (requireNamespace("fmrihrf", quietly = TRUE)) {
+    canonical <- fmrihrf::HRF_SPMG1(time_vec)
     canonical <- canonical / sum(abs(canonical))
     lines(time_vec, canonical, col = "blue", lwd = 2, lty = 2)
     legend("topright", c("Estimated", "Mean", "Canonical"), 
@@ -458,7 +458,7 @@ as.data.frame.mhrf_result <- function(x, what = "amplitudes", ...) {
 
 #' Convert estimated HRFs to \pkg{fmrireg} objects
 #'
-#' Creates a list of `fmrireg::empirical_hrf` objects from either an
+#' Creates a list of `fmrihrf::empirical_hrf` objects from either an
 #' `mhrf_result` object or a raw matrix of HRF shapes.
 #'
 #' @param x An object containing HRF estimates. Currently methods are
@@ -482,8 +482,8 @@ as_fmrireg_hrfs.mhrf_result <- function(x, prefix = "voxel", ...) {
 #' @param TR Numeric sampling interval for the HRF time axis.
 #' @export
 as_fmrireg_hrfs.matrix <- function(x, TR, prefix = "voxel", ...) {
-  if (!requireNamespace("fmrireg", quietly = TRUE)) {
-    stop("Package 'fmrireg' is required for conversion", call. = FALSE)
+  if (!requireNamespace("fmrihrf", quietly = TRUE)) {
+    stop("Package 'fmrihrf' is required for conversion", call. = FALSE)
   }
   if (!is.matrix(x)) {
     stop("Input must be a matrix of HRF shapes", call. = FALSE)
@@ -493,7 +493,7 @@ as_fmrireg_hrfs.matrix <- function(x, TR, prefix = "voxel", ...) {
   time_points <- seq(0, by = TR, length.out = p)
 
   lapply(seq_len(ncol(x)), function(v) {
-    fmrireg::empirical_hrf(time_points, x[, v],
+    fmrihrf::empirical_hrf(time_points, x[, v],
                            name = sprintf("%s_%d_mhrf", prefix, v))
   })
 }

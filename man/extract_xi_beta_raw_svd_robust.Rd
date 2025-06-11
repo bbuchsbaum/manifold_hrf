@@ -12,6 +12,7 @@ extract_xi_beta_raw_svd_robust(
   regularization_factor = 10,
   max_condition_number = 1e+08,
   use_randomized_svd = FALSE,
+  verbose_warnings = FALSE,
   logger = NULL
 )
 
@@ -22,6 +23,7 @@ extract_xi_beta_raw_svd_robust(
   regularization_factor = 10,
   max_condition_number = 1e+08,
   use_randomized_svd = FALSE,
+  verbose_warnings = FALSE,
   logger = NULL
 )
 }
@@ -37,6 +39,8 @@ extract_xi_beta_raw_svd_robust(
 \item{max_condition_number}{Maximum acceptable condition number}
 
 \item{use_randomized_svd}{Use randomized SVD for large problems}
+
+\item{verbose_warnings}{If TRUE, show individual voxel regularization warnings}
 
 \item{logger}{Optional logger object}
 }

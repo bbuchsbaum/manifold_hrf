@@ -133,15 +133,32 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
     # Use exact distances with Rcpp
     dist_mat <- pairwise_distances_cpp(L_library_matrix)
     dist_no_self <- dist_mat + diag(Inf, N)
-    sigma_i <- apply(dist_no_self, 1, function(row) {
-      val <- sort(row)[k_local_nn_for_sigma]
-      if (val == 0 || is.na(val)) {
-        nz <- row[row > 0]
-        if (length(nz) > 0) median(nz) else 1e-6
-      } else {
-        val
+    
+    # Efficient k-th nearest neighbor distance calculation
+    # Using matrixStats::rowOrderStats if available, otherwise optimized apply
+    if (requireNamespace("matrixStats", quietly = TRUE)) {
+      # rowOrderStats is much faster than sorting each row
+      sigma_i <- matrixStats::rowOrderStats(dist_no_self, which = k_local_nn_for_sigma)
+      # Handle edge cases (zero or NA distances)
+      problematic <- which(sigma_i == 0 | is.na(sigma_i))
+      if (length(problematic) > 0) {
+        for (i in problematic) {
+          nz <- dist_no_self[i, dist_no_self[i, ] > 0 & dist_no_self[i, ] < Inf]
+          sigma_i[i] <- if (length(nz) > 0) median(nz) else 1e-6
+        }
       }
-    })
+    } else {
+      # Fallback: still faster than full sort - use partial sort
+      sigma_i <- apply(dist_no_self, 1, function(row) {
+        val <- sort.int(row, partial = k_local_nn_for_sigma)[k_local_nn_for_sigma]
+        if (val == 0 || is.na(val)) {
+          nz <- row[row > 0 & row < Inf]
+          if (length(nz) > 0) median(nz) else 1e-6
+        } else {
+          val
+        }
+      })
+    }
     sigma_prod <- outer(sigma_i, sigma_i)
     W <- exp(-(dist_mat ^ 2) / sigma_prod)
     diag(W) <- 0
@@ -149,47 +166,106 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
   
   
   # Step 4: Optional sparsification for large N (only if W is dense)
+  # NOTE: This path should rarely be used - the ANN path is much more efficient
+  # for creating sparse affinity matrices. Consider using distance_engine = "ann_euclidean"
+  # or lowering ann_threshold for better performance.
   if (!inherits(W, "Matrix") && !is.null(sparse_threshold) &&
       N > sparse_threshold && !is.null(k_nn_sparse)) {
-    # Convert to sparse matrix keeping only k_nn_sparse nearest neighbors
-    W_sparse <- W
-    for (i in 1:N) {
-      # Find indices of k_nn_sparse largest values (nearest neighbors in affinity space)
-      top_k_indices <- order(W[i, ], decreasing = TRUE)[1:k_nn_sparse]
-      # Zero out all other entries
-      mask <- rep(FALSE, N)
-      mask[top_k_indices] <- TRUE
-      W_sparse[i, !mask] <- 0
-    }
-    # Symmetrize the sparse matrix (take maximum of W_ij and W_ji)
-    W_sparse_t <- Matrix::t(W_sparse)
-    W <- pmax(W_sparse, W_sparse_t)
+    warning(paste("Manual sparsification of dense matrix is inefficient for N =", N, 
+                  ". Consider using distance_engine = 'ann_euclidean' instead."))
     
-    # Convert to sparse matrix format
-    if (requireNamespace("Matrix", quietly = TRUE)) {
-      W <- Matrix::Matrix(W, sparse = TRUE)
+    # More efficient sparsification using matrixStats if available
+    if (requireNamespace("matrixStats", quietly = TRUE)) {
+      # Find k largest values per row efficiently
+      # First get the k-th largest value for each row as threshold
+      thresholds <- matrixStats::rowOrderStats(W, which = N - k_nn_sparse + 1)
+      
+      # Create sparse matrix from values above threshold
+      # This avoids the O(N^2 log N) complexity of the original loop
+      triplets <- which(W >= thresholds[row(W)] & row(W) != col(W), arr.ind = TRUE)
+      if (nrow(triplets) > 0) {
+        W <- Matrix::sparseMatrix(
+          i = triplets[, 1],
+          j = triplets[, 2], 
+          x = W[triplets],
+          dims = c(N, N)
+        )
+        # Symmetrize by taking maximum
+        W <- pmax(W, Matrix::t(W))
+      } else {
+        # Fallback if no entries meet threshold
+        W <- Matrix::Matrix(W, sparse = TRUE)
+      }
+    } else {
+      # Fallback without matrixStats - still avoid full sorting
+      # Convert to triplet form keeping only top k per row
+      i_vec <- integer(0)
+      j_vec <- integer(0)
+      x_vec <- numeric(0)
+      
+      for (i in 1:N) {
+        # Use partial sort to find threshold
+        row_vals <- W[i, ]
+        threshold <- sort.int(row_vals, partial = N - k_nn_sparse + 1, decreasing = TRUE)[N - k_nn_sparse + 1]
+        # Keep values above threshold
+        keep_idx <- which(row_vals >= threshold & seq_len(N) != i)
+        if (length(keep_idx) > k_nn_sparse) {
+          # If ties, keep exactly k_nn_sparse
+          keep_idx <- keep_idx[order(row_vals[keep_idx], decreasing = TRUE)[1:k_nn_sparse]]
+        }
+        if (length(keep_idx) > 0) {
+          i_vec <- c(i_vec, rep(i, length(keep_idx)))
+          j_vec <- c(j_vec, keep_idx)
+          x_vec <- c(x_vec, row_vals[keep_idx])
+        }
+      }
+      
+      if (length(i_vec) > 0) {
+        W <- Matrix::sparseMatrix(i = i_vec, j = j_vec, x = x_vec, dims = c(N, N))
+        # Symmetrize
+        W <- pmax(W, Matrix::t(W))
+      } else {
+        W <- Matrix::Matrix(W, sparse = TRUE)
+      }
     }
   }
   
-  # Step 5: Create Markov matrix S = D^(-1) * W
-  # D is the degree matrix (diagonal matrix of row sums)
+  # Handle isolated nodes before creating Markov matrix
+  # Calculate row sums to identify isolated nodes
   if (inherits(W, "Matrix")) {
     row_sums <- Matrix::rowSums(W)
   } else {
     row_sums <- rowSums(W)
   }
   
-  # Handle potential zero row sums (isolated nodes) or NA values
-  if (any(is.na(row_sums)) || any(row_sums == 0)) {
-    if (any(is.na(row_sums))) {
-      warning("Some row sums are NA. Setting to 1.")
-      row_sums[is.na(row_sums)] <- 1
+  # Fix isolated nodes by making them self-connected
+  isolated_nodes <- which(row_sums == 0)
+  if (length(isolated_nodes) > 0) {
+    warning(paste("Found", length(isolated_nodes), "isolated nodes. Making them self-connected."))
+    # Modify W in place to add self-connections
+    if (inherits(W, "Matrix")) {
+      # For sparse matrices, add diagonal entries
+      W <- W + Matrix::Diagonal(N, x = ifelse(seq_len(N) %in% isolated_nodes, 1, 0))
+    } else {
+      # For dense matrices, set diagonal entries
+      diag(W)[isolated_nodes] <- 1
     }
-    if (any(row_sums == 0)) {
-      warning("Some HRFs have zero affinity to all others. Setting their row to uniform distribution.")
-      row_sums[row_sums == 0] <- 1
+    # Recalculate row sums after modification
+    if (inherits(W, "Matrix")) {
+      row_sums <- Matrix::rowSums(W)
+    } else {
+      row_sums <- rowSums(W)
     }
   }
+  
+  # Handle potential NA values
+  if (any(is.na(row_sums))) {
+    warning("Some row sums are NA. Setting to 1.")
+    row_sums[is.na(row_sums)] <- 1
+  }
+  
+  # Step 5: Create Markov matrix S = D^(-1) * W
+  # D is the degree matrix (diagonal matrix of row sums)
   
   # Compute Markov matrix S
   if (inherits(W, "Matrix")) {
@@ -225,9 +301,19 @@ calculate_manifold_affinity_core_safe <- function(L_library_matrix,
       ann_threshold = ann_threshold
     )
   }, error = function(e) {
-    warning("Manifold affinity failed, using simple distance matrix: ", e$message)
+    warning("Manifold affinity failed, falling back to a simple Gaussian kernel: ", e$message)
     dist_mat <- as.matrix(dist(t(L_library_matrix)))
-    exp(-dist_mat^2 / median(dist_mat)^2)
+    # Use a robust scaling factor, median of non-zero distances
+    median_dist <- median(dist_mat[upper.tri(dist_mat)])
+    W_fallback <- exp(-dist_mat^2 / median_dist^2)
+    diag(W_fallback) <- 0 # No self-affinity before normalization
+    
+    # Row-normalize to create a Markov matrix S
+    row_sums_fallback <- rowSums(W_fallback)
+    row_sums_fallback[row_sums_fallback == 0] <- 1 # Handle isolated points
+    S_fallback <- sweep(W_fallback, 1, row_sums_fallback, "/")
+    
+    return(S_fallback)
   })
 }
 

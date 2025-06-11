@@ -12,6 +12,7 @@ apply_intrinsic_identifiability_core(
   ident_scale_method = "l2_norm",
   ident_sign_method = "canonical_correlation",
   zero_tol = 1e-08,
+  correlation_threshold = 0.001,
   Y_proj_matrix = NULL,
   X_condition_list_proj_matrices = NULL,
   consistency_check = FALSE,
@@ -27,6 +28,7 @@ apply_intrinsic_identifiability_core(
   ident_scale_method = "l2_norm",
   ident_sign_method = "canonical_correlation",
   zero_tol = 1e-08,
+  correlation_threshold = 0.001,
   Y_proj_matrix = NULL,
   X_condition_list_proj_matrices = NULL,
   consistency_check = FALSE,
@@ -55,12 +57,18 @@ maximum absolute value (for "max_abs_val") of a voxel's HRF is below this
 threshold, both \code{Xi_ident_matrix} and \code{Beta_ident_matrix} are set
 to zero for that voxel.}
 
+\item{correlation_threshold}{Numeric threshold for canonical correlation
+(default 1e-3). When the absolute correlation between a voxel's HRF and
+the reference HRF falls below this threshold, the sign is determined
+using the RMS rule (sign of sum of HRF values) instead.}
+
 \item{consistency_check}{Logical; if TRUE, the reconstructed HRF is
 re-projected after sign/scale alignment and verified against the
 canonical shape. Voxels failing the check are flipped to ensure
 consistent orientation.}
 
-\item{n_jobs}{Number of parallel jobs for voxel processing (default 1).}
+\item{n_jobs}{Number of parallel jobs for voxel processing (default 1).
+Only used when ident_sign_method = "data_fit_correlation".}
 
 \item{verbose}{Logical; if TRUE, print progress messages for each voxel.
 Default FALSE to avoid message spam.}
@@ -83,12 +91,12 @@ It ensures that HRF estimates are identifiable by:
 \enumerate{
 \item Aligning sign with a reference HRF (avoiding arbitrary sign flips)
 \item Normalizing scale consistently across voxels
-}
 The chosen sign alignment method is reported via \code{message()}.
-When the absolute correlation with the canonical HRF falls below \code{1e-3}, a
-warning is produced and the sign is determined using the RMS rule
-(the sign of the sum of the HRF). Setting
-\code{consistency_check = TRUE} reprojects each HRF and revalidates the sign.
+If the absolute correlation with the canonical HRF is below
+\code{1e-3}, a warning is issued and the sign is determined using
+the RMS rule (sign of the sum of the HRF). When
+\code{consistency_check = TRUE}, each voxel's HRF is reprojected and the
+alignment with the canonical shape is reverified.
 The beta amplitudes are adjusted inversely to preserve the overall signal.
 Voxels whose reconstructed HRFs fall below \code{zero_tol} are zeroed in
 both returned matrices.

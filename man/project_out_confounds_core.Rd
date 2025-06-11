@@ -40,11 +40,13 @@ using QR decomposition.
 }
 \details{
 This function implements Component 1, Step 1 of the M-HRF-LSS pipeline.
-It uses QR decomposition to efficiently project out confound regressors from
-both the data and design matrices. If \code{Z_confounds_matrix} is \code{NULL},
-the original matrices are returned unchanged. Rank-deficient confound
-matrices are automatically reduced to their independent columns with a
-warning. Missing values are not allowed.
+It uses SVD decomposition to robustly detect rank and project out confound
+regressors from both the data and design matrices. If \code{Z_confounds_matrix}
+is \code{NULL}, the original matrices are returned unchanged. Rank-deficient
+confound matrices are automatically reduced to their independent columns with a
+warning. The SVD approach provides superior numerical stability compared to
+QR decomposition when dealing with near-collinear confounds. Missing values
+are not allowed.
 }
 \examples{
 \dontrun{

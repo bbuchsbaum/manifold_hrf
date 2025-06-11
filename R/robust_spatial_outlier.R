@@ -18,8 +18,12 @@ compute_local_snr <- function(Y_data, Y_predicted = NULL,
   if (method == "temporal_variance") {
     # SNR based on temporal variance using matrixStats
     signal_var <- matrixStats::colVars(Y_data)
-    diff_mat <- matrixStats::rowDiffs(Y_data)
+    
+    # Vectorized computation of temporal differences within each column
+    n <- nrow(Y_data)
+    diff_mat <- Y_data[2:n, , drop = FALSE] - Y_data[1:(n-1), , drop = FALSE]
     noise_mad <- matrixStats::colMedians(abs(diff_mat)) * 1.4826
+    
     noise_var <- noise_mad^2
     snr <- signal_var / (noise_var + .Machine$double.eps)
   } else if (method == "residual" && !is.null(Y_predicted)) {
@@ -152,7 +156,7 @@ apply_spatial_smoothing_adaptive <- function(Xi_ident_matrix,
 #' @param edge_threshold Threshold for edge detection
 #' @param n_neighbors Number of nearest neighbors used for gradient computation
 #' @return Vector of edge weights (0 = edge, 1 = smooth region)
-#' @keywords internal
+#' @export
 compute_edge_weights <- function(Xi_matrix, voxel_coords,
                                  edge_threshold = 2, n_neighbors = 26) {
 
@@ -166,11 +170,13 @@ compute_edge_weights <- function(Xi_matrix, voxel_coords,
   # Compute local gradient magnitude using neighbor lists
   for (v in seq_len(V)) {
     neighbors <- neighbor_idx[v, ]
-    xi_v <- Xi_matrix[, v, drop = FALSE]
+    xi_v <- Xi_matrix[, v]
     xi_neighbors <- Xi_matrix[, neighbors, drop = FALSE]
 
     # Mean squared difference to neighbors
-    gradient_mag <- mean(colSums((xi_neighbors - xi_v)^2))
+    # Ensure proper broadcasting by using sweep
+    diff_mat <- sweep(xi_neighbors, 1, xi_v, "-")
+    gradient_mag <- mean(colSums(diff_mat^2))
 
     # Convert to weight (high gradient → low weight)
     if (gradient_mag > edge_threshold) {
@@ -198,26 +204,21 @@ detect_outlier_timepoints <- function(Y_data, threshold = 3, min_weight = 0.1) {
 
   # Initialize weights
   weights <- matrix(1, n, V)
-
-  # Column-wise robust center and scale
-  y_median <- matrixStats::colMedians(Y_data)
-  y_mad <- matrixStats::colMads(Y_data, center = y_median, constant = 1.4826)
-
-  valid_cols <- which(y_mad > .Machine$double.eps)
   n_outliers_total <- 0
 
-  if (length(valid_cols) > 0) {
-    z_scores <- abs(sweep(Y_data[, valid_cols, drop = FALSE], 2,
-                          y_median[valid_cols], "-")) / y_mad[valid_cols]
-    outlier_mask <- z_scores > threshold
-    n_outliers_total <- sum(outlier_mask)
-
-    if (n_outliers_total > 0) {
-      adjust <- 1 - (z_scores - threshold) / threshold
-      adjust <- pmax(min_weight, adjust)
-      weights_subset <- weights[, valid_cols, drop = FALSE]
-      weights_subset[outlier_mask] <- adjust[outlier_mask]
-      weights[, valid_cols] <- weights_subset
+  # Process each column to ensure exact consistency
+  for (v in seq_len(V)) {
+    y <- Y_data[, v]
+    y_med <- median(y)
+    y_mad <- median(abs(y - y_med)) * 1.4826
+    
+    if (y_mad > .Machine$double.eps) {
+      z <- abs(y - y_med) / y_mad
+      idx <- which(z > threshold)
+      if (length(idx) > 0) {
+        weights[idx, v] <- pmax(min_weight, 1 - (z[idx] - threshold) / threshold)
+        n_outliers_total <- n_outliers_total + length(idx)
+      }
     }
   }
 
@@ -262,13 +263,16 @@ screen_voxels <- function(Y_data,
   y_diff_median <- matrixStats::colMedians(Y_diff)
   y_diff_mad <- matrixStats::colMads(Y_diff, center = y_diff_median, constant = 1.4826)
 
-  valid_mad <- y_diff_mad > 0
-  if (any(valid_mad)) {
+  valid_mad <- !is.na(y_diff_mad) & y_diff_mad > 0
+  if (any(valid_mad, na.rm = TRUE)) {
     spike_threshold <- y_diff_median + 5 * y_diff_mad
-    spike_mask <- Y_diff[, valid_mad, drop = FALSE] >
-      matrix(spike_threshold[valid_mad], nrow = n - 1, ncol = sum(valid_mad), byrow = TRUE)
-    spike_fraction <- colMeans(spike_mask)
-    flag_voxel[valid_mad][spike_fraction > max_spike_fraction] <- TRUE
+    n_valid <- sum(valid_mad, na.rm = TRUE)
+    if (n_valid > 0) {
+      spike_mask <- Y_diff[, valid_mad, drop = FALSE] >
+        matrix(spike_threshold[valid_mad], nrow = n - 1, ncol = n_valid, byrow = TRUE)
+      spike_fraction <- colMeans(spike_mask, na.rm = TRUE)
+      flag_voxel[valid_mad][spike_fraction > max_spike_fraction] <- TRUE
+    }
   }
 
   q_mask <- !(non_finite | low_variance)

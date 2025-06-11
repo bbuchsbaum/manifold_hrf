@@ -22,6 +22,11 @@ adjust_hrf_for_bounds <- function(hrf, max_timepoints) {
   if (!is.numeric(hrf)) {
     stop("hrf must be numeric")
   }
+  
+  if (!is.numeric(max_timepoints) || length(max_timepoints) != 1 || 
+      max_timepoints < 0 || max_timepoints != round(max_timepoints)) {
+    stop("max_timepoints must be a non-negative integer")
+  }
 
   if (length(hrf) > max_timepoints) {
     warning("HRF truncated to fit within available timepoints")
@@ -66,7 +71,17 @@ select_manifold_dim <- function(eigenvalues, min_var = 0.95) {
   }
 
   # Exclude the trivial eigenvalue
-  eig <- abs(eigenvalues[-1])
+  eig <- eigenvalues[-1]
+  
+  # Check for negative eigenvalues (indicates numerical issues)
+  if (any(eig < -1e-10)) {
+    warning(sprintf(
+      "Found %d negative eigenvalues (min: %.6e). This may indicate numerical issues in manifold construction. Using abs() to proceed.",
+      sum(eig < -1e-10), min(eig)
+    ))
+    eig <- abs(eig)
+  }
+  
   total <- sum(eig)
 
   if (total <= 0) {
@@ -112,6 +127,16 @@ select_manifold_dim <- function(eigenvalues, min_var = 0.95) {
 #' @return Logical indicating whether precomputation is feasible.
 #' @keywords internal
 check_ram_feasibility <- function(T_trials, V, ram_limit_GB) {
+  if (!is.numeric(T_trials) || length(T_trials) != 1 || T_trials <= 0) {
+    stop("T_trials must be a positive numeric scalar")
+  }
+  if (!is.numeric(V) || length(V) != 1 || V <= 0) {
+    stop("V must be a positive numeric scalar")
+  }
+  if (!is.numeric(ram_limit_GB) || length(ram_limit_GB) != 1 || ram_limit_GB <= 0) {
+    stop("ram_limit_GB must be a positive numeric scalar")
+  }
+  
   expected_GB <- (T_trials * V * 8) / 1e9
   feasible <- expected_GB < ram_limit_GB
   if (!feasible) {

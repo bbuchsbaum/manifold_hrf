@@ -111,9 +111,10 @@ mhrf_lss <- function(formula,
   if (verbose) message("Building event model...")
   
   # Get sampling frame from dataset
-  sframe <- fmrireg::sampling_frame(
+  sframe <- fmrihrf::sampling_frame(
     blocklens = dataset$run_length,
-    TR = dataset$TR
+    TR = dataset$TR,
+    start_times = dataset$start_times
   )
   
   # Create event model
@@ -233,9 +234,14 @@ mhrf_lss <- function(formula,
 
 #' Create HRF Manifold from Various Sources
 #'
-#' Internal function to create HRF manifold compatible with fmrireg
+#' Creates HRF manifold compatible with fmrireg
 #'
-#' @keywords internal
+#' @param hrf_library HRF library specification
+#' @param params Parameters for manifold creation
+#' @param TR Repetition time
+#' @param verbose Logical indicating whether to print messages
+#' @return Manifold object
+#' @export
 create_hrf_manifold <- function(hrf_library, params, TR, verbose = TRUE) {
   
   # Handle parameter presets
@@ -251,33 +257,34 @@ create_hrf_manifold <- function(hrf_library, params, TR, verbose = TRUE) {
   hrf_duration <- params$hrf_duration %||% 24
   time_points <- seq(0, hrf_duration, by = TR)
 
+  # Handle different types of HRF libraries
   if (inherits(hrf_library, "HRF")) {
-    L_library <- matrix(as.numeric(fmrireg::evaluate(hrf_library, time_points)),
+    # Single fmrihrf HRF object
+    L_library <- matrix(as.numeric(fmrihrf::evaluate(hrf_library, time_points)),
                         ncol = 1)
-  } else if (is.list(hrf_library) && all(sapply(hrf_library, inherits, "HRF"))) {
+    n_hrfs <- 1L
+  } else if (is.list(hrf_library)) {
+    # List of fmrihrf HRF objects
     L_library <- do.call(cbind, lapply(hrf_library, function(h) {
-      as.numeric(fmrireg::evaluate(h, time_points))
+      as.numeric(fmrihrf::evaluate(h, time_points))
     }))
-  } else if (is.character(hrf_library) && length(hrf_library) == 1) {
-    if (hrf_library %in% c("canonical", "spmg1")) {
+    n_hrfs <- length(hrf_library)
+  } else if (is.character(hrf_library)) {
+    # String specifying HRF library
+    if (hrf_library == "spmg1" || hrf_library == "canonical") {
       hrf_objs <- list(
-        fmrireg::HRF_SPMG1,
-        fmrireg::HRF_SPMG2,
-        fmrireg::HRF_SPMG3
+        fmrihrf::HRF_SPMG1,
+        fmrihrf::HRF_SPMG2,
+        fmrihrf::HRF_SPMG3
       )
-    } else if (hrf_library %in% c("gamma", "gamma_grid", "auto")) {
-      hrf_objs <- create_gamma_grid_library(TR_precision = TR,
-                                            hrf_duration = hrf_duration)
     } else if (hrf_library == "flobs") {
-      hrf_objs <- create_flobs_library(TR_precision = TR,
-                                       hrf_duration = hrf_duration)
-    } else {
-      stop("Unknown HRF library type: ", hrf_library)
+      hrf_objs <- manifoldhrf::get_flobs_hrf_library(time_points)
     }
-
+    
     L_library <- do.call(cbind, lapply(hrf_objs, function(h) {
-      as.numeric(fmrireg::evaluate(h, time_points))
+      as.numeric(fmrihrf::evaluate(h, time_points))
     }))
+    n_hrfs <- length(hrf_objs)
   } else if (is.matrix(hrf_library)) {
     L_library <- hrf_library
   } else {
@@ -385,13 +392,13 @@ create_trial_matrices <- function(event_model, event_table, sframe) {
     hrf_obj <- terms[[1]]$hrf
   } else {
     # Default to canonical HRF
-    hrf_obj <- fmrireg::HRF_SPMG1
+    hrf_obj <- fmrihrf::HRF_SPMG1
   }
   
   p <- hrf_obj$nbasis
   
   # Get the sampling times
-  times <- sframe$time
+  times <- fmrihrf::samples(sframe)
   
   X_trial_list <- list()
   
@@ -406,7 +413,7 @@ create_trial_matrices <- function(event_model, event_table, sframe) {
     block_times <- times[sframe$block == block_id]
     
     # Create regressor for this trial
-    trial_reg <- fmrireg::regressor(
+    trial_reg <- fmrihrf::regressor(
       onsets = onset_time,
       hrf = hrf_obj,
       duration = duration,
@@ -415,7 +422,7 @@ create_trial_matrices <- function(event_model, event_table, sframe) {
     )
     
     # Evaluate at the block times
-    hrf_values <- fmrireg::evaluate(trial_reg, block_times - block_times[1])
+    hrf_values <- fmrihrf::evaluate(trial_reg, block_times - block_times[1])
     
     # Create full design matrix (accounting for all timepoints)
     X_trial <- matrix(0, n_time, p)
@@ -475,7 +482,8 @@ run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
   xi_beta <- extract_xi_beta_raw_svd_robust(
     Gamma_coeffs_matrix = Gamma_coeffs,
     m_manifold_dim = manifold$m_manifold_dim,
-    k_conditions = design_info$n_conditions
+    k_conditions = design_info$n_conditions,
+    verbose_warnings = FALSE
   )
   
   # 5. Apply identifiability constraints

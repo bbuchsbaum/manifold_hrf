@@ -26,4 +26,3 @@ Vector of edge weights (0 = edge, 1 = smooth region)
 \description{
 Detects edges in manifold coordinates to reduce smoothing across boundaries
 }
-\keyword{internal}

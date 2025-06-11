@@ -32,6 +32,7 @@ HRF shapes from Component 3}
 \item \code{rel_change_tol}: Relative change tolerance for convergence
 (default 1e-4)
 }}
+
 \item{n_jobs}{Number of parallel workers for voxel-wise computation.}
 }
 \value{
@@ -82,8 +83,7 @@ H_shapes <- matrix(rnorm(p * V), p, V)
 Beta_final <- estimate_final_condition_betas_core(
   Y_proj, X_cond_list, H_shapes,
   lambda_beta_final = 0.01,
-  control_alt_list = list(max_iter = 1),
-  n_jobs = 1
+  control_alt_list = list(max_iter = 1)
 )
 }
 

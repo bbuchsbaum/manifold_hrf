@@ -2,7 +2,7 @@
 % Please edit documentation in R/core_lss.R
 \name{prepare_projection_matrix}
 \alias{prepare_projection_matrix}
-\title{Prepare Projection Matrix}
+\title{Prepare Projection Matrix (Deprecated)}
 \usage{
 prepare_projection_matrix(Z_confounds, lambda = 1e-06)
 }
@@ -15,5 +15,5 @@ prepare_projection_matrix(Z_confounds, lambda = 1e-06)
 Projection matrix (n x n)
 }
 \description{
-Creates a projection matrix that removes confound space
+Prepare Projection Matrix (Deprecated)
 }

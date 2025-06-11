@@ -417,8 +417,8 @@ test_that("M-HRF-LSS trial-wise estimation is unbiased and efficient compared to
     Y_proj_voxel_vector = as.vector(Y_proj[, test_voxel]),
     X_trial_onset_list_of_matrices = X_trials,
     H_shape_voxel_vector = h_v,
-    P_confound = prepare_projection_matrix(A_fixed, 1e-6),
-    lambda_ridge = 1e-6
+    Z_confounds = A_fixed,
+    lambda = 0
   )
   
   # Check that we get reasonable values

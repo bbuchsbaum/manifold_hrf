@@ -2,6 +2,8 @@
 % Please edit documentation in R/core_lss.R
 \name{run_lss_voxel_loop_core}
 \alias{run_lss_voxel_loop_core}
+\alias{run_lsa_voxel_loop}
+\alias{run_lsa_for_voxel_corrected_full}
 \title{Run LSS Across Voxels (Core)}
 \usage{
 run_lss_voxel_loop_core(
@@ -9,27 +11,53 @@ run_lss_voxel_loop_core(
   X_trial_onset_list_of_matrices,
   H_shapes_allvox_matrix,
   A_lss_fixed_matrix,
-  lambda_ridge = 1e-06,
-  n_jobs = 1
+  P_lss_matrix,
+  p_lss_vector,
+  n_jobs = 1,
+  ram_heuristic_GB_for_Rt = 1
+)
+
+run_lsa_voxel_loop(
+  Y_proj_matrix,
+  X_trial_onset_list_of_matrices,
+  H_shapes_allvox_matrix,
+  A_lss_fixed_matrix,
+  P_lss_matrix,
+  p_lss_vector,
+  n_jobs = 1,
+  ram_heuristic_GB_for_Rt = 1
+)
+
+run_lsa_for_voxel_corrected_full(
+  Y_proj_voxel_vector,
+  X_trial_onset_list_of_matrices,
+  H_shape_voxel_vector,
+  A_lss_fixed_matrix,
+  P_lss_matrix,
+  p_lss_vector
 )
 }
 \arguments{
-\item{Y_proj_matrix}{n x V projected BOLD data matrix.}
+\item{Y_proj_matrix}{n x V projected BOLD data matrix}
 
-\item{X_trial_onset_list_of_matrices}{List of length T with n x p design matrices.}
+\item{X_trial_onset_list_of_matrices}{List of length T with n x p design matrices}
 
-\item{H_shapes_allvox_matrix}{p x V matrix of HRF shapes.}
+\item{H_shapes_allvox_matrix}{p x V matrix of HRF shapes}
 
-\item{A_lss_fixed_matrix}{n x q matrix of fixed regressors.}
+\item{A_lss_fixed_matrix}{n x q matrix of fixed regressors}
 
-\item{lambda_ridge}{Ridge regularization applied when projecting out confounds.}
+\item{P_lss_matrix}{q x n matrix from \code{prepare_lss_fixed_components_core}}
 
-\item{n_jobs}{Number of parallel workers for voxel-wise computation.}
+\item{p_lss_vector}{Intercept projection vector (unused)}
+
+\item{n_jobs}{Number of parallel workers for voxel-wise computation}
+
+\item{ram_heuristic_GB_for_Rt}{RAM limit in gigabytes (currently unused)}
 }
 \value{
-A T x V matrix of trial-wise beta estimates.
+A T x V matrix of trial-wise beta estimates
 }
 \description{
-Computes trial-wise LSS estimates for all voxels using the
-mathematically correct implementation.
+Computes trial-wise LSS estimates for all voxels using parallel processing.
+Routes all computation through the fmrilss package.
 }

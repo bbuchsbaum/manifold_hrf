@@ -107,7 +107,7 @@ test_that("Woodbury LSS matches theoretical derivation", {
     Y_proj_voxel_vector = as.vector(y_proj),
     X_trial_onset_list_of_matrices = X_trials,
     H_shape_voxel_vector = h,
-    lambda_ridge = lambda
+    P_confound = P_Z
   )
   
   # ========================================================================
@@ -298,7 +298,7 @@ test_that("Corrected Woodbury implementation matches direct LSS", {
     Y_proj_voxel_vector = as.vector(y_proj),
     X_trial_onset_list_of_matrices = X_trials,
     H_shape_voxel_vector = h,
-    lambda_ridge = 1e-6
+    P_confound = P_Z
   )
   
   cat("\n=== Comparison of Methods ===\n")

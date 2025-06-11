@@ -26,6 +26,6 @@ implemented for \code{mhrf_result} and matrix inputs.}
 A list of \code{fmrireg::HRF} objects.
 }
 \description{
-Creates a list of \code{fmrireg::empirical_hrf} objects from either an
+Creates a list of \code{fmrihrf::empirical_hrf} objects from either an
 \code{mhrf_result} object or a raw matrix of HRF shapes.
 }

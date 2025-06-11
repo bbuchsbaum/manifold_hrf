@@ -26,9 +26,8 @@ make_voxel_graph_laplacian_core(
 
 \item{distance_engine}{Choice of distance computation engine. "euclidean"
 performs an exact search while "ann_euclidean" uses approximate nearest
-neighbors via the \pkg{RcppHNSW} package. If the package is not available
-and this option is selected, the function falls back to the exact search
-with a warning.}
+neighbors via the \pkg{RcppHNSW} package. If \pkg{RcppHNSW} is not available,
+the function falls back to the exact search and issues a warning.}
 
 \item{ann_threshold}{When \code{distance_engine = "euclidean"}, use the
 approximate search for datasets larger than this threshold if
@@ -46,12 +45,11 @@ k-nearest neighbors in 3D voxel space.
 \details{
 This function implements Component 2, Step 1 of the M-HRF-LSS pipeline.
 It constructs a k-nearest neighbor graph from voxel coordinates and computes
-the normalized graph Laplacian L = D - W, where W is the adjacency matrix
-and D is the degree matrix. The resulting Laplacian is used for spatial
-smoothing of manifold coordinates.
-If \code{distance_engine = "ann_euclidean"} but the required
-\pkg{RcppHNSW} package is missing, the function silently falls back to the
-exact search and issues a warning.
+the combinatorial graph Laplacian L = D - W, where W is the symmetrized
+binary adjacency matrix and D is the degree matrix. The initial k-NN graph
+is directed (each voxel points to its k nearest neighbors), which is then
+symmetrized by taking the maximum of W and its transpose. The resulting
+Laplacian is used for spatial smoothing of manifold coordinates.
 }
 \examples{
 \dontrun{

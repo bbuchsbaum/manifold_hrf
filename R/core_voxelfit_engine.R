@@ -174,6 +174,7 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #' @param regularization_factor Multiplier for diagonal regularization
 #' @param max_condition_number Threshold for conditioning warning
 #' @param use_randomized_svd Logical, use randomized SVD if available
+#' @param verbose_warnings If TRUE, show individual voxel regularization warnings
 #' @param logger Optional logger object
 #' @return list with Xi_raw_matrix, Beta_raw_matrix, and quality metrics
 #' @export
@@ -183,6 +184,7 @@ extract_xi_beta_raw_svd_robust <- function(Gamma_coeffs_matrix,
                                            regularization_factor = 10,
                                            max_condition_number = 1e8,
                                            use_randomized_svd = FALSE,
+                                           verbose_warnings = FALSE,
                                            logger = NULL) {
 
   km <- nrow(Gamma_coeffs_matrix)
@@ -222,7 +224,9 @@ extract_xi_beta_raw_svd_robust <- function(Gamma_coeffs_matrix,
         reg_amount <- (cn / max_condition_number) * regularization_factor * .Machine$double.eps
         diag(Gamma_mat) <- diag(Gamma_mat) + reg_amount
         quality_metrics$regularization_applied[v] <- TRUE
-        warning(sprintf("Voxel %d: Applied regularization due to condition number %.2e", v, cn))
+        if (verbose_warnings) {
+          warning(sprintf("Voxel %d: Applied regularization due to condition number %.2e", v, cn))
+        }
       }
     }
 

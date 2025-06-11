@@ -2,14 +2,25 @@
 % Please edit documentation in R/core_lss.R
 \name{run_lss_woodbury_corrected}
 \alias{run_lss_woodbury_corrected}
-\title{Run Woodbury LSS for Single Voxel}
+\alias{run_lsa_woodbury}
+\title{Run LSS Woodbury for Single Voxel (Backward Compatibility)}
 \usage{
 run_lss_woodbury_corrected(
   Y_proj_voxel_vector,
   X_trial_onset_list_of_matrices,
   H_shape_voxel_vector,
   P_confound = NULL,
-  lambda_ridge = 1e-06
+  Z_confounds = NULL,
+  lambda = 0
+)
+
+run_lsa_woodbury(
+  Y_proj_voxel_vector,
+  X_trial_onset_list_of_matrices,
+  H_shape_voxel_vector,
+  P_confound = NULL,
+  Z_confounds = NULL,
+  lambda = 0
 )
 }
 \arguments{
@@ -19,14 +30,15 @@ run_lss_woodbury_corrected(
 
 \item{H_shape_voxel_vector}{HRF shape vector (p x 1)}
 
-\item{P_confound}{Projection matrix used to remove confound effects. If
-\code{NULL}, no projection is applied.}
+\item{P_confound}{Projection matrix (n x n) - deprecated parameter}
 
-\item{lambda_ridge}{Ridge regularization parameter}
+\item{Z_confounds}{Confound matrix (n x q)}
+
+\item{lambda}{Ridge regularization (unused)}
 }
 \value{
 Vector of trial-wise betas
 }
 \description{
-Memory-efficient implementation using Woodbury matrix identity
+Run LSS Woodbury for Single Voxel (Backward Compatibility)
 }

@@ -18,10 +18,10 @@ test_that("HRF_RAW_EVENT_BASIS creates valid HRF basis", {
 # Test as_fmrireg_hrfs ---------------------------------------------------------
 
 test_that("as_fmrireg_hrfs converts matrices and mhrf_result objects", {
-  skip_if_not_installed("fmrireg")
-
+  skip_if_not_installed("fmrihrf")
+  
   mat <- matrix(rnorm(20), 5, 4)
-  hrfs <- as_fmrireg_hrfs(mat, TR = 2, prefix = "vox")
+  hrfs <- manifoldhrf::as_fmrireg_hrfs(mat, TR = 2, prefix = "vox")
   expect_length(hrfs, 4)
   expect_s3_class(hrfs[[1]], "HRF")
   expect_equal(attr(hrfs[[1]], "span"), 8)
@@ -33,14 +33,14 @@ test_that("as_fmrireg_hrfs converts matrices and mhrf_result objects", {
     ),
     class = "mhrf_result"
   )
-  hrfs2 <- as_fmrireg_hrfs(result_obj, prefix = "vox")
+  hrfs2 <- manifoldhrf::as_fmrireg_hrfs(result_obj, prefix = "vox")
   expect_equal(length(hrfs2), 4)
 })
 
 # Test create_logger -----------------------------------------------------------
 
 test_that("create_logger records and prints messages", {
-  logger <- create_logger()
+  logger <- manifoldhrf::create_logger()
   expect_s3_class(logger, "mhrf_logger")
 
   logger$add("first message")

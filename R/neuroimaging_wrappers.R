@@ -109,7 +109,7 @@ construct_hrf_manifold_nim <- function(hrf_library_source,
     if (is.list(library_list_or_matrix) && all(sapply(library_list_or_matrix, inherits, "HRF"))) {
       library_info$n_hrfs <- length(library_list_or_matrix)
       L_library_matrix <- do.call(cbind, lapply(library_list_or_matrix, function(h) {
-        as.numeric(fmrireg::evaluate(h, time_points))
+        as.numeric(fmrihrf::evaluate(h, time_points))
       }))
     } else if (is.matrix(library_list_or_matrix)) {
       L_library_matrix <- library_list_or_matrix
@@ -132,7 +132,7 @@ construct_hrf_manifold_nim <- function(hrf_library_source,
     if (all(sapply(hrf_library_source, inherits, "HRF"))) {
       # Evaluate each fmrireg HRF object
       L_library_matrix <- do.call(cbind, lapply(hrf_library_source, function(hrf_obj) {
-        as.numeric(fmrireg::evaluate(hrf_obj, time_points))
+        as.numeric(fmrihrf::evaluate(hrf_obj, time_points))
       }))
     } else {
       # Fallback: treat as generic list and generate dummy HRFs (backwards compatibility)
@@ -367,14 +367,14 @@ create_manifold_hrf_object <- function(B_reconstructor, name, nbasis) {
 
   basis_functions <- vector("list", nbasis)
   for (j in seq_len(nbasis)) {
-    basis_functions[[j]] <- fmrireg::empirical_hrf(
+    basis_functions[[j]] <- fmrihrf::empirical_hrf(
       time_points,
       B_reconstructor[, j],
       name = paste0(name, "_basis", j)
     )
   }
 
-  manifold_hrf <- do.call(fmrireg::bind_basis, basis_functions)
+  manifold_hrf <- do.call(fmrihrf::bind_basis, basis_functions)
   attr(manifold_hrf, "name") <- name
   attr(manifold_hrf, "nbasis") <- nbasis
   class(manifold_hrf) <- c("mhrf_basis", class(manifold_hrf))
@@ -472,7 +472,7 @@ process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
   mask_idx <- which(as.logical(mask))
   Y_mat <- Y_mat[, mask_idx, drop = FALSE]
 
-  sframe <- fmrireg::sampling_frame(blocklens = nrow(Y_mat), TR = TR)
+  sframe <- fmrihrf::sampling_frame(blocklens = nrow(Y_mat), TR = TR)
   ev_model <- fmrireg::event_model(~ hrf(onset, basis = manifold_objects$manifold_hrf_basis),
                                    data = events, sampling_frame = sframe, drop_empty = TRUE)
   design_info <- extract_design_info(ev_model, sframe)

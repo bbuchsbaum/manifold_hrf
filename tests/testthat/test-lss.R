@@ -291,7 +291,7 @@ test_that("run_lss_for_voxel_corrected_full validates inputs", {
       P_lss_matrix = lss_prep$P_lss_matrix,
       p_lss_vector = lss_prep$p_lss_vector
     ),
-    "subscript out of bounds"
+    "cannot be empty"
   )
   
   # Test dimension mismatches

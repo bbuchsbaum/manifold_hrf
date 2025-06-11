@@ -6,7 +6,18 @@
 \usage{
 create_hrf_manifold(hrf_library, params, TR, verbose = TRUE)
 }
-\description{
-Internal function to create HRF manifold compatible with fmrireg
+\arguments{
+\item{hrf_library}{HRF library specification}
+
+\item{params}{Parameters for manifold creation}
+
+\item{TR}{Repetition time}
+
+\item{verbose}{Logical indicating whether to print messages}
 }
-\keyword{internal}
+\value{
+Manifold object
+}
+\description{
+Creates HRF manifold compatible with fmrireg
+}

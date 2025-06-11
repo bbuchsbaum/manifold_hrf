@@ -9,4 +9,14 @@
 library(testthat)
 library(manifoldhrf)
 
+# Configure backtrace display: keep for errors, suppress for warnings
+# - Errors show simplified backtraces for debugging
+# - Warnings suppress backtraces to reduce clutter
+options(
+  rlang_backtrace_on_error = "branch",          # Show simplified backtrace for errors
+  rlang_backtrace_on_warning = "none",          # Suppress backtrace for warnings
+  rlang_backtrace_on_error_report = "branch",   # Show simplified backtrace for errors in reports
+  rlang_backtrace_on_warning_report = "none"    # Suppress backtrace for warnings in reports
+)
+
 test_check("manifoldhrf")

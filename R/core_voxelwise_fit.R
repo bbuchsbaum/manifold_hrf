@@ -1,6 +1,123 @@
 # Core Voxel-wise Manifold Fit Functions (Component 1)
 # Implementation of MHRF-CORE-VOXFIT-01 through MHRF-CORE-VOXFIT-05
 
+# Internal helper function for vectorized canonical correlation identifiability
+.apply_identifiability_vectorized <- function(Xi_raw_matrix, Beta_raw_matrix,
+                                             B_reconstructor_matrix, h_ref_shape_vector,
+                                             scale_method, correlation_threshold,
+                                             zero_tol, consistency_check) {
+  
+  m <- nrow(Xi_raw_matrix)
+  V <- ncol(Xi_raw_matrix)
+  k <- nrow(Beta_raw_matrix)
+  p <- nrow(B_reconstructor_matrix)
+  
+  SCALE_OVERFLOW_THRESHOLD <- 1 / sqrt(.Machine$double.eps)
+  
+  # Step 1: Reconstruct all HRFs at once (p x V matrix)
+  H_matrix <- B_reconstructor_matrix %*% Xi_raw_matrix
+  
+  # Step 2: Vectorized correlation with h_ref
+  # Center h_ref
+  h_ref_c <- h_ref_shape_vector - mean(h_ref_shape_vector)
+  h_ref_norm <- sqrt(sum(h_ref_c^2))
+  
+  # For each column of H, compute correlation with h_ref
+  # Using efficient column-wise operations
+  H_means <- colMeans(H_matrix)
+  H_centered <- sweep(H_matrix, 2, H_means, "-")
+  H_norms <- sqrt(colSums(H_centered^2))
+  
+  # Compute correlations
+  correlations <- as.vector(crossprod(h_ref_c, H_centered)) / (h_ref_norm * H_norms)
+  correlations[is.na(correlations) | is.infinite(correlations)] <- 0
+  
+  # Step 3: Determine sign for all voxels
+  sgn_vec <- sign(correlations)
+  sgn_vec[sgn_vec == 0] <- 1
+  
+  # Fallback logic for low correlation (RMS rule)
+  low_corr_idx <- abs(correlations) < correlation_threshold
+  if (any(low_corr_idx)) {
+    h_sums <- colSums(H_matrix[, low_corr_idx, drop = FALSE])
+    fallback_sgn <- sign(h_sums)
+    fallback_sgn[fallback_sgn == 0] <- 1
+    sgn_vec[low_corr_idx] <- fallback_sgn
+  }
+  
+  # Step 4: Apply sign to Xi and Beta
+  Xi_signed <- sweep(Xi_raw_matrix, 2, sgn_vec, "*")
+  Beta_signed <- sweep(Beta_raw_matrix, 2, sgn_vec, "*")
+  
+  # Step 5: Reconstruct HRFs with correct sign for scaling
+  H_signed <- B_reconstructor_matrix %*% Xi_signed
+  
+  # Step 6: Apply scale normalization
+  if (scale_method == "l2_norm") {
+    # L2 norms of each column
+    l2_norms <- sqrt(colSums(H_signed^2))
+    # Handle zero norms
+    zero_idx <- l2_norms < zero_tol
+    scl_vec <- rep(1, V)
+    scl_vec[!zero_idx] <- 1 / pmax(l2_norms[!zero_idx], .Machine$double.eps)
+    
+  } else if (scale_method == "max_abs_val") {
+    # Maximum absolute value of each column
+    max_abs_vals <- apply(abs(H_signed), 2, max)
+    # Handle zero max values
+    zero_idx <- max_abs_vals < zero_tol
+    scl_vec <- rep(1, V)
+    scl_vec[!zero_idx] <- 1 / pmax(max_abs_vals[!zero_idx], .Machine$double.eps)
+    
+  } else {  # "none"
+    scl_vec <- rep(1, V)
+    zero_idx <- rep(FALSE, V)
+  }
+  
+  # Apply scaling
+  Xi_out <- sweep(Xi_signed, 2, scl_vec, "*")
+  Beta_out <- sweep(Beta_signed, 2, 1/scl_vec, "*")
+  
+  # Handle numerical overflow
+  overflow_idx <- scl_vec > SCALE_OVERFLOW_THRESHOLD
+  if (any(overflow_idx)) {
+    Beta_out[, overflow_idx] <- 0
+  }
+  
+  # Zero out voxels with no signal
+  if (any(zero_idx)) {
+    Xi_out[, zero_idx] <- 0
+    Beta_out[, zero_idx] <- 0
+  }
+  
+  # Step 7: Optional consistency check
+  if (consistency_check) {
+    # Reconstruct final HRFs
+    H_final <- B_reconstructor_matrix %*% Xi_out
+    
+    # Recompute correlations with h_ref for final check
+    H_final_means <- colMeans(H_final)
+    H_final_centered <- sweep(H_final, 2, H_final_means, "-")
+    H_final_norms <- sqrt(colSums(H_final_centered^2))
+    
+    final_correlations <- as.vector(crossprod(h_ref_c, H_final_centered)) / 
+                         (h_ref_norm * H_final_norms)
+    final_correlations[is.na(final_correlations)] <- 0
+    
+    # Flip voxels with negative correlation
+    flip_idx <- final_correlations < 0
+    if (any(flip_idx)) {
+      Xi_out[, flip_idx] <- -Xi_out[, flip_idx]
+      Beta_out[, flip_idx] <- -Beta_out[, flip_idx]
+    }
+  }
+  
+  list(
+    Xi_ident_matrix = Xi_out,
+    Beta_ident_matrix = Beta_out
+  )
+}
+
 # Internal helper function for voxel processing in identifiability
 .process_voxel_identifiability <- function(vx, Xi_raw, Beta_raw, B_reconstructor, 
                                          h_ref, config, Y_proj = NULL, 
@@ -162,11 +279,13 @@
 #'   }
 #'   
 #' @details This function implements Component 1, Step 1 of the M-HRF-LSS pipeline.
-#'   It uses QR decomposition to efficiently project out confound regressors from
-#'   both the data and design matrices. If \code{Z_confounds_matrix} is \code{NULL},
-#'   the original matrices are returned unchanged. Rank-deficient confound
-#'   matrices are automatically reduced to their independent columns with a
-#'   warning. Missing values are not allowed.
+#'   It uses SVD decomposition to robustly detect rank and project out confound 
+#'   regressors from both the data and design matrices. If \code{Z_confounds_matrix} 
+#'   is \code{NULL}, the original matrices are returned unchanged. Rank-deficient 
+#'   confound matrices are automatically reduced to their independent columns with a
+#'   warning. The SVD approach provides superior numerical stability compared to
+#'   QR decomposition when dealing with near-collinear confounds. Missing values 
+#'   are not allowed.
 #'   
 #' @examples
 #' \dontrun{
@@ -439,12 +558,19 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
   # Step 4: Add ridge penalty
   XtX_reg <- XtX + lambda_gamma * diag(k * m)
   
+  # Check condition number of regularized matrix
+  cond_num <- kappa(XtX_reg, exact = FALSE)
+  if (cond_num > 1e10) {
+    warning(sprintf("XtX_reg has high condition number (%.2e). Consider increasing lambda_gamma.", cond_num))
+  }
+  
   # Step 5: Compute X'Y
   XtY <- crossprod(X_tilde, Y_proj_matrix)  # (k*m) x V
   
   # Step 6: Solve for gamma coefficients
   # Gamma = (X'X + lambda*I)^(-1) * X'Y
-  Gamma_coeffs_matrix <- solve(XtX_reg, XtY)
+  # Use qr.solve for better numerical stability
+  Gamma_coeffs_matrix <- qr.solve(XtX_reg, XtY)
   
   return(Gamma_coeffs_matrix)
 }
@@ -531,7 +657,8 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
   svd_result <- extract_xi_beta_raw_svd_robust(
     Gamma_coeffs_matrix = Gamma_coeffs_matrix,
     m_manifold_dim = m_manifold_dim,
-    k_conditions = k_conditions
+    k_conditions = k_conditions,
+    verbose_warnings = FALSE
   )
 
   Xi_raw_matrix <- svd_result$Xi_raw_matrix
@@ -568,11 +695,16 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 #'   maximum absolute value (for "max_abs_val") of a voxel's HRF is below this
 #'   threshold, both \code{Xi_ident_matrix} and \code{Beta_ident_matrix} are set
 #'   to zero for that voxel.
+#' @param correlation_threshold Numeric threshold for canonical correlation
+#'   (default 1e-3). When the absolute correlation between a voxel's HRF and
+#'   the reference HRF falls below this threshold, the sign is determined
+#'   using the RMS rule (sign of sum of HRF values) instead.
 #' @param consistency_check Logical; if TRUE, the reconstructed HRF is
 #'   re-projected after sign/scale alignment and verified against the
 #'   canonical shape. Voxels failing the check are flipped to ensure
 #'   consistent orientation.
 #' @param n_jobs Number of parallel jobs for voxel processing (default 1).
+#'   Only used when ident_sign_method = "data_fit_correlation".
 #' @param verbose Logical; if TRUE, print progress messages for each voxel.
 #'   Default FALSE to avoid message spam.
 #'   
@@ -625,6 +757,7 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                 ident_scale_method = "l2_norm",
                                                 ident_sign_method = "canonical_correlation",
                                                 zero_tol = 1e-8,
+                                                correlation_threshold = 1e-3,
                                                 Y_proj_matrix = NULL,
                                                 X_condition_list_proj_matrices = NULL,
                                                 consistency_check = FALSE,
@@ -679,48 +812,66 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 
   message(sprintf("Using '%s' for sign alignment", ident_sign_method))
   
-  if (ident_sign_method == "data_fit_correlation") {
+  # Use vectorized path for canonical correlation method
+  if (ident_sign_method == "canonical_correlation") {
+    # Efficient vectorized implementation
+    result <- .apply_identifiability_vectorized(
+      Xi_raw_matrix = Xi_raw_matrix,
+      Beta_raw_matrix = Beta_raw_matrix,
+      B_reconstructor_matrix = B_reconstructor_matrix,
+      h_ref_shape_vector = h_ref_shape_vector,
+      scale_method = ident_scale_method,
+      correlation_threshold = correlation_threshold,
+      zero_tol = zero_tol,
+      consistency_check = consistency_check
+    )
+    
+    return(result)
+    
+  } else if (ident_sign_method == "data_fit_correlation") {
+    # Data fit method requires voxel-by-voxel processing
     if (is.null(Y_proj_matrix) || is.null(X_condition_list_proj_matrices)) {
       stop("data_fit_correlation method requires Y_proj_matrix and X_condition_list_proj_matrices")
     }
-  }
-  
-  # Compute reference manifold coordinates (unused but kept for compatibility)
-  xi_ref_coord <- MASS::ginv(B_reconstructor_matrix) %*% h_ref_shape_vector
-  
-  # Set up configuration for voxel processing
-  config <- list(
-    sign_method = ident_sign_method,
-    scale_method = ident_scale_method,
-    zero_tol = zero_tol,
-    consistency_check = consistency_check
-  )
-  
-  # Process each voxel using the helper function
-  voxel_fun <- function(vx) {
-    .process_voxel_identifiability(
-      vx = vx,
-      Xi_raw = Xi_raw_matrix,
-      Beta_raw = Beta_raw_matrix,
-      B_reconstructor = B_reconstructor_matrix,
-      h_ref = h_ref_shape_vector,
-      config = config,
-      Y_proj = Y_proj_matrix,
-      X_list = X_condition_list_proj_matrices,
-      verbose = verbose
+    
+    # Compute reference manifold coordinates (unused but kept for compatibility)
+    xi_ref_coord <- MASS::ginv(B_reconstructor_matrix) %*% h_ref_shape_vector
+    
+    # Set up configuration for voxel processing
+    config <- list(
+      sign_method = ident_sign_method,
+      scale_method = ident_scale_method,
+      zero_tol = zero_tol,
+      correlation_threshold = correlation_threshold,
+      consistency_check = consistency_check
+    )
+    
+    # Process each voxel using the helper function
+    voxel_fun <- function(vx) {
+      .process_voxel_identifiability(
+        vx = vx,
+        Xi_raw = Xi_raw_matrix,
+        Beta_raw = Beta_raw_matrix,
+        B_reconstructor = B_reconstructor_matrix,
+        h_ref = h_ref_shape_vector,
+        config = config,
+        Y_proj = Y_proj_matrix,
+        X_list = X_condition_list_proj_matrices,
+        verbose = verbose
+      )
+    }
+    
+    # Process voxels in parallel if requested
+    res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
+    
+    # Assemble results
+    Xi_ident_matrix <- do.call(cbind, lapply(res_list, "[[", "xi"))
+    Beta_ident_matrix <- do.call(cbind, lapply(res_list, "[[", "beta"))
+    
+    # Return results
+    list(
+      Xi_ident_matrix = Xi_ident_matrix,
+      Beta_ident_matrix = Beta_ident_matrix
     )
   }
-  
-  # Process voxels in parallel if requested
-  res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
-  
-  # Assemble results
-  Xi_ident_matrix <- do.call(cbind, lapply(res_list, "[[", "xi"))
-  Beta_ident_matrix <- do.call(cbind, lapply(res_list, "[[", "beta"))
-  
-  # Return results
-  list(
-    Xi_ident_matrix = Xi_ident_matrix,
-    Beta_ident_matrix = Beta_ident_matrix
-  )
 }

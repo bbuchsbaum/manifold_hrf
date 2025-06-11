@@ -111,8 +111,7 @@ test_that("run_lss_voxel_loop_core works without precomputation", {
       Y_proj_voxel_vector = Y_proj[, v],
       X_trial_onset_list_of_matrices = X_trials,
       H_shape_voxel_vector = H_shapes[, v],
-      P_confound = P_conf,
-      lambda_ridge = 1e-6
+      P_confound = P_conf
     )
   }
 

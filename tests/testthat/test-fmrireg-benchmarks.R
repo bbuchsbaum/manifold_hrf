@@ -92,7 +92,7 @@ test_that("M-HRF-LSS works with canonical HRF high SNR data", {
   }
   
   # Create HRF library (include canonical since we know it's the truth)
-  hrf_canonical <- fmrireg::HRF_SPMG1
+  hrf_canonical <- fmrihrf::HRF_SPMG1
   time_points <- seq(0, by = 2, length.out = p)
   
   # Create library with canonical + variations
@@ -241,7 +241,7 @@ test_that("M-HRF-LSS handles variable HRFs across voxels", {
   # Convert HRF list to matrix
   time_points <- seq(0, by = 2, length.out = p)
   L_library <- do.call(cbind, lapply(hrf_objs, function(h) {
-    as.numeric(fmrireg::evaluate(h, time_points))
+    as.numeric(fmrihrf::evaluate(h, time_points))
   }))
   
   # Use balanced preset for variable HRFs
@@ -369,7 +369,7 @@ test_that("M-HRF-LSS performs trial-wise estimation correctly", {
   # Convert HRF list to matrix
   time_points <- seq(0, by = 2, length.out = p)
   L_library <- do.call(cbind, lapply(hrf_objs, function(h) {
-    as.numeric(fmrireg::evaluate(h, time_points))
+    as.numeric(fmrihrf::evaluate(h, time_points))
   }))
   
   manifold <- create_hrf_manifold(
@@ -398,8 +398,7 @@ test_that("M-HRF-LSS performs trial-wise estimation correctly", {
     y_voxel = Y_data[, 1],  # Test on first voxel
     X_trial_list = X_trial_list,
     h_voxel = hrf_shapes[, 1],
-    TR = 2,
-    lambda = 1e-6
+    TR = 2
   )
   
   # Check that we get trial estimates
@@ -477,7 +476,7 @@ test_that("M-HRF-LSS handles complex realistic scenario", {
   # Convert HRF list to matrix
   time_points <- seq(0, by = 2, length.out = p)
   L_library <- do.call(cbind, lapply(hrf_objs, function(h) {
-    as.numeric(fmrireg::evaluate(h, time_points))
+    as.numeric(fmrihrf::evaluate(h, time_points))
   }))
   
   # Add robustness checks
