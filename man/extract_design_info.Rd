@@ -4,7 +4,7 @@
 \alias{extract_design_info}
 \title{Extract Design Information from fmrireg Event Model}
 \usage{
-extract_design_info(event_model, sframe)
+extract_design_info(event_model, sframe, raw_hrf)
 }
 \description{
 Extract Design Information from fmrireg Event Model
