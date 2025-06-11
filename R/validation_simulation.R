@@ -728,20 +728,17 @@ run_pipeline_on_simulated_data <- function(bold_data, design_info, ground_truth_
   V <- ncol(proj_result$Y_proj_matrix)
   T_trials <- length(design_info$X_trial_list)
   
-  # Prepare projection matrix once
-  P_confound <- prepare_projection_matrix(bold_data$Z_confounds, pipeline_params$lambda_ridge_Alss)
-  
   # Loop over voxels to get trial-wise estimates
   Beta_trial <- matrix(0, T_trials, V)
   for (v in 1:V) {
-    beta_voxel <- run_lss_for_voxel_corrected_full(
-      Y_proj_voxel_vector = proj_result$Y_proj_matrix[, v],
-      X_trial_onset_list_of_matrices = design_info$X_trial_list,
-      H_shape_voxel_vector = H_shapes[, v],
-      A_lss_fixed_matrix = bold_data$Z_confounds,
-      P_lss_matrix = lss_prep$P_lss_matrix,
-      p_lss_vector = lss_prep$p_lss_vector
+    # Use the simplified interface since data is already projected
+    lss_result <- run_lss_for_voxel(
+      y_voxel = proj_result$Y_proj_matrix[, v],
+      X_trial_list = design_info$X_trial_list,
+      h_voxel = H_shapes[, v],
+      TR = 2
     )
+    beta_voxel <- lss_result$beta_trials
     Beta_trial[, v] <- beta_voxel
   }
   

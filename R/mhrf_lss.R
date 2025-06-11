@@ -957,7 +957,7 @@ mhrf_analyze <- function(Y_data,
       for (v_idx in seq_along(chunk_voxels)) {
         v <- chunk_voxels[v_idx]
         
-        lss_result <- run_lss_for_voxel_corrected(
+        lss_result <- run_lss_for_voxel(
           y_voxel = Y_data[, v],
           X_trial_list = X_trial_list,
           h_voxel = hrf_shapes[, v],
@@ -984,7 +984,7 @@ mhrf_analyze <- function(Y_data,
     }
     
     for (v in 1:n_voxels) {
-      lss_result <- run_lss_for_voxel_corrected(
+      lss_result <- run_lss_for_voxel(
         y_voxel = Y_data[, v],
         X_trial_list = X_trial_list,
         h_voxel = hrf_shapes[, v],

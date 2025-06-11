@@ -1,4 +1,6 @@
 context("core voxel fit engine")
+library(testthat)
+library(manifoldhrf)
 
 set.seed(1)
 
@@ -49,7 +51,7 @@ test_that("apply_spatial_smoothing_core returns same dimension", {
 
 test_that("prepare_lss_fixed_components_core returns matrices of correct size", {
   # Create a matrix where q_lss < n (3 columns, 10 rows)
-  A <- cbind(1, matrix(rnorm(18), nrow = 10, ncol = 2))
+  A <- cbind(1, matrix(rnorm(20), nrow = 10, ncol = 2))
   res <- prepare_lss_fixed_components_core(A, 1, 0.01)
   expect_equal(dim(res$P_lss_matrix), c(ncol(A), nrow(A)))
   expect_length(res$p_lss_vector, nrow(A))
@@ -62,23 +64,17 @@ test_that("reconstruct_hrf_shapes_core multiplies matrices", {
   expect_equal(dim(H), c(5, 3))
 })
 
-test_that("run_lss_for_voxel_corrected_full returns vector of length T", {
+test_that("run_lss_for_voxel returns vector of length T", {
   Y <- rnorm(5)
   X_list <- list(matrix(1:5, ncol = 1), matrix(5:1, ncol = 1))
   H <- rnorm(1)
-  A <- cbind(1, matrix(rnorm(10), 5, 2))
-  lss_prep <- prepare_lss_fixed_components_core(A, 1, 0.01)
-  P <- prepare_projection_matrix(A, 0.01)
-  Y_proj <- as.vector(P %*% Y)
-  res <- run_lss_for_voxel_corrected_full(
-    Y_proj_voxel_vector = Y_proj,
-    X_trial_onset_list_of_matrices = X_list,
-    H_shape_voxel_vector = H,
-    A_lss_fixed_matrix = A,
-    P_lss_matrix = lss_prep$P_lss_matrix,
-    p_lss_vector = lss_prep$p_lss_vector
+  res <- run_lss_for_voxel(
+    y_voxel = Y,
+    X_trial_list = X_list,
+    h_voxel = H,
+    TR = 2
   )
-  expect_length(res, length(X_list))
+  expect_length(res$beta_trials, length(X_list))
 })
 
 test_that("estimate_final_condition_betas_core returns matrix of correct dims", {

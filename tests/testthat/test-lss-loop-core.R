@@ -26,7 +26,10 @@ test_that("run_lss_voxel_loop_core matches single voxel implementation", {
   # Confounds and projection
   A_fixed <- cbind(1, rnorm(n))
   lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-6)
-  P_conf <- prepare_projection_matrix(A_fixed, 1e-6)
+  # Manual projection matrix calculation
+  AtA <- crossprod(A_fixed)
+  AtA_reg <- AtA + 1e-6 * diag(ncol(A_fixed))
+  P_conf <- diag(n) - A_fixed %*% solve(AtA_reg) %*% t(A_fixed)
 
   # Generate projected data
   Y_clean <- matrix(0, n, V)
@@ -50,13 +53,17 @@ test_that("run_lss_voxel_loop_core matches single voxel implementation", {
 
   Beta_manual <- matrix(0, T_trials, V)
   for (v in seq_len(V)) {
-    Beta_manual[, v] <- manifoldhrf::run_lss_for_voxel_corrected_full(
-      Y_proj_voxel_vector = Y_proj[, v],
-      X_trial_onset_list_of_matrices = X_trials,
-      H_shape_voxel_vector = H_shapes[, v],
-      A_lss_fixed_matrix = A_fixed,
-      P_lss_matrix = lss_prep$P_lss_matrix,
-      p_lss_vector = lss_prep$p_lss_vector
+    # Use fmrilss directly for comparison
+    C <- matrix(0, n, T_trials)
+    for (t in seq_len(T_trials)) {
+      C[, t] <- X_trials[[t]] %*% H_shapes[, v]
+    }
+    # Since Y_proj is already projected, we don't pass confounds
+    Beta_manual[, v] <- fmrilss::lss(
+      Y = Y_proj[, v, drop = FALSE],
+      X = C,
+      Z = NULL,
+      method = "r_optimized"
     )
   }
 
@@ -84,7 +91,10 @@ test_that("run_lss_voxel_loop_core works without precomputation", {
 
   A_fixed <- cbind(1, rnorm(n))
   lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-6)
-  P_conf <- prepare_projection_matrix(A_fixed, 1e-6)
+  # Manual projection matrix calculation
+  AtA <- crossprod(A_fixed)
+  AtA_reg <- AtA + 1e-6 * diag(ncol(A_fixed))
+  P_conf <- diag(n) - A_fixed %*% solve(AtA_reg) %*% t(A_fixed)
 
   Y_clean <- matrix(0, n, V)
   for (v in seq_len(V)) {
@@ -107,11 +117,17 @@ test_that("run_lss_voxel_loop_core works without precomputation", {
 
   Beta_manual <- matrix(0, T_trials, V)
   for (v in seq_len(V)) {
-    Beta_manual[, v] <- run_lss_woodbury_corrected(
-      Y_proj_voxel_vector = Y_proj[, v],
-      X_trial_onset_list_of_matrices = X_trials,
-      H_shape_voxel_vector = H_shapes[, v],
-      P_confound = P_conf
+    # Use fmrilss directly for comparison
+    C <- matrix(0, n, T_trials)
+    for (t in seq_len(T_trials)) {
+      C[, t] <- X_trials[[t]] %*% H_shapes[, v]
+    }
+    # Since Y_proj is already projected, we don't pass confounds
+    Beta_manual[, v] <- fmrilss::lss(
+      Y = Y_proj[, v, drop = FALSE],
+      X = C,
+      Z = NULL,
+      method = "r_optimized"
     )
   }
 

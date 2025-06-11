@@ -64,32 +64,29 @@ test_that("LS-A and LS-S are equivalent for T=2 with confounds", {
   Z_confounds <- matrix(rnorm(n * q), n, q)
   y_voxel <- rnorm(n)
   
-  # LS-S result
-  lss_result <- run_lss_for_voxel(
-    y_voxel = y_voxel,
-    X_trial_list = X_trial_list,
-    h_voxel = h_voxel,
-    Z_confounds = Z_confounds
-  )
-  
-  # For LS-A, we need to build the projection matrices manually
-  # since the existing interface requires precomputed components
-  
-  # Build C matrix like LS-S does
+  # Build C matrix
   C <- matrix(0, n, T_trials)
   for (t in seq_len(T_trials)) {
     C[, t] <- X_trial_list[[t]] %*% h_voxel
   }
   
-  # Project both y and C using the same helper
-  proj <- manifoldhrf:::.project_confounds(y_voxel, C, Z_confounds, lambda = 0)
+  # LS-S result using fmrilss directly with confounds
+  lss_result <- fmrilss::lss(
+    Y = matrix(y_voxel, ncol = 1),
+    X = C,
+    Z = Z_confounds,
+    method = "r_optimized"
+  )
   
-  # LS-A via direct matrix solve (since T=2)
-  lsa_betas <- solve(crossprod(proj$C), crossprod(proj$C, proj$y))
+  # LS-A result: For T=2, LSS and LSA should be equivalent
+  # Combine confounds with trial regressors for full model
+  X_full <- cbind(C, Z_confounds)
+  lsa_betas_full <- solve(crossprod(X_full), crossprod(X_full, y_voxel))
+  lsa_betas <- lsa_betas_full[1:T_trials]
   
   expect_equal(
     as.vector(lsa_betas),
-    as.vector(lss_result$beta_trials),
+    as.vector(lss_result),
     tolerance = 1e-2,
     info = "LS-A and LS-S should be equivalent for T=2 with confounds"
   )
