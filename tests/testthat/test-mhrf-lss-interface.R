@@ -99,7 +99,66 @@ test_that("create_trial_matrices generates correct dimensions", {
   
   # This test would require actual fmrireg objects
   # For now, we skip it as it requires deep integration with fmrireg
-  skip("Requires fmrireg integration")
+skip("Requires fmrireg integration")
+})
+
+test_that("extract_design_info works with FIR basis", {
+  skip_if_not_installed("fmrireg")
+
+  # Dummy events and sampling frame
+  events <- data.frame(
+    onset = c(0, 5),
+    duration = 0,
+    condition = c("A", "B"),
+    block = 1
+  )
+
+  sframe <- fmrihrf::sampling_frame(blocklens = 10, TR = 1)
+
+  # Simple FIR basis with 3 columns
+  fir_basis <- fmrireg::HRF_FIR(nbasis = 3, span = 3)
+
+  ev_model <- fmrireg::event_model(
+    onset ~ hrf(condition, basis = fir_basis),
+    data = events,
+    block = ~ block,
+    sampling_frame = sframe,
+    drop_empty = TRUE
+  )
+
+  di <- extract_design_info(ev_model, sframe)
+
+  expect_true(all(vapply(di$X_condition_list, ncol, integer(1)) == fmrihrf::nbasis(fir_basis)))
+  expect_equal(length(di$X_trial_list), nrow(events))
+
+  # tiny dataset for pipeline sanity check
+  Y_small <- matrix(rnorm(nrow(sframe) * 2), nrow(sframe), 2)
+  manifold <- list(
+    B_reconstructor_matrix = diag(fmrihrf::nbasis(fir_basis)),
+    library_hrfs = matrix(1, fmrihrf::nbasis(fir_basis), 1),
+    m_manifold_dim = fmrihrf::nbasis(fir_basis),
+    parameters = list(
+      lambda_gamma = 0.01,
+      lambda_spatial_smooth = 0,
+      lambda_beta_final = 0.01,
+      lambda_ridge_Alss = 1e-6
+    )
+  )
+  Z_confounds <- matrix(0, nrow(sframe), 1)
+
+  expect_silent(
+    run_mhrf_lss_standard(
+      Y_data = Y_small,
+      design_info = di,
+      manifold = manifold,
+      Z_confounds = Z_confounds,
+      voxel_coords = NULL,
+      params = manifold$parameters,
+      outlier_weights = NULL,
+      estimation = "condition",
+      progress = FALSE
+    )
+  )
 })
 
 test_that("run_mhrf_lss_chunked handles chunking correctly", {
