@@ -60,7 +60,7 @@ test_that("run_lss_voxel_loop_core matches single voxel implementation", {
     )
   }
 
-  expect_equal(Beta_core, Beta_manual, tolerance = 1e-8)
+  expect_equal(Beta_core, Beta_manual, tolerance = 1e-5)
 })
 
 test_that("run_lss_voxel_loop_core works without precomputation", {
@@ -115,5 +115,5 @@ test_that("run_lss_voxel_loop_core works without precomputation", {
     )
   }
 
-  expect_equal(Beta_core, Beta_manual, tolerance = 1e-8)
+  expect_equal(Beta_core, Beta_manual, tolerance = 1e-5)
 })

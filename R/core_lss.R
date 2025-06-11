@@ -1,5 +1,9 @@
 # Simplified LSS Implementation Using fmrilss Package
 # All LSS functionality is routed through the external fmrilss implementation
+# 
+# This file provides the core LSS (Least Squares Separate) functionality for
+# the manifold_hrf package. As of version 0.1.0, all LSS computations are
+# delegated to the fmrilss package for improved performance and reliability.
 
 #' Prepare LSS Fixed Components (Core)
 #'
@@ -178,7 +182,13 @@ reconstruct_hrf_shapes_core <- function(B_reconstructor_matrix,
 #' Run LSS for Single Voxel (Core)
 #'
 #' Computes trial-wise beta estimates using Least Squares Separate (LSS)
-#' for a single voxel. Routes through fmrilss package.
+#' for a single voxel. This function delegates the actual LSS computation
+#' to the fmrilss package for improved performance and consistency.
+#' 
+#' @details The LSS approach fits each trial separately, with all other trials
+#' treated as nuisance regressors. This implementation uses fmrilss::lss()
+#' internally. Note that the input data (Y_proj_voxel_vector) should already
+#' be projected to remove confounds to avoid double projection.
 #'
 #' @param Y_proj_voxel_vector Projected data (n x 1) with confounds removed
 #' @param X_trial_onset_list_of_matrices List of unprojected trial matrices (n x p each)

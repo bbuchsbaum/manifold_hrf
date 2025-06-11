@@ -33,7 +33,7 @@ Imports:
     hrfals,
     rsvd,
     fmrireg,
-    fmrilss,
+    fmrilss (>= 0.1.0),
     matrixStats
 Suggests:
     testthat (>= 3.0.0),
