@@ -242,8 +242,8 @@ test_that("subject-level wrapper runs on minimal data", {
   params <- get_preset_params("fast")
   params$TR <- 1
 
-  # Skip this test for now and focus on others - will fix in next iteration
-  skip("Neuroimaging dimension mismatch - fixing in next iteration")
+  # Try to run the test to see the actual error
+  # skip("Neuroimaging dimension mismatch - fixing in next iteration")
   
   res <- process_subject_mhrf_lss_nim(bold, mask, events, NULL, manifold, params)
   expect_type(res, "list")

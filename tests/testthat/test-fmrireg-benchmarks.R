@@ -161,12 +161,19 @@ test_that("M-HRF-LSS works with canonical HRF high SNR data", {
   canonical_hrf <- L_library[, 1]
   hrf_correlations <- cor(canonical_hrf, hrf_shapes)
   
-  # Skip correlation check - this test is too sensitive to random initialization
+  # Check HRF recovery with reasonable bounds
   # The manifold is a low-dimensional approximation, so perfect recovery isn't expected
-  # Just verify that we got reasonable HRF shapes
-  skip("HRF correlation test is too sensitive to random initialization")
+  # But for high SNR canonical HRF data, we should get reasonable correlation
   
-  # Instead, just check that HRFs were generated with correct dimensions
+  # Calculate median correlation - more robust than mean
+  median_corr <- median(hrf_correlations, na.rm = TRUE)
+  
+  # For high SNR data with canonical HRF, expect at least moderate correlation
+  # Using 0.5 as threshold allows for manifold approximation error and random initialization
+  expect_gt(median_corr, 0.5, 
+            info = sprintf("Median HRF correlation = %.3f", median_corr))
+  
+  # Also verify dimensions are correct
   expect_equal(ncol(hrf_shapes), ncol(Y_data))
   expect_equal(nrow(hrf_shapes), nrow(L_library))
   
