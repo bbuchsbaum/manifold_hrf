@@ -2,11 +2,15 @@
 % Please edit documentation in R/voxel_fit_core.R
 \name{extract_xi_beta_raw_svd_robust}
 \alias{extract_xi_beta_raw_svd_robust}
-\title{Robust SVD Extraction (deprecated)}
+\title{Wrapper for robust SVD extraction}
 \usage{
-extract_xi_beta_raw_svd_robust(...)
+extract_xi_beta_raw_svd_robust(
+  Gamma_coeffs_matrix,
+  m_manifold_dim,
+  k_conditions,
+  ...
+)
 }
 \description{
-This function is kept for backward compatibility. It simply calls
-\code{extract_xi_beta_raw_svd_core(method = "robust", ...)}.
+Wrapper for robust SVD extraction
 }

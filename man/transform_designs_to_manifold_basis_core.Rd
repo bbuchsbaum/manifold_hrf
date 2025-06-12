@@ -2,55 +2,13 @@
 % Please edit documentation in R/voxel_fit_core.R
 \name{transform_designs_to_manifold_basis_core}
 \alias{transform_designs_to_manifold_basis_core}
-\title{Transform design matrices to manifold basis}
+\title{Transform designs to manifold basis}
 \usage{
 transform_designs_to_manifold_basis_core(
   X_condition_list_proj_matrices,
   B_reconstructor_matrix
 )
-
-transform_designs_to_manifold_basis_core(
-  X_condition_list_proj_matrices,
-  B_reconstructor_matrix
-)
-}
-\arguments{
-\item{X_condition_list_proj_matrices}{List of k projected design matrices
-(n x p each), where n is timepoints and p is HRF length}
-
-\item{B_reconstructor_matrix}{The p x m HRF reconstructor matrix from
-get_manifold_basis_reconstructor_core}
-}
-\value{
-list of design matrices in manifold basis
-
-Z_list_of_matrices List of k matrices (n x m each), where m is the
-manifold dimensionality
 }
 \description{
-Transforms design matrices from HRF space to manifold coordinate space.
-}
-\details{
-This function implements Component 1, Step 2 of the M-HRF-LSS pipeline.
-It transforms each condition's design matrix from the original HRF space
-(p dimensions) to the lower-dimensional manifold space (m dimensions) by
-matrix multiplication with the reconstructor basis.
-}
-\examples{
-\dontrun{
-# Create example data
-n <- 200  # timepoints
-p <- 30   # HRF length
-m <- 5    # manifold dimensions
-k <- 3    # conditions
-
-# Example design matrices and reconstructor
-X_list <- lapply(1:k, function(i) matrix(rnorm(n * p), n, p))
-B_reconstructor <- matrix(rnorm(p * m), p, m)
-
-# Transform to manifold basis
-Z_list <- transform_designs_to_manifold_basis_core(X_list, B_reconstructor)
-# Each Z_list[[i]] is now n x m instead of n x p
-}
-
+Transform designs to manifold basis
 }

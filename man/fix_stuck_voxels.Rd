@@ -2,7 +2,7 @@
 % Please edit documentation in R/voxel_fit_core.R
 \name{fix_stuck_voxels}
 \alias{fix_stuck_voxels}
-\title{Check and Fix Stuck Voxels}
+\title{Detect and reinitialize stuck voxels}
 \usage{
 fix_stuck_voxels(
   Xi_current,
@@ -11,19 +11,7 @@ fix_stuck_voxels(
   reinit_sd = 0.1
 )
 }
-\arguments{
-\item{Xi_current}{Current Xi estimates}
-
-\item{Xi_previous}{Previous Xi estimates}
-
-\item{variance_threshold}{Threshold for detecting stuck voxels}
-
-\item{reinit_sd}{Standard deviation for reinitialization}
-}
-\value{
-Updated Xi matrix
-}
 \description{
-Detects voxels with very low variance in Xi and reinitializes them
+Detect and reinitialize stuck voxels
 }
 \keyword{internal}
