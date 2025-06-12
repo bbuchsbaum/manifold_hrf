@@ -290,3 +290,59 @@ test_that("ann_euclidean distance falls back when RcppHNSW missing", {
   )
 
 })
+
+test_that("degenerate data does not crash manifold construction", {
+  p <- 15
+  N <- 8
+  L_library <- matrix(1, nrow = p, ncol = N)
+
+  S <- calculate_manifold_affinity_core(L_library, k_local_nn_for_sigma = 2)
+  expect_equal(dim(S), c(N, N))
+  expect_true(all(is.finite(S)))
+
+  result <- get_manifold_basis_reconstructor_core(
+    S, L_library,
+    m_manifold_dim_target = 3
+  )
+
+  expect_true(all(is.finite(result$B_reconstructor_matrix)))
+  expect_gte(result$m_final_dim, 1)
+})
+
+test_that("disconnected components yield block structure", {
+  set.seed(42)
+  p <- 10
+  N <- 20
+  L_cluster1 <- matrix(rnorm(p * (N/2), sd = 0.1), p, N/2)
+  L_cluster2 <- matrix(rnorm(p * (N/2), mean = 100, sd = 0.1), p, N/2)
+  L_library <- cbind(L_cluster1, L_cluster2)
+
+  S <- calculate_manifold_affinity_core(L_library, k_local_nn_for_sigma = 2)
+
+  cross_block <- S[1:(N/2), (N/2 + 1):N]
+  expect_lt(max(cross_block), 1e-3)
+
+  result <- get_manifold_basis_reconstructor_core(
+    S, L_library,
+    m_manifold_dim_target = 5
+  )
+
+  expect_equal(nrow(result$Phi_coords_matrix), N)
+  expect_true(all(is.finite(result$Phi_coords_matrix)))
+})
+
+test_that("high dimensional data still returns finite manifold", {
+  set.seed(99)
+  p <- 500
+  N <- 100
+  L_library <- matrix(rnorm(p * N), nrow = p, ncol = N)
+
+  S <- calculate_manifold_affinity_core(L_library, k_local_nn_for_sigma = 5)
+  result <- get_manifold_basis_reconstructor_core(
+    S, L_library,
+    m_manifold_dim_target = 8
+  )
+
+  expect_equal(nrow(result$Phi_coords_matrix), N)
+  expect_true(all(is.finite(result$Phi_coords_matrix)))
+})
