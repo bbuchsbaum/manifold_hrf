@@ -22,3 +22,35 @@ context("input validation core")
   expect_error(manifoldhrf:::`.validate_parameters`(TR = 2, preset = "unknown", n_voxels = 10),
                "Invalid preset")
  })
+# Priority 1 tests from TESTING_PRIORITIES.md
+
+ test_that(".validate_events errors when events exceed data length", {
+  events <- data.frame(
+    onset = c(0, 20),
+    duration = 1,
+    condition = c("A", "B")
+  )
+  expect_error(
+    manifoldhrf:::`.validate_events`(events, n_timepoints = 5, TR = 2),
+    "after data ends"
+  )
+ })
+
+ test_that(".validate_Y_data errors on non-finite values", {
+  Y <- matrix(c(rep(NA, 18), rep(1, 12)), nrow = 15, ncol = 2)
+  expect_error(
+    manifoldhrf:::`.validate_Y_data`(Y),
+    "non-finite values"
+  )
+ })
+
+ test_that(".validate_events preserves inconsistent factor levels", {
+  events <- data.frame(
+    onset = c(0, 5, 10),
+    duration = 1,
+    condition = c("face", "Face", "face ")
+  )
+  info <- manifoldhrf:::`.validate_events`(events, n_timepoints = 20, TR = 1)
+  expect_equal(info$n_conditions, 3)
+  expect_setequal(info$conditions, c("face", "Face", "face "))
+ })
