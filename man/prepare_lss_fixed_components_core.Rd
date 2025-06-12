@@ -2,33 +2,21 @@
 % Please edit documentation in R/core_lss.R
 \name{prepare_lss_fixed_components_core}
 \alias{prepare_lss_fixed_components_core}
-\title{Prepare LSS Fixed Components (Core)}
+\title{Prepare fixed LSS components}
 \usage{
 prepare_lss_fixed_components_core(
   A_fixed_regressors_matrix = NULL,
-  intercept_column = NULL,
-  lambda_fixed = 0,
-  A_lss_fixed_matrix = NULL,
-  intercept_col_index_in_Alss = NULL,
-  lambda_ridge_Alss = NULL
+  lambda_ridge_A = 1e-06
 )
 }
 \arguments{
-\item{A_fixed_regressors_matrix}{An n x q matrix of fixed regressors
-(e.g., intercept, motion parameters, drift terms)}
+\item{A_fixed_regressors_matrix}{Optional n x q matrix of fixed nuisance regressors}
 
-\item{intercept_column}{Index of intercept column (deprecated, ignored)}
-
-\item{lambda_fixed}{Ridge penalty for fixed effects (scalar >= 0, default 0)}
+\item{lambda_ridge_A}{Ridge penalty for fixed regressor inversion}
 }
 \value{
-A list containing:
-\itemize{
-\item \code{P_lss_matrix}: q x n pseudoinverse matrix for fixed effects
-\item \code{p_lss_vector}: length n projection vector for intercept (unused)
-}
+List with P_lss (projection matrix) and has_intercept flag
 }
 \description{
-Pre-computes the pseudoinverse of fixed effect regressors for efficient
-trial-wise LSS computation. This is used when projecting out confounds.
+Precomputes matrices needed for LSS that don't change across trials
 }

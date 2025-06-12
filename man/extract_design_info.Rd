@@ -6,6 +6,13 @@
 \usage{
 extract_design_info(event_model, sframe, raw_hrf)
 }
+\arguments{
+\item{event_model}{fmrireg event model object}
+
+\item{sframe}{Sampling frame describing acquisition timing}
+
+\item{raw_hrf}{HRF object used for raw design matrices}
+}
 \description{
 Extract Design Information from fmrireg Event Model
 }

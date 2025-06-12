@@ -342,13 +342,32 @@ extract_design_info <- function(event_model, sframe, raw_hrf) {
 
   term <- stats::terms(event_model)[[1]]
 
-  X_condition_list <- fmrireg::condition_basis_list(
-    term,
-    hrf = raw_hrf,
-    sampling_frame = sframe
-  )
-
+  # Get event table first (we'll need it either way)
   event_tab <- fmrireg::event_table(event_model)
+
+  # Try to get condition basis list
+  X_condition_list <- tryCatch({
+    fmrireg::condition_basis_list(
+      term,
+      hrf = raw_hrf,
+      sampling_frame = sframe
+    )
+  }, error = function(e) {
+    # If condition_basis_list fails, create a simple design matrix
+    # This can happen with single conditions or simple models
+    n_time <- nrow(sframe)
+    p <- raw_hrf$nbasis
+    
+    # Create a single design matrix for all events
+    X <- matrix(0, n_time, p)
+    for (i in 1:nrow(event_tab)) {
+      onset_idx <- which.min(abs(fmrihrf::samples(sframe) - event_tab$onset[i]))
+      if (onset_idx <= n_time - p + 1) {
+        X[onset_idx:(onset_idx + p - 1), ] <- X[onset_idx:(onset_idx + p - 1), ] + diag(p)
+      }
+    }
+    list(X)  # Return as a list with one element
+  })
 
   X_trial_list <- create_trial_matrices_from_events(
     event_tab,
@@ -568,7 +587,7 @@ run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
   # HRF shapes prior to spatial smoothing
   H_raw <- reconstruct_hrf_shapes_core(
     B_reconstructor_matrix = manifold$B_reconstructor_matrix,
-    Xi_smoothed_matrix = ident_result$Xi_ident_matrix
+    Xi_manifold_coords_matrix = ident_result$Xi_ident_matrix
   )
 
   # 6. Spatial smoothing if coordinates provided
@@ -596,7 +615,7 @@ run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
   # 7. Reconstruct HRF shapes
   H_shapes <- reconstruct_hrf_shapes_core(
     B_reconstructor_matrix = manifold$B_reconstructor_matrix,
-    Xi_smoothed_matrix = Xi_smoothed
+    Xi_manifold_coords_matrix = Xi_smoothed
   )
   
   # 8. Trial-wise estimation if requested
@@ -604,20 +623,23 @@ run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
   if (estimation %in% c("trial", "both")) {
     # Prepare LSS components
     lss_prep <- prepare_lss_fixed_components_core(
-      A_lss_fixed_matrix = Z_confounds,
-      intercept_col_index_in_Alss = 1,
-      lambda_ridge_Alss = params$lambda_ridge_Alss %||% 1e-6
+      A_fixed_regressors_matrix = Z_confounds,
+      lambda_ridge_A = params$lambda_ridge_Alss %||% 1e-6
     )
     
     # Run LSS
     Beta_trial <- run_lss_voxel_loop_core(
       Y_proj_matrix = proj_result$Y_proj_matrix,
       X_trial_onset_list_of_matrices = design_info$X_trial_list,
-      H_shapes_allvox_matrix = H_shapes,
+      B_reconstructor_matrix = manifold$B_reconstructor_matrix,
+      Xi_smoothed_allvox_matrix = Xi_smoothed,
       A_lss_fixed_matrix = Z_confounds,
-      P_lss_matrix = lss_prep$P_lss_matrix,
-      p_lss_vector = lss_prep$p_lss_vector,
-      n_jobs = params$n_jobs %||% 1
+      memory_strategy = params$memory_strategy %||% "auto",
+      chunk_size = params$chunk_size %||% 50,
+      ram_limit_GB = params$ram_limit_GB %||% 4,
+      n_cores = params$n_jobs %||% 1,
+      progress = FALSE,
+      verbose = FALSE
     )
   }
   

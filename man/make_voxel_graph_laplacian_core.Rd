@@ -32,6 +32,10 @@ the function falls back to the exact search and issues a warning.}
 \item{ann_threshold}{When \code{distance_engine = "euclidean"}, use the
 approximate search for datasets larger than this threshold if
 \pkg{RcppHNSW} is installed.}
+
+\item{weight_scheme}{Weight scheme for the adjacency matrix. "binary" uses
+0/1 weights, "gaussian" uses exp(-d²/σ²) where σ is the median distance
+to the k-th nearest neighbor across all voxels.}
 }
 \value{
 L_sp_sparse_matrix A V x V sparse Laplacian matrix (Matrix::sparseMatrix)

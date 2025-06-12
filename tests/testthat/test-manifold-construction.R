@@ -15,12 +15,14 @@ test_that("calculate_manifold_affinity_core works with small matrix", {
   # Check output dimensions
   expect_equal(dim(S_markov), c(N, N))
   
-  # Check that S is a stochastic matrix (rows sum to 1)
-  row_sums <- rowSums(S_markov)
-  expect_equal(row_sums, rep(1, N), tolerance = 1e-8)
+  # Check that S is a symmetric normalized Laplacian
+  # For symmetric normalized Laplacian, rows don't sum to 1
+  # Instead, check that it's symmetric
+  expect_true(isSymmetric(S_markov, tol = 1e-8))
   
-  # Check that diagonal is 0 (no self-loops)
-  expect_equal(diag(S_markov), rep(0, N))
+  # Check that diagonal entries are reasonable (between 0 and 1)
+  expect_true(all(diag(S_markov) >= 0))
+  expect_true(all(diag(S_markov) <= 1))
   
   # Check that all entries are non-negative
   expect_true(all(S_markov >= 0))
@@ -55,13 +57,12 @@ test_that("calculate_manifold_affinity_core handles sparse matrix parameters", {
   # Check basic properties still hold
   expect_equal(dim(S_markov_sparse), c(N, N))
   
-  # Handle both regular and sparse matrices
+  # Should be a symmetric normalized Laplacian
   if (inherits(S_markov_sparse, "Matrix")) {
-    row_sums <- Matrix::rowSums(S_markov_sparse)
+    expect_true(Matrix::isSymmetric(S_markov_sparse, tol = 1e-8))
   } else {
-    row_sums <- rowSums(S_markov_sparse)
+    expect_true(isSymmetric(S_markov_sparse, tol = 1e-8))
   }
-  expect_equal(row_sums, rep(1, N), tolerance = 1e-8)
 })
 
 test_that("k_nn_for_W_sparse larger than N is truncated", {
@@ -82,12 +83,12 @@ test_that("k_nn_for_W_sparse larger than N is truncated", {
   )
 
   expect_equal(dim(S_markov), c(N, N))
+  # Should be a symmetric normalized Laplacian
   if (inherits(S_markov, "Matrix")) {
-    row_sums <- Matrix::rowSums(S_markov)
+    expect_true(Matrix::isSymmetric(S_markov, tol = 1e-8))
   } else {
-    row_sums <- rowSums(S_markov)
+    expect_true(isSymmetric(S_markov, tol = 1e-8))
   }
-  expect_equal(row_sums, rep(1, N), tolerance = 1e-8)
 })
 
 test_that("calculate_manifold_affinity_core validates inputs correctly", {

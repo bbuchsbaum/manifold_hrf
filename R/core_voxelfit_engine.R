@@ -121,14 +121,41 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
   k <- length(Z_list_of_matrices)
   n <- nrow(Y_proj_matrix)
   m <- ncol(Z_list_of_matrices[[1]])
-  Xt <- do.call(cbind, Z_list_of_matrices)
-  XtX <- crossprod(Xt)
-  if (lambda_gamma > 0) {
-    XtX <- XtX + diag(lambda_gamma, k * m)
+  
+  if (orthogonal_approx_flag) {
+    # Orthogonal approximation: solve each condition separately
+    # This assumes conditions are approximately orthogonal
+    gamma_list <- vector("list", k)
+    
+    for (i in 1:k) {
+      Z_i <- Z_list_of_matrices[[i]]
+      ZtZ_i <- crossprod(Z_i)
+      
+      if (lambda_gamma > 0) {
+        ZtZ_i <- ZtZ_i + diag(lambda_gamma, m)
+      }
+      
+      ZtY_i <- crossprod(Z_i, Y_proj_matrix)
+      gamma_list[[i]] <- solve(ZtZ_i, ZtY_i)
+    }
+    
+    # Stack the gamma matrices vertically
+    beta <- do.call(rbind, gamma_list)
+    
+  } else {
+    # Standard approach: solve all conditions jointly
+    Xt <- do.call(cbind, Z_list_of_matrices)
+    XtX <- crossprod(Xt)
+    
+    if (lambda_gamma > 0) {
+      XtX <- XtX + diag(lambda_gamma, k * m)
+    }
+    
+    XtY <- crossprod(Xt, Y_proj_matrix)
+    beta <- solve(XtX, XtY)
   }
-  XtY <- crossprod(Xt, Y_proj_matrix)
-  beta <- solve(XtX, XtY)
-  beta
+  
+  return(beta)
 }
 
 
@@ -152,13 +179,17 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
   Xi_raw <- matrix(0, m_manifold_dim, V)
   Beta_raw <- matrix(0, k_conditions, V)
   for (v in seq_len(V)) {
-    Gv <- matrix(Gamma_coeffs_matrix[, v], nrow = m_manifold_dim, ncol = k_conditions)
+    # Reshape gamma vector to k x m matrix
+    # Gamma coefficients are ordered as [cond1_dim1, ..., cond1_dimm, cond2_dim1, ..., cond2_dimm, ...]
+    # So we need byrow=TRUE to get conditions as rows and dimensions as columns
+    Gv <- matrix(Gamma_coeffs_matrix[, v], nrow = k_conditions, ncol = m_manifold_dim, byrow = TRUE)
     sv <- svd(Gv)
     if (length(sv$d) == 0 || sv$d[1] < .Machine$double.eps) {
       next
     }
-    Xi_raw[, v] <- sv$u[, 1] * sqrt(sv$d[1])
-    Beta_raw[, v] <- sv$v[, 1] * sqrt(sv$d[1])
+    # For k x m matrix: u is k x k (condition space), v is m x m (manifold space)
+    Beta_raw[, v] <- sv$u[, 1] * sqrt(sv$d[1])  # k x 1 vector
+    Xi_raw[, v] <- sv$v[, 1] * sqrt(sv$d[1])    # m x 1 vector
   }
   list(Xi_raw_matrix = Xi_raw, Beta_raw_matrix = Beta_raw)
 }
@@ -206,6 +237,8 @@ extract_xi_beta_raw_svd_robust <- function(Gamma_coeffs_matrix,
 
   for (v in 1:V) {
     gamma_v <- Gamma_coeffs_matrix[, v]
+    # Reshape gamma vector to k x m matrix
+    # Gamma coefficients are ordered as [cond1_dim1, ..., cond1_dimm, cond2_dim1, ..., cond2_dimm, ...]
     Gamma_mat <- matrix(gamma_v, nrow = k_conditions, ncol = m_manifold_dim, byrow = TRUE)
 
     if (all(abs(gamma_v) < .Machine$double.eps)) {

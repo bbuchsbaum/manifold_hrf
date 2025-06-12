@@ -2,7 +2,7 @@
 % Please edit documentation in R/core_lss.R, R/input_validation.R
 \name{validate_hrf_shape_matrix}
 \alias{validate_hrf_shape_matrix}
-\title{Validate HRF Shape Matrix}
+\title{Validate HRF shape matrix}
 \usage{
 validate_hrf_shape_matrix(H_matrix, n_timepoints = NULL, n_voxels = NULL)
 

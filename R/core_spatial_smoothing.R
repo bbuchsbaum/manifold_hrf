@@ -17,6 +17,9 @@
 #' @param ann_threshold When \code{distance_engine = "euclidean"}, use the
 #'   approximate search for datasets larger than this threshold if
 #'   \pkg{RcppHNSW} is installed.
+#' @param weight_scheme Weight scheme for the adjacency matrix. "binary" uses
+#'   0/1 weights, "gaussian" uses exp(-d²/σ²) where σ is the median distance
+#'   to the k-th nearest neighbor across all voxels.
 #'   
 #' @return L_sp_sparse_matrix A V x V sparse Laplacian matrix (Matrix::sparseMatrix)
 #'   
@@ -45,7 +48,8 @@
 make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
                                            num_neighbors_Lsp,
                                            distance_engine = c("euclidean", "ann_euclidean"),
-                                           ann_threshold = 10000) {
+                                           ann_threshold = 10000,
+                                           weight_scheme = c("binary", "gaussian")) {
   
   # Input validation
   if (!is.matrix(voxel_coords_matrix)) {
@@ -78,6 +82,7 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
   }
   
   distance_engine <- match.arg(distance_engine)
+  weight_scheme <- match.arg(weight_scheme)
   use_ann <- FALSE
   if (distance_engine == "ann_euclidean") {
     if (requireNamespace("RcppHNSW", quietly = TRUE)) {
@@ -92,12 +97,32 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
     use_ann <- TRUE
   }
 
+  # Store distances if using weighted scheme
+  nn_distances <- NULL
+  
   if (use_ann) {
     ann_res <- RcppHNSW::hnsw_knn(voxel_coords_matrix, k = k_actual + 1)
     nn_indices <- ann_res$idx[, -1, drop = FALSE]
+    if (weight_scheme == "gaussian") {
+      nn_distances <- ann_res$dist[, -1, drop = FALSE]
+    }
   } else {
-    nn_res <- knn_search_cpp(t(voxel_coords_matrix), t(voxel_coords_matrix), k_actual + 1)
-    nn_indices <- t(nn_res$idx)[, -1, drop = FALSE]
+    # Try our C++ implementation first, fall back to RANN if needed
+    if (exists("knn_search_cpp", mode = "function")) {
+      nn_res <- knn_search_cpp(t(voxel_coords_matrix), t(voxel_coords_matrix), k_actual + 1)
+      nn_indices <- t(nn_res$idx)[, -1, drop = FALSE]
+      if (weight_scheme == "gaussian") {
+        nn_distances <- t(nn_res$dist)[, -1, drop = FALSE]
+      }
+    } else if (requireNamespace("RANN", quietly = TRUE)) {
+      nn <- RANN::nn2(voxel_coords_matrix, k = k_actual + 1)
+      nn_indices <- nn$nn.idx[, -1, drop = FALSE]
+      if (weight_scheme == "gaussian") {
+        nn_distances <- nn$nn.dists[, -1, drop = FALSE]
+      }
+    } else {
+      stop("No k-NN engine available: install either RcppHNSW or RANN, or ensure manifoldhrf is properly compiled.")
+    }
   }
   
   # Step 2: Construct sparse adjacency matrix W
@@ -108,9 +133,19 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
   i_indices <- rep(seq_len(V), each = k_actual)
   j_indices <- as.vector(t(nn_indices))
   
-  # For now, use binary weights (1 for connected, 0 for not connected)
-  # Could be extended to use distance-based weights
-  values <- rep(1, length(i_indices))
+  # Compute edge weights based on weight_scheme
+  if (weight_scheme == "binary") {
+    values <- rep(1, length(i_indices))
+  } else if (weight_scheme == "gaussian") {
+    # Use Gaussian weights: exp(-d²/σ²)
+    # σ is the median distance to k-th nearest neighbor
+    k_distances <- nn_distances[, k_actual]
+    sigma <- median(k_distances, na.rm = TRUE)
+    
+    # Flatten distances
+    all_distances <- as.vector(t(nn_distances))
+    values <- exp(-(all_distances^2) / (sigma^2))
+  }
   
   # Create initial adjacency matrix (may not be symmetric)
   W_directed <- Matrix::sparseMatrix(
@@ -149,7 +184,8 @@ make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
 #' @param L_sp_sparse_matrix The V x V sparse graph Laplacian matrix from 
 #'   make_voxel_graph_laplacian_core
 #' @param lambda_spatial_smooth Spatial smoothing strength parameter (scalar). 
-#'   Higher values produce more smoothing.
+#'   Higher values produce more smoothing. When lambda = 0, returns the 
+#'   original coordinates without smoothing.
 #'   
 #' @return Xi_smoothed_matrix The m x V matrix of spatially smoothed manifold 
 #'   coordinates
@@ -212,21 +248,36 @@ apply_spatial_smoothing_core <- function(Xi_ident_matrix,
     ))
   }
   
-  # Create system matrix: (I + lambda * L)
-  # I_V is the identity matrix of size V x V
-  I_V <- Matrix::Diagonal(n = V)
-  A_system <- I_V + lambda_spatial_smooth * L_sp_sparse_matrix
-
+  # Early return for lambda = 0 (no smoothing)
+  if (lambda_spatial_smooth == 0) {
+    return(Xi_ident_matrix)
+  }
+  
   # Early return if there are no manifold dimensions or voxels
   if (m == 0 || V == 0) {
     return(Xi_ident_matrix)
   }
-
-  # Solve the system for all manifold dimensions at once
-  Xi_smoothed_t <- Matrix::solve(A_system, t(Xi_ident_matrix))
-
+  
+  # Create system matrix: (I + lambda * L)
+  # I_V is the identity matrix of size V x V
+  I_V <- Matrix::Diagonal(n = V)
+  A_system <- I_V + lambda_spatial_smooth * L_sp_sparse_matrix
+  
+  # The system is symmetric positive definite, so we can use Cholesky
+  # This is faster than generic solve()
+  tryCatch({
+    # Attempt Cholesky factorization for SPD system
+    A_factor <- Matrix::Cholesky(A_system, perm = TRUE, LDL = FALSE)
+    Xi_smoothed_t <- Matrix::solve(A_factor, t(Xi_ident_matrix), system = "A")
+  }, error = function(e) {
+    # Fall back to standard solve if Cholesky fails
+    # (shouldn't happen for lambda > 0, but be safe)
+    warning("Cholesky factorization failed, using standard solve: ", e$message)
+    Xi_smoothed_t <- Matrix::solve(A_system, t(Xi_ident_matrix))
+  })
+  
   # Convert back to regular matrix and transpose to m x V
   Xi_smoothed_matrix <- t(as.matrix(Xi_smoothed_t))
-
+  
   return(Xi_smoothed_matrix)
 }

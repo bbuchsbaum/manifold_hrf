@@ -2,7 +2,7 @@
 % Please edit documentation in R/core_lss.R, R/input_validation.R
 \name{validate_design_matrix_list}
 \alias{validate_design_matrix_list}
-\title{Validate Design Matrix List}
+\title{Validate design matrix list}
 \usage{
 validate_design_matrix_list(X_list, n_timepoints = NULL)
 

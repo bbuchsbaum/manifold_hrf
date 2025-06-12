@@ -713,15 +713,14 @@ run_pipeline_on_simulated_data <- function(bold_data, design_info, ground_truth_
   # Reconstruct HRF shapes
   H_shapes <- reconstruct_hrf_shapes_core(
     B_reconstructor_matrix = B_reconstructor,
-    Xi_smoothed_matrix = Xi_smoothed
+    Xi_manifold_coords_matrix = Xi_smoothed
   )
   
   # Step 4: Component 3 - LSS
   # Prepare fixed components
   lss_prep <- prepare_lss_fixed_components_core(
-    A_lss_fixed_matrix = bold_data$Z_confounds,
-    intercept_col_index_in_Alss = 1,
-    lambda_ridge_Alss = pipeline_params$lambda_ridge_Alss
+    A_fixed_regressors_matrix = bold_data$Z_confounds,
+    lambda_ridge_A = pipeline_params$lambda_ridge_Alss
   )
   
   # Run LSS using the new corrected implementation
@@ -732,13 +731,12 @@ run_pipeline_on_simulated_data <- function(bold_data, design_info, ground_truth_
   Beta_trial <- matrix(0, T_trials, V)
   for (v in 1:V) {
     # Use the simplified interface since data is already projected
-    lss_result <- run_lss_for_voxel(
+    beta_voxel <- run_lss_for_voxel(
       y_voxel = proj_result$Y_proj_matrix[, v],
       X_trial_list = design_info$X_trial_list,
       h_voxel = H_shapes[, v],
       TR = 2
     )
-    beta_voxel <- lss_result$beta_trials
     Beta_trial[, v] <- beta_voxel
   }
   

@@ -69,5 +69,5 @@ test_that("LSS implementation produces consistent results (safety net)", {
     h_voxel = h
   )
   
-  expect_length(result_simple$beta_trials, T_trials)
+  expect_length(result_simple, T_trials)
 })

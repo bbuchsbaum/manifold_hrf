@@ -2,22 +2,19 @@
 % Please edit documentation in R/core_lss.R
 \name{run_lss_for_voxel}
 \alias{run_lss_for_voxel}
-\title{Run LSS for Single Voxel with Simple Interface}
+\title{Run LSS analysis for single voxel (simplified interface)}
 \usage{
 run_lss_for_voxel(y_voxel, X_trial_list, h_voxel, TR = 2)
 }
 \arguments{
-\item{y_voxel}{Data vector for single voxel (n x 1)}
+\item{y_voxel}{Timeseries for single voxel}
 
-\item{X_trial_list}{List of trial matrices (n x p each)}
+\item{X_trial_list}{List of trial onset matrices}
 
-\item{h_voxel}{HRF shape vector (p x 1)}
+\item{h_voxel}{HRF shape for the voxel}
 
-\item{TR}{Repetition time in seconds (currently unused)}
-}
-\value{
-List with beta_trials vector
+\item{TR}{Repetition time}
 }
 \description{
-Run LSS for Single Voxel with Simple Interface
+Run LSS analysis for single voxel (simplified interface)
 }

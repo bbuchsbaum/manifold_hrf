@@ -1,0 +1,12 @@
+# ~/.R/Makevars for macOS with Homebrew LLVM/Clang
+# Compilers
+CC=/opt/homebrew/opt/llvm/bin/clang
+CXX=/opt/homebrew/opt/llvm/bin/clang++
+
+# Flags to find headers and libraries
+CPPFLAGS=-I/opt/homebrew/opt/llvm/include
+LDFLAGS=-L/opt/homebrew/opt/llvm/lib -Wl,-rpath,/opt/homebrew/opt/llvm/lib
+
+# OpenMP Flags
+CXXFLAGS=-fopenmp
+LDFLAGS+=-lomp 

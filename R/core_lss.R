@@ -1,449 +1,631 @@
-# Simplified LSS Implementation Using fmrilss Package
-# All LSS functionality is routed through the external fmrilss implementation
-# 
-# This file provides the core LSS (Least Squares Separate) functionality for
-# the manifold_hrf package. As of version 0.1.0, all LSS computations are
-# delegated to the fmrilss package for improved performance and reliability.
+# Core LSS (Least Squares Separate) Functions - Consolidated Version
+# This file consolidates all LSS functionality from the previous 4 files
+# into a single, well-organized implementation with multiple memory strategies
 
-#' Prepare LSS Fixed Components (Core)
+#' Run LSS voxel loop with memory optimization strategies
 #'
-#' Pre-computes the pseudoinverse of fixed effect regressors for efficient
-#' trial-wise LSS computation. This is used when projecting out confounds.
+#' Main dispatcher function that performs trial-wise LSS estimation using
+#' one of three memory strategies based on dataset size and available resources.
 #'
-#' @param A_fixed_regressors_matrix An n x q matrix of fixed regressors
-#'   (e.g., intercept, motion parameters, drift terms)
-#' @param intercept_column Index of intercept column (deprecated, ignored)
-#' @param lambda_fixed Ridge penalty for fixed effects (scalar >= 0, default 0)
-#'
-#' @return A list containing:
+#' @param Y_proj_matrix n x V matrix of projected BOLD data
+#' @param X_trial_onset_list_of_matrices List of T sparse matrices (n x p each)
+#' @param B_reconstructor_matrix p x m manifold basis matrix
+#' @param Xi_smoothed_allvox_matrix m x V smoothed manifold coordinates
+#' @param A_lss_fixed_matrix Optional n x q fixed regressors matrix
+#' @param memory_strategy Character string specifying computation method:
 #'   \itemize{
-#'     \item \code{P_lss_matrix}: q x n pseudoinverse matrix for fixed effects
-#'     \item \code{p_lss_vector}: length n projection vector for intercept (unused)
+#'     \item{"auto"}{ (Default) Automatically selects based on data size}
+#'     \item{"full"}{ Precomputes all trial regressors. Fastest but uses most memory}
+#'     \item{"chunked"}{ Processes trials in batches. Good balance of speed/memory}
+#'     \item{"streaming"}{ Processes one trial at a time. Lowest memory usage}
 #'   }
+#' @param chunk_size Integer number of trials per chunk when using "chunked" strategy
+#' @param ram_limit_GB Memory limit in GB for auto strategy selection
+#' @param n_cores Number of CPU cores to use for parallel processing (1 = sequential)
+#' @param progress Logical whether to show progress bar (requires progressr package)
+#' @param verbose Logical whether to print progress messages
 #'
-#' @export
-prepare_lss_fixed_components_core <- function(A_fixed_regressors_matrix = NULL,
-                                            intercept_column = NULL,
-                                            lambda_fixed = 0,
-                                            # Old argument names for backward compatibility
-                                            A_lss_fixed_matrix = NULL,
-                                            intercept_col_index_in_Alss = NULL,
-                                            lambda_ridge_Alss = NULL) {
-  # Handle old argument names
-  if (!is.null(A_lss_fixed_matrix)) {
-    A_fixed_regressors_matrix <- A_lss_fixed_matrix
-  }
-  if (!is.null(intercept_col_index_in_Alss)) {
-    intercept_column <- intercept_col_index_in_Alss
-  }
-  if (!is.null(lambda_ridge_Alss)) {
-    lambda_fixed <- lambda_ridge_Alss
-  }
-  
-  # Handle old three-argument interface
-  if (!is.null(intercept_column) && is.numeric(intercept_column) && 
-      is.numeric(lambda_fixed) && lambda_fixed < 1) {
-    # Old interface: second arg was intercept column, third was lambda
-    lambda_fixed <- lambda_fixed
-  } else if (is.numeric(intercept_column) && intercept_column >= 1) {
-    # Second argument is actually lambda in new interface
-    lambda_fixed <- intercept_column
-  }
-  if (!is.matrix(A_fixed_regressors_matrix)) {
-    stop("A_fixed_regressors_matrix must be a matrix")
-  }
-  
-  n <- nrow(A_fixed_regressors_matrix)
-  q <- ncol(A_fixed_regressors_matrix)
-  
-  if (n < 2) {
-    stop("A_fixed_regressors_matrix must have at least 2 rows (timepoints)")
-  }
-  
-  if (q < 1) {
-    stop("A_fixed_regressors_matrix must have at least 1 column")
-  }
-  
-  if (q >= n) {
-    stop(sprintf(
-      "A_fixed_regressors_matrix has too many columns (%d) relative to rows (%d). Must have q < n.",
-      q, n
-    ))
-  }
-  
-  if (!is.null(intercept_column)) {
-    if (!is.numeric(intercept_column) || 
-        length(intercept_column) != 1 ||
-        intercept_column < 1 || 
-        intercept_column > q ||
-        intercept_column != round(intercept_column)) {
-      stop(sprintf(
-        "intercept_column must be an integer between 1 and %d", 
-        q
-      ))
-    }
-  }
-  
-  lambda_fixed <- .validate_and_standardize_lambda(lambda_fixed, "lambda_fixed")
-  
-  # Compute regularized pseudoinverse
-  AtA <- crossprod(A_fixed_regressors_matrix)
-  AtA_reg <- AtA + lambda_fixed * diag(q)
-  
-  # Check condition number and add jitter if needed
-  eigvals <- eigen(AtA_reg, symmetric = TRUE, only.values = TRUE)$values
-  min_eigval <- min(eigvals)
-  max_eigval <- max(eigvals)
-  condition_number <- max_eigval / max(min_eigval, .Machine$double.eps)
-  
-  if (condition_number > 1e8) {
-    # Add small jitter to improve conditioning
-    jitter <- 1e-6 * median(diag(AtA_reg))
-    AtA_reg <- AtA_reg + jitter * diag(q)
-    warning(sprintf(
-      "Fixed regressor matrix is poorly conditioned (condition number = %.2e). Added jitter = %.2e to diagonal.",
-      condition_number, jitter
-    ))
-  }
-  
-  # Use Cholesky decomposition for numerical stability
-  P_lss <- tryCatch({
-    AtA_reg_inv <- chol2inv(chol(AtA_reg))
-    AtA_reg_inv %*% t(A_fixed_regressors_matrix)
-  }, error = function(e) {
-    warning("Cholesky decomposition failed, using SVD pseudoinverse")
-    MASS::ginv(A_fixed_regressors_matrix)
-  })
-  
-  # Step 5: Compute p_lss_vector for intercept handling
-  if (!is.null(intercept_column)) {
-    # Extract the row corresponding to the intercept
-    p_lss_vector <- P_lss[intercept_column, , drop = TRUE]
-  } else {
-    # No intercept specified, use zero vector
-    p_lss_vector <- rep(0, n)
-  }
-  
-  list(
-    P_lss_matrix = P_lss,
-    p_lss_vector = p_lss_vector
-  )
-}
-
-#' Reconstruct HRF Shapes from Manifold Coordinates (Core)
-#'
-#' Transforms smoothed manifold coordinates back to HRF shape space using
-#' the reconstructor matrix from manifold construction.
-#'
-#' @param B_reconstructor_matrix The p x m reconstructor matrix from
-#'   \code{get_manifold_basis_reconstructor_core}, where p is HRF length
-#'   and m is manifold dimensionality
-#' @param Xi_smoothed_matrix The m x V matrix of spatially smoothed manifold
-#'   coordinates from Component 2, where V is number of voxels
-#'
-#' @return H_shapes_allvox_matrix A p x V matrix of reconstructed HRF shapes
-#'
-#' @export
-reconstruct_hrf_shapes_core <- function(B_reconstructor_matrix,
-                                      Xi_smoothed_matrix) {
-  if (!is.matrix(B_reconstructor_matrix)) {
-    stop("B_reconstructor_matrix must be a matrix")
-  }
-  
-  if (!is.matrix(Xi_smoothed_matrix)) {
-    stop("Xi_smoothed_matrix must be a matrix")
-  }
-  
-  # Get dimensions
-  p <- nrow(B_reconstructor_matrix)
-  m_B <- ncol(B_reconstructor_matrix)
-  m_Xi <- nrow(Xi_smoothed_matrix)
-  V <- ncol(Xi_smoothed_matrix)
-  
-  # Check dimension compatibility
-  if (m_B != m_Xi) {
-    stop(sprintf(
-      "Dimension mismatch: B_reconstructor_matrix has %d columns but Xi_smoothed_matrix has %d rows",
-      m_B, m_Xi
-    ))
-  }
-  
-  # Reconstruct HRF shapes: H = B * Xi
-  H_shapes_allvox_matrix <- B_reconstructor_matrix %*% Xi_smoothed_matrix
-  
-  # Ensure the result is a regular matrix (not Matrix class)
-  if (inherits(H_shapes_allvox_matrix, "Matrix")) {
-    H_shapes_allvox_matrix <- as.matrix(H_shapes_allvox_matrix)
-  }
-  
-  return(H_shapes_allvox_matrix)
-}
-
-#' Run LSS for Single Voxel (Core)
-#'
-#' Computes trial-wise beta estimates using Least Squares Separate (LSS)
-#' for a single voxel. This function delegates the actual LSS computation
-#' to the fmrilss package for improved performance and consistency.
-#' 
-#' @details The LSS approach fits each trial separately, with all other trials
-#' treated as nuisance regressors. This implementation uses fmrilss::lss()
-#' internally. Note that the input data (Y_proj_voxel_vector) should already
-#' be projected to remove confounds to avoid double projection.
-#'
-#' @param Y_proj_voxel_vector Projected data (n x 1) with confounds removed
-#' @param X_trial_onset_list_of_matrices List of unprojected trial matrices (n x p each)
-#' @param H_shape_voxel_vector HRF shape (p x 1)
-#' @param A_lss_fixed_matrix Matrix of fixed regressors used during projection (n x q)
-#' @param P_lss_matrix Precomputed matrix from \code{prepare_lss_fixed_components_core}
-#' @param p_lss_vector Precomputed intercept projection vector (unused)
-#' @return Vector of trial-wise betas
-#' @export
-run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
-                                  X_trial_onset_list_of_matrices,
-                                  H_shape_voxel_vector,
-                                  A_lss_fixed_matrix,
-                                  P_lss_matrix,
-                                  p_lss_vector) {
-  
-  n <- length(Y_proj_voxel_vector)
-  T_trials <- length(X_trial_onset_list_of_matrices)
-  
-  # Create convolved trial regressors
-  C <- matrix(0, n, T_trials)
-  for (t in seq_len(T_trials)) {
-    C[, t] <- X_trial_onset_list_of_matrices[[t]] %*% H_shape_voxel_vector
-  }
-  
-  # IMPORTANT: Y_proj_voxel_vector is already projected, so we should NOT 
-  # pass confounds to fmrilss::lss to avoid double projection
-  # Use fmrilss to compute LSS without confounds since data is pre-projected
-  result <- fmrilss::lss(
-    Y = matrix(Y_proj_voxel_vector, ncol = 1),
-    X = C,
-    Z = NULL,  # Don't pass confounds - data is already projected!
-    method = "r_optimized"
-  )
-  
-  as.vector(result)
-}
-
-#' Run LSS Across Voxels (Core)
-#'
-#' Computes trial-wise LSS estimates for all voxels using parallel processing.
-#' Routes all computation through the fmrilss package.
-#'
-#' @param Y_proj_matrix n x V projected BOLD data matrix
-#' @param X_trial_onset_list_of_matrices List of length T with n x p design matrices
-#' @param H_shapes_allvox_matrix p x V matrix of HRF shapes
-#' @param A_lss_fixed_matrix n x q matrix of fixed regressors
-#' @param P_lss_matrix q x n matrix from \code{prepare_lss_fixed_components_core}
-#' @param p_lss_vector Intercept projection vector (unused)
-#' @param n_jobs Number of parallel workers for voxel-wise computation
-#' @param ram_heuristic_GB_for_Rt RAM limit in gigabytes (currently unused)
-#' 
-#' @return A T x V matrix of trial-wise beta estimates
+#' @return T x V matrix of trial-wise beta estimates
 #' @export
 run_lss_voxel_loop_core <- function(Y_proj_matrix,
                                    X_trial_onset_list_of_matrices,
-                                   H_shapes_allvox_matrix,
-                                   A_lss_fixed_matrix,
-                                   P_lss_matrix,
-                                   p_lss_vector,
-                                   n_jobs = 1,
-                                   ram_heuristic_GB_for_Rt = 1.0) {
+                                   B_reconstructor_matrix,
+                                   Xi_smoothed_allvox_matrix,
+                                   A_lss_fixed_matrix = NULL,
+                                   memory_strategy = "auto",
+                                   chunk_size = 50,
+                                   ram_limit_GB = 4,
+                                   n_cores = 1,
+                                   progress = TRUE,
+                                   verbose = TRUE) {
   
-  if (!is.matrix(Y_proj_matrix)) {
-    stop("Y_proj_matrix must be a matrix")
-  }
-  
+  # Input validation
   n <- nrow(Y_proj_matrix)
   V <- ncol(Y_proj_matrix)
   T_trials <- length(X_trial_onset_list_of_matrices)
+  p <- ncol(X_trial_onset_list_of_matrices[[1]])
   
-  # Pre-compute all convolved trial regressors (n x T x V tensor)
-  # For efficiency, we can compute C = X * H for all voxels at once
-  all_C <- array(0, dim = c(n, T_trials, V))
-  for (t in seq_len(T_trials)) {
-    # X_t is n x p, H is p x V, result is n x V
-    all_C[, t, ] <- X_trial_onset_list_of_matrices[[t]] %*% H_shapes_allvox_matrix
+  if (nrow(B_reconstructor_matrix) != p) {
+    stop("B_reconstructor rows must match trial design matrix columns")
+  }
+  if (ncol(Xi_smoothed_allvox_matrix) != V) {
+    stop("Xi_smoothed columns must match number of voxels")
   }
   
-  # Process voxels in parallel or serial
-  voxel_fun <- function(v) {
-    tryCatch({
-      # Extract the trial regressors for this voxel
-      C_v <- all_C[, , v]  # n x T matrix
-      
-      # Use fmrilss to compute LSS
-      # Note: Y_proj_matrix is already projected, so we don't pass Z
-      result <- fmrilss::lss(
-        Y = Y_proj_matrix[, v, drop = FALSE],
-        X = C_v,
-        Z = NULL,  # Data is already projected
-        method = "r_optimized"
-      )
-      
-      as.vector(result)
-    }, error = function(e) {
-      warning(sprintf("LSS failed for voxel %d: %s", v, e$message))
-      rep(NA_real_, T_trials)
-    })
-  }
+  # Reconstruct HRF shapes
+  H_shapes_allvox <- reconstruct_hrf_shapes_core(
+    B_reconstructor_matrix,
+    Xi_smoothed_allvox_matrix
+  )
   
-  res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
-  do.call(cbind, res_list)
-}
-
-
-# Simple wrapper for single voxel with HRF convolution
-#' Run LSS for Single Voxel with Simple Interface
-#'
-#' @param y_voxel Data vector for single voxel (n x 1)
-#' @param X_trial_list List of trial matrices (n x p each)
-#' @param h_voxel HRF shape vector (p x 1)
-#' @param TR Repetition time in seconds (currently unused)
-#' @return List with beta_trials vector
-#' @export
-run_lss_for_voxel <- function(y_voxel, X_trial_list, h_voxel, TR = 2) {
-  n <- length(y_voxel)
-  T_trials <- length(X_trial_list)
-  
-  # Validate inputs
-  if (!all(is.finite(y_voxel))) {
-    warning("Non-finite values in y_voxel")
-    return(list(beta_trials = rep(NA_real_, T_trials)))
-  }
-  
-  if (!all(is.finite(h_voxel))) {
-    warning("Non-finite values in h_voxel")
-    return(list(beta_trials = rep(NA_real_, T_trials)))
-  }
-  
-  # Create convolved regressors
-  C <- matrix(0, n, T_trials)
-  for (t in seq_len(T_trials)) {
-    C[, t] <- X_trial_list[[t]] %*% h_voxel
-  }
-  
-  # Check if C has valid variance
-  col_vars <- apply(C, 2, var)
-  if (any(col_vars < .Machine$double.eps)) {
-    warning("Some trial regressors have zero variance - likely due to trial timing at data edges")
-    # Still try to compute but results may be NA for zero-variance columns
-  }
-  
-  # Use fmrilss with intercept only
-  result <- tryCatch({
-    fmrilss::lss(
-      Y = matrix(y_voxel, ncol = 1),
-      X = C,
-      Z = matrix(1, n, 1),  # Intercept only
-      method = "r_optimized"
+  # Select strategy if auto
+  if (memory_strategy == "auto") {
+    memory_strategy <- .select_memory_strategy(
+      n, V, T_trials, chunk_size, ram_limit_GB, verbose
     )
-  }, error = function(e) {
-    warning("LSS computation failed: ", e$message)
-    rep(NA_real_, T_trials)
-  })
+  }
   
-  list(beta_trials = as.vector(result))
-}
-
-
-
-# Removed internal adapter functions - all LSS computation now goes through fmrilss::lss
-
-#' Fast LSS implementation using fmrilss
-#' @keywords internal
-lss_fast <- function(Y, dmat_base, dmat_ran, dmat_fixed = NULL) {
-  if (!is.matrix(Y)) stop("Y must be a matrix")
+  # Validate strategy
+  memory_strategy <- match.arg(
+    memory_strategy, 
+    c("full", "chunked", "streaming")
+  )
   
-  # Combine fixed effects
-  Z <- if (is.null(dmat_fixed)) dmat_base else cbind(dmat_base, dmat_fixed)
+  if (verbose) {
+    message(sprintf(
+      "Running LSS with '%s' memory strategy (T=%d trials, V=%d voxels)",
+      memory_strategy, T_trials, V
+    ))
+  }
   
-  # Use fmrilss to compute LSS betas
-  result <- fmrilss::lss(
-    Y = Y,
-    X = dmat_ran,
-    Z = Z,
-    method = "r_optimized"
+  # Dispatch to appropriate implementation
+  result <- switch(memory_strategy,
+    full = .lss_execute_full(
+      Y_proj_matrix, X_trial_onset_list_of_matrices,
+      H_shapes_allvox, A_lss_fixed_matrix, 
+      n_cores, progress, verbose
+    ),
+    chunked = .lss_execute_chunked(
+      Y_proj_matrix, X_trial_onset_list_of_matrices,
+      H_shapes_allvox, A_lss_fixed_matrix, 
+      chunk_size, n_cores, progress, verbose
+    ),
+    streaming = .lss_execute_streaming(
+      Y_proj_matrix, X_trial_onset_list_of_matrices,
+      H_shapes_allvox, A_lss_fixed_matrix, 
+      n_cores, progress, verbose
+    )
   )
   
   return(result)
 }
 
+#' Prepare fixed LSS components
+#'
+#' Precomputes matrices needed for LSS that don't change across trials
+#'
+#' @param A_fixed_regressors_matrix Optional n x q matrix of fixed nuisance regressors
+#' @param lambda_ridge_A Ridge penalty for fixed regressor inversion
+#'
+#' @return List with P_lss (projection matrix) and has_intercept flag
+#' @export
+prepare_lss_fixed_components_core <- function(A_fixed_regressors_matrix = NULL,
+                                            lambda_ridge_A = 1e-6) {
+  if (is.null(A_fixed_regressors_matrix)) {
+    return(list(P_lss = NULL, has_intercept = FALSE))
+  }
+  
+  # Check for intercept column (efficient constant detector)
+  has_intercept <- any(apply(A_fixed_regressors_matrix, 2, function(x) {
+    all(abs(x - x[1]) < 1e-12)
+  }))
+  
+  # fmrilss handles the projection matrix computation internally
+  P_lss <- NULL
+  
+  return(list(
+    P_lss = P_lss,
+    has_intercept = has_intercept
+  ))
+}
 
+#' Reconstruct HRF shapes from manifold coordinates
+#'
+#' @param B_reconstructor_matrix p x m manifold basis matrix
+#' @param Xi_manifold_coords_matrix m x V manifold coordinates
+#'
+#' @return p x V matrix of reconstructed HRF shapes
+#' @export
+reconstruct_hrf_shapes_core <- function(B_reconstructor_matrix,
+                                      Xi_manifold_coords_matrix) {
+  # Simple matrix multiplication
+  B_reconstructor_matrix %*% Xi_manifold_coords_matrix
+}
 
+#' Run LSS for a single voxel
+#'
+#' Core single-voxel LSS implementation using fmrilss
+#'
+#' @param Y_proj_voxel_vector Length n vector of data for one voxel
+#' @param X_trial_onset_list_of_matrices List of T matrices (n x p each)
+#' @param h_voxel_shape_vector Length p HRF shape for this voxel
+#' @param A_lss_fixed_matrix Optional n x q fixed regressors
+#'
+#' @return Length T vector of trial beta estimates
+#' @export
+run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
+                                  X_trial_onset_list_of_matrices,
+                                  h_voxel_shape_vector,
+                                  A_lss_fixed_matrix = NULL) {
+  
+  n <- length(Y_proj_voxel_vector)
+  T_trials <- length(X_trial_onset_list_of_matrices)
+  
+  # Create trial regressors by convolving with HRF
+  C_matrix <- matrix(0, n, T_trials)
+  for (t in seq_len(T_trials)) {
+    C_matrix[, t] <- X_trial_onset_list_of_matrices[[t]] %*% h_voxel_shape_vector
+  }
+  
+  # Use fmrilss for the computation
+  betas <- fmrilss::lss(
+    Y = matrix(Y_proj_voxel_vector, ncol = 1),
+    X = C_matrix,
+    Z = A_lss_fixed_matrix,
+    method = "r_optimized"
+  )
+  return(as.vector(betas))
+}
 
+# ==============================================================================
+# Internal Strategy Implementations
+# ==============================================================================
 
-# Validation functions
-#' Validate Design Matrix List
+#' Execute LSS with full precomputation strategy
+#' @noRd
+.lss_execute_full <- function(Y_proj_matrix, X_trial_onset_list,
+                             H_shapes_allvox, A_lss_fixed_matrix,
+                             n_cores, progress, verbose) {
+  
+  n <- nrow(Y_proj_matrix)
+  V <- ncol(Y_proj_matrix)
+  T_trials <- length(X_trial_onset_list)
+  
+  if (verbose) {
+    message("Precomputing all trial regressors...")
+  }
+  
+  # Precompute all R_t matrices (n x V for each trial)
+  R_list <- vector("list", T_trials)
+  for (t in seq_len(T_trials)) {
+    R_list[[t]] <- X_trial_onset_list[[t]] %*% H_shapes_allvox
+  }
+  
+  if (verbose) message("Running fmrilss on all voxels...")
+  
+  # Define worker function for a single voxel
+  full_worker <- function(v_idx, R_matrices, Y_data, A_fixed) {
+    # Extract convolved regressors for this voxel
+    C_voxel <- matrix(0, n, T_trials)
+    for (t in seq_len(T_trials)) {
+      C_voxel[, t] <- R_matrices[[t]][, v_idx]
+    }
+    
+    # Run LSS for this voxel
+    betas <- fmrilss::lss(
+      Y = Y_data[, v_idx, drop = FALSE],
+      X = C_voxel,
+      Z = A_fixed,
+      method = "r_optimized"
+    )
+    return(as.vector(betas))
+  }
+  
+  # Process voxels using parallel helper
+  voxel_indices <- seq_len(V)
+  results_list <- .lss_process_voxels(
+    voxel_indices = voxel_indices,
+    worker_fun = full_worker,
+    R_matrices = R_list,
+    Y_data = Y_proj_matrix,
+    A_fixed = A_lss_fixed_matrix,
+    n_cores = n_cores,
+    progress = progress,
+    .globals = c("R_list", "Y_proj_matrix", "A_lss_fixed_matrix", "n", "T_trials")
+  )
+  
+  # Combine results into matrix
+  Beta_trial_allvox <- do.call(cbind, results_list)
+  
+  return(Beta_trial_allvox)
+}
+
+#' Execute LSS with chunked processing strategy
+#' @noRd
+.lss_execute_chunked <- function(Y_proj_matrix, X_trial_onset_list,
+                                H_shapes_allvox, A_lss_fixed_matrix,
+                                chunk_size, n_cores, progress, verbose) {
+  
+  n <- nrow(Y_proj_matrix)
+  V <- ncol(Y_proj_matrix)
+  T_trials <- length(X_trial_onset_list)
+  
+  # Calculate chunks
+  n_chunks <- ceiling(T_trials / chunk_size)
+  Beta_trial_allvox <- matrix(0, T_trials, V)
+  
+  if (verbose) {
+    message(sprintf("Processing %d trials in %d chunks of size %d",
+                   T_trials, n_chunks, chunk_size))
+  }
+  
+  # Outer loop over chunks remains sequential
+  for (chunk_idx in seq_len(n_chunks)) {
+    # Determine trials in this chunk
+    trial_start <- (chunk_idx - 1) * chunk_size + 1
+    trial_end <- min(chunk_idx * chunk_size, T_trials)
+    trial_indices <- trial_start:trial_end
+    chunk_trials <- length(trial_indices)
+    
+    if (verbose) {
+      message(sprintf("Processing chunk %d/%d (trials %d-%d)",
+                     chunk_idx, n_chunks, trial_start, trial_end))
+    }
+    
+    # Define worker for this chunk
+    chunk_worker <- function(v_idx, X_trials_chunk, H_shapes, Y_data, A_fixed, trials_idx) {
+      h_voxel <- H_shapes[, v_idx]
+      
+      # Create design for this voxel and chunk
+      C_voxel_chunk <- matrix(0, n, length(trials_idx))
+      for (i in seq_along(trials_idx)) {
+        t <- trials_idx[i]
+        C_voxel_chunk[, i] <- X_trials_chunk[[t]] %*% h_voxel
+      }
+      
+      # Run LSS
+      betas <- fmrilss::lss(
+        Y = Y_data[, v_idx, drop = FALSE],
+        X = C_voxel_chunk,
+        Z = A_fixed,
+        method = "r_optimized"
+      )
+      return(as.vector(betas))
+    }
+    
+    # Process voxels in parallel for this chunk
+    voxel_indices <- seq_len(V)
+    chunk_results <- .lss_process_voxels(
+      voxel_indices = voxel_indices,
+      worker_fun = chunk_worker,
+      X_trials_chunk = X_trial_onset_list,
+      H_shapes = H_shapes_allvox,
+      Y_data = Y_proj_matrix,
+      A_fixed = A_lss_fixed_matrix,
+      trials_idx = trial_indices,
+      n_cores = n_cores,
+      progress = progress && chunk_idx == 1,  # Show progress for first chunk only
+      .globals = c("X_trial_onset_list", "H_shapes_allvox", "Y_proj_matrix", 
+                   "A_lss_fixed_matrix", "trial_indices", "n")
+    )
+    
+    # Store results for this chunk
+    Beta_chunk <- do.call(cbind, chunk_results)
+    Beta_trial_allvox[trial_indices, ] <- Beta_chunk
+  }
+  
+  return(Beta_trial_allvox)
+}
+
+#' Execute LSS with streaming strategy
+#' @noRd
+.lss_execute_streaming <- function(Y_proj_matrix, X_trial_onset_list,
+                                  H_shapes_allvox, A_lss_fixed_matrix,
+                                  n_cores, progress, verbose) {
+  
+  n <- nrow(Y_proj_matrix)
+  V <- ncol(Y_proj_matrix)
+  T_trials <- length(X_trial_onset_list)
+  
+  if (verbose) {
+    message("Processing trials one at a time (streaming mode)")
+  }
+  
+  # Define worker for streaming - all computation happens inside
+  streaming_worker <- function(v_idx, X_trials, H_shapes, Y_data, A_fixed) {
+    # Extract voxel data and HRF
+    y_voxel <- Y_data[, v_idx]
+    h_voxel <- H_shapes[, v_idx]
+    
+    # Compute trial regressors on-the-fly for this voxel
+    C_voxel <- matrix(0, n, T_trials)
+    for (t in seq_len(T_trials)) {
+      C_voxel[, t] <- X_trials[[t]] %*% h_voxel
+    }
+    
+    # Run LSS for this voxel
+    betas <- fmrilss::lss(
+      Y = matrix(y_voxel, ncol = 1),
+      X = C_voxel,
+      Z = A_fixed,
+      method = "r_optimized"
+    )
+    return(as.vector(betas))
+  }
+  
+  # Process all voxels
+  voxel_indices <- seq_len(V)
+  results_list <- .lss_process_voxels(
+    voxel_indices = voxel_indices,
+    worker_fun = streaming_worker,
+    X_trials = X_trial_onset_list,
+    H_shapes = H_shapes_allvox,
+    Y_data = Y_proj_matrix,
+    A_fixed = A_lss_fixed_matrix,
+    n_cores = n_cores,
+    progress = progress,
+    .globals = c("X_trial_onset_list", "H_shapes_allvox", "Y_proj_matrix", 
+                 "A_lss_fixed_matrix", "n", "T_trials")
+  )
+  
+  # Combine results
+  Beta_trial_allvox <- do.call(cbind, results_list)
+  
+  return(Beta_trial_allvox)
+}
+
+# ==============================================================================
+# Internal Helper Functions
+# ==============================================================================
+
+#' Process voxels in parallel or sequential
+#' 
+#' Central helper for parallel execution across voxels
+#' @param voxel_indices Integer vector of voxel indices to process
+#' @param worker_fun Function to apply to each voxel
+#' @param ... Additional arguments passed to worker_fun
+#' @param n_cores Number of cores to use (1 = sequential)
+#' @param progress Show progress bar
+#' @param .globals Character vector of global variables to export
+#' @param .seed Ensure reproducibility
+#' @noRd
+.lss_process_voxels <- function(voxel_indices, 
+                               worker_fun, 
+                               ..., 
+                               n_cores = 1, 
+                               progress = FALSE,
+                               .globals = "auto",
+                               .seed = TRUE) {
+  
+  # Sequential execution (avoid parallel overhead)
+  if (n_cores <= 1) {
+    if (progress && requireNamespace("progressr", quietly = TRUE)) {
+      p <- progressr::progressor(steps = length(voxel_indices))
+      results <- lapply(voxel_indices, function(v) {
+        res <- worker_fun(v, ...)
+        p()
+        res
+      })
+    } else {
+      results <- lapply(voxel_indices, worker_fun, ...)
+    }
+    return(results)
+  }
+  
+  # Parallel execution
+  if (!requireNamespace("future.apply", quietly = TRUE)) {
+    warning("future.apply not installed, falling back to sequential")
+    return(.lss_process_voxels(voxel_indices, worker_fun, ..., 
+                              n_cores = 1, progress = progress))
+  }
+  
+  # Set up progress reporting for parallel execution
+  if (progress && requireNamespace("progressr", quietly = TRUE)) {
+    p <- progressr::progressor(steps = length(voxel_indices))
+    worker_fun_with_progress <- function(v, ...) {
+      res <- worker_fun(v, ...)
+      p()
+      res
+    }
+  } else {
+    worker_fun_with_progress <- worker_fun
+  }
+  
+  # Chunk work to reduce overhead
+  chunk_size <- ceiling(length(voxel_indices) / n_cores)
+  
+  # Execute in parallel
+  results <- future.apply::future_lapply(
+    X = voxel_indices,
+    FUN = worker_fun_with_progress,
+    ...,
+    future.seed = .seed,
+    future.globals = .globals,
+    future.chunk.size = chunk_size
+  )
+  
+  return(results)
+}
+
+#' Select optimal memory strategy based on data size
+#' @noRd
+.select_memory_strategy <- function(n, V, T_trials, chunk_size, ram_limit_GB, verbose) {
+  # Estimate memory requirements
+  bytes_per_double <- 8
+  
+  # Full strategy: stores T matrices of size n x V, plus Y_proj and H_shapes
+  # Account for: original data + HRF shapes + convolved regressors + working memory
+  full_memory_GB <- ((T_trials + 2) * n * V * bytes_per_double * 1.5) / 1e9
+  
+  # Chunked strategy: stores chunk_size matrices at a time
+  chunked_memory_GB <- ((chunk_size + 2) * n * V * bytes_per_double) / 1e9
+  
+  # Streaming: minimal memory, processes one trial at a time
+  streaming_memory_GB <- (n * V * bytes_per_double) / 1e9
+  
+  if (verbose) {
+    message(sprintf(
+      "Memory estimates - Full: %.2f GB, Chunked: %.2f GB, Streaming: %.2f GB",
+      full_memory_GB, chunked_memory_GB, streaming_memory_GB
+    ))
+  }
+  
+  # Select strategy
+  if (full_memory_GB < ram_limit_GB * 0.5) {
+    return("full")
+  } else if (chunked_memory_GB < ram_limit_GB * 0.7) {
+    return("chunked")
+  } else {
+    return("streaming")
+  }
+}
+
+# ==============================================================================
+# Validation Functions
+# ==============================================================================
+
+#' Validate design matrix list
+#'
+#' @param X_list List of design matrices
+#' @param n_timepoints Expected number of timepoints
 #' @keywords internal
 validate_design_matrix_list <- function(X_list, n_timepoints) {
   if (!is.list(X_list)) {
-    stop("Design matrix must be a list")
+    stop("X_list must be a list")
   }
-  k <- length(X_list)
-  if (k == 0) {
-    stop("Design matrix list cannot be empty")
+  
+  if (length(X_list) == 0) {
+    stop("X_list cannot be empty")
   }
-  p <- ncol(X_list[[1]])
-  for (i in seq_len(k)) {
+  
+  # Check each matrix
+  for (i in seq_along(X_list)) {
     if (!is.matrix(X_list[[i]])) {
-      stop(sprintf("Design matrix %d is not a matrix", i))
+      stop(sprintf("Element %d of X_list must be a matrix", i))
     }
+    
     if (nrow(X_list[[i]]) != n_timepoints) {
-      stop(sprintf("Design matrix %d has wrong number of rows", i))
-    }
-    if (ncol(X_list[[i]]) != p) {
-      stop(sprintf("Design matrix %d has inconsistent columns", i))
+      stop(sprintf(
+        "Element %d has %d rows, expected %d",
+        i, nrow(X_list[[i]]), n_timepoints
+      ))
     }
   }
-  list(k = k, p = p)
+  
+  # Check that all have same number of columns
+  n_cols <- vapply(X_list, ncol, integer(1))
+  if (length(unique(n_cols)) > 1) {
+    stop("All design matrices must have the same number of columns")
+  }
+  
+  invisible(TRUE)
 }
 
-#' Validate HRF Shape Matrix
+#' Validate HRF shape matrix
+#'
+#' @param H_matrix HRF shape matrix
+#' @param n_timepoints Expected number of HRF timepoints
+#' @param n_voxels Expected number of voxels
 #' @keywords internal
 validate_hrf_shape_matrix <- function(H_matrix, n_timepoints, n_voxels) {
   if (!is.matrix(H_matrix)) {
-    stop("HRF shape matrix must be a matrix")
+    stop("H_matrix must be a matrix")
   }
+  
   if (nrow(H_matrix) != n_timepoints) {
-    stop("HRF shape matrix has wrong number of rows")
+    stop(sprintf(
+      "H_matrix has %d rows, expected %d",
+      nrow(H_matrix), n_timepoints
+    ))
   }
+  
   if (ncol(H_matrix) != n_voxels) {
-    stop("HRF shape matrix has wrong number of columns")
+    stop(sprintf(
+      "H_matrix has %d columns, expected %d",
+      ncol(H_matrix), n_voxels
+    ))
   }
+  
+  invisible(TRUE)
 }
 
+# ==============================================================================
 # User-facing wrapper functions
-#' Run LSS Voxel Loop
+# ==============================================================================
+
+#' Run LSS analysis for single voxel (simplified interface)
+#'
+#' @param y_voxel Timeseries for single voxel
+#' @param X_trial_list List of trial onset matrices
+#' @param h_voxel HRF shape for the voxel
+#' @param TR Repetition time
 #' @export
-run_lss_voxel_loop <- function(Y_matrix, X_trial_list, H_matrix, 
-                               Z_confounds = NULL, lambda = 0) {
-  # Convert to core interface
-  n <- nrow(Y_matrix)
-  A_fixed <- if (is.null(Z_confounds)) matrix(1, n, 1) else Z_confounds
+run_lss_for_voxel <- function(y_voxel, X_trial_list, h_voxel, TR = 2) {
+  run_lss_for_voxel_core(y_voxel, X_trial_list, h_voxel, NULL)
+}
+
+#' Run LSS analysis across all voxels (simplified interface)
+#'
+#' @param Y_matrix Data matrix (timepoints x voxels)
+#' @param X_trial_list List of trial design matrices
+#' @param H_matrix HRF shapes (timepoints x voxels)
+#' @param memory_strategy Memory optimization strategy
+#' @param n_cores Number of CPU cores for parallel processing
+#' @param progress Show progress bar
+#' @param verbose Print progress messages
+#' @export
+run_lss_voxel_loop <- function(Y_matrix, X_trial_list, H_matrix,
+                              memory_strategy = "auto",
+                              n_cores = 1,
+                              progress = TRUE,
+                              verbose = TRUE) {
   
-  # Prepare fixed components
-  lss_prep <- prepare_lss_fixed_components_core(A_fixed, lambda)
+  # Create dummy manifold components (for compatibility)
+  p <- nrow(H_matrix)
+  m <- min(5, p)  # Use small manifold dimension
   
-  # Run core function
+  # Create identity-like reconstructor
+  B_reconstructor <- matrix(0, p, m)
+  for (i in seq_len(min(m, p))) {
+    B_reconstructor[i, i] <- 1
+  }
+  
+  # Project HRFs to get coordinates (m x V matrix)
+  Xi_coords <- solve(crossprod(B_reconstructor) + 1e-6 * diag(m)) %*% 
+               t(B_reconstructor) %*% H_matrix
+  
+  # Validate dimensions
+  stopifnot(nrow(Xi_coords) == m, ncol(Xi_coords) == ncol(H_matrix))
+  
+  # Call main function
   run_lss_voxel_loop_core(
-    Y_proj_matrix = Y_matrix,
-    X_trial_onset_list_of_matrices = X_trial_list,
-    H_shapes_allvox_matrix = H_matrix,
-    A_lss_fixed_matrix = A_fixed,
-    P_lss_matrix = lss_prep$P_lss_matrix,
-    p_lss_vector = lss_prep$p_lss_vector,
-    n_jobs = 1
+    Y_matrix, X_trial_list, B_reconstructor, Xi_coords,
+    A_lss_fixed_matrix = NULL,
+    memory_strategy = memory_strategy,
+    n_cores = n_cores,
+    progress = progress,
+    verbose = verbose
   )
 }
 
-#' Validate and Standardize Lambda
-#' @keywords internal
-.validate_and_standardize_lambda <- function(lambda, param_name) {
-  if (!is.numeric(lambda) || length(lambda) != 1 || lambda < 0) {
-    stop(param_name, " must be a non-negative scalar")
-  }
-  as.numeric(lambda)
+#' Fast LSS implementation
+#'
+#' Wrapper for fmrilss package functionality
+#'
+#' @param Y Data matrix
+#' @param dmat_base Base design matrix
+#' @param dmat_ran Random effects design
+#' @param dmat_fixed Fixed effects design
+#' @export
+lss_fast <- function(Y, dmat_base, dmat_ran, dmat_fixed = NULL) {
+  # Combine base and random designs
+  X_combined <- cbind(dmat_base, dmat_ran)
+  
+  # Call fmrilss
+  fmrilss::lss(
+    Y = Y,
+    X = X_combined,
+    Z = dmat_fixed,
+    method = "r_optimized"
+  )
 }

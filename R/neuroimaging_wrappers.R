@@ -473,13 +473,26 @@ process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
 
   TR <- params_list$TR %||% stop("TR must be specified in params_list")
 
-  # Convert BOLD to matrix form: timepoints × voxels
-  # Note: neuroim2::as.matrix() returns voxels × timepoints, so we transpose
-  Y_mat_raw <- as.matrix(bold)
-  Y_mat <- t(Y_mat_raw)  # Now: timepoints × voxels
+  # Convert BOLD to matrix form
+  # neuroim2::as.matrix() returns voxels × timepoints
+  Y_mat_voxels_by_time <- as.matrix(bold)
   
-  mask_idx <- which(as.logical(mask))
-  Y_mat <- Y_mat[, mask_idx, drop = FALSE]
+  # Check if the NeuroVec was already masked (if so, all voxels are in-mask)
+  n_voxels_in_neurovec <- nrow(Y_mat_voxels_by_time)
+  n_voxels_in_mask <- sum(as.logical(mask))
+  
+  if (n_voxels_in_neurovec == n_voxels_in_mask) {
+    # NeuroVec was created with mask, all voxels are valid
+    Y_mat <- t(Y_mat_voxels_by_time)
+    mask_idx <- 1:n_voxels_in_mask
+  } else {
+    # NeuroVec contains all voxels, need to subset
+    # First transpose to get timepoints × all_voxels
+    Y_mat_all <- t(Y_mat_voxels_by_time)
+    # Then subset to get only masked voxels
+    mask_idx <- which(as.logical(mask))
+    Y_mat <- Y_mat_all[, mask_idx, drop = FALSE]
+  }
 
   sframe <- fmrihrf::sampling_frame(blocklens = nrow(Y_mat), TR = TR)
   # Add block column if missing (for single run scenarios)
@@ -487,11 +500,20 @@ process_subject_mhrf_lss_nim <- function(bold_input, mask_input, event_input,
     events$block <- 1
   }
   
-  ev_model <- fmrireg::event_model(onset ~ hrf(condition, basis = manifold_objects$manifold_hrf_basis),
+  # Use a simple canonical HRF for design matrix creation
+  # The manifold basis will be applied later in the pipeline
+  canonical_hrf <- fmrihrf::HRF_SPMG1
+  
+  # Check if we have a condition column; if not, create a dummy one
+  if (!"condition" %in% names(events)) {
+    events$condition <- "task"
+  }
+  
+  # Use the standard formula with condition variable
+  ev_model <- fmrireg::event_model(onset ~ hrf(condition, basis = canonical_hrf),
                                    data = events, block = ~ block, sampling_frame = sframe, drop_empty = TRUE)
-  term <- stats::terms(ev_model)[[1]]
-  raw_hrf <- term$hrf
-  design_info <- extract_design_info(ev_model, sframe, raw_hrf)
+  
+  design_info <- extract_design_info(ev_model, sframe, canonical_hrf)
 
   result <- run_mhrf_lss_standard(
     Y_data = Y_mat,

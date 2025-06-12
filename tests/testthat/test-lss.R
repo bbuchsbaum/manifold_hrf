@@ -13,28 +13,19 @@ test_that("prepare_lss_fixed_components_core works correctly", {
   
   # Prepare LSS components
   result <- prepare_lss_fixed_components_core(
-    A_fixed, 
-    intercept_col_index_in_Alss = 1,
-    lambda_ridge_Alss = 1e-6
+    A_fixed_regressors_matrix = A_fixed, 
+    lambda_ridge_A = 1e-6
   )
   
   # Check output structure
   expect_type(result, "list")
-  expect_named(result, c("P_lss_matrix", "p_lss_vector"))
+  expect_named(result, c("P_lss", "has_intercept"))
   
-  # Check dimensions
-  expect_equal(dim(result$P_lss_matrix), c(2, n))  # q_lss x n
-  expect_equal(length(result$p_lss_vector), n)
+  # Check that it detected the intercept
+  expect_true(result$has_intercept)
   
-  # Check that P_lss approximates the pseudoinverse
-  # P_lss ≈ (A'A + λI)^(-1) A'
-  # So P_lss * A ≈ I (up to ridge penalty)
-  PA <- result$P_lss_matrix %*% A_fixed
-  expect_equal(as.vector(diag(PA)), rep(1, 2), tolerance = 0.01)
-  
-  # Check that p_lss_vector is related to intercept
-  # It should be the first row of the pseudoinverse
-  expect_equal(result$p_lss_vector, result$P_lss_matrix[1, ], tolerance = 1e-5)
+  # Check that P_lss is NULL (fmrilss handles projection internally)
+  expect_null(result$P_lss)
 })
 
 test_that("reconstruct_hrf_shapes_core works correctly", {
@@ -97,15 +88,14 @@ test_that("run_lss_for_voxel works correctly", {
     TR = 2
   )
   
-  # Check output
-  expect_type(result, "list")
-  expect_named(result, "beta_trials")
-  expect_length(result$beta_trials, T_trials)
-  expect_true(all(is.finite(result$beta_trials)))
+  # Check output (now returns a vector directly)
+  expect_type(result, "double")
+  expect_length(result, T_trials)
+  expect_true(all(is.finite(result)))
   
   # Estimates should be reasonably close to true values
   # (won't be exact due to noise and intercept-only model)
-  expect_lt(mean(abs(result$beta_trials - true_betas)), 0.5)
+  expect_lt(mean(abs(result - true_betas)), 0.5)
 })
 
 test_that("run_lss_voxel_loop_core handles multiple voxels", {
@@ -131,17 +121,27 @@ test_that("run_lss_voxel_loop_core handles multiple voxels", {
   
   # Fixed regressors (not used in current implementation)
   A_fixed <- cbind(1, rnorm(n))
-  lss_prep <- prepare_lss_fixed_components_core(A_fixed, 1, 1e-6)
+  lss_prep <- prepare_lss_fixed_components_core(
+    A_fixed_regressors_matrix = A_fixed, 
+    lambda_ridge_A = 1e-6
+  )
+  
+  # Create mock B_reconstructor and Xi_smoothed for new API
+  m <- 3  # manifold dimensions
+  B_reconstructor <- matrix(rnorm(p * m), p, m)
+  Xi_smoothed <- matrix(rnorm(m * V), m, V)
   
   # Run voxel loop
   Beta <- run_lss_voxel_loop_core(
     Y_proj_matrix = Y_proj,
     X_trial_onset_list_of_matrices = X_trials,
-    H_shapes_allvox_matrix = H_shapes,
+    B_reconstructor_matrix = B_reconstructor,
+    Xi_smoothed_allvox_matrix = Xi_smoothed,
     A_lss_fixed_matrix = A_fixed,
-    P_lss_matrix = lss_prep$P_lss_matrix,
-    p_lss_vector = lss_prep$p_lss_vector,
-    n_jobs = 1
+    memory_strategy = "auto",
+    n_cores = 1,
+    progress = FALSE,
+    verbose = FALSE
   )
   
   # Check output
@@ -166,8 +166,8 @@ test_that("fmrilss backend handles edge cases", {
     h_voxel = h
   )
   
-  expect_length(result$beta_trials, 1)
-  expect_true(is.finite(result$beta_trials[1]))
+  expect_length(result, 1)
+  expect_true(is.finite(result[1]))
   
   # Edge case: trials at boundaries
   X_boundary <- list(
@@ -181,7 +181,7 @@ test_that("fmrilss backend handles edge cases", {
     h_voxel = rep(1, 1)
   )
   
-  expect_length(result_boundary$beta_trials, 2)
+  expect_length(result_boundary, 2)
 })
 
 test_that("validate_design_matrix_list catches errors", {

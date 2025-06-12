@@ -2,16 +2,33 @@
 % Please edit documentation in R/core_lss.R
 \name{run_lss_voxel_loop}
 \alias{run_lss_voxel_loop}
-\title{Run LSS Voxel Loop}
+\title{Run LSS analysis across all voxels (simplified interface)}
 \usage{
 run_lss_voxel_loop(
   Y_matrix,
   X_trial_list,
   H_matrix,
-  Z_confounds = NULL,
-  lambda = 0
+  memory_strategy = "auto",
+  n_cores = 1,
+  progress = TRUE,
+  verbose = TRUE
 )
 }
+\arguments{
+\item{Y_matrix}{Data matrix (timepoints x voxels)}
+
+\item{X_trial_list}{List of trial design matrices}
+
+\item{H_matrix}{HRF shapes (timepoints x voxels)}
+
+\item{memory_strategy}{Memory optimization strategy}
+
+\item{n_cores}{Number of CPU cores for parallel processing}
+
+\item{progress}{Show progress bar}
+
+\item{verbose}{Print progress messages}
+}
 \description{
-Run LSS Voxel Loop
+Run LSS analysis across all voxels (simplified interface)
 }

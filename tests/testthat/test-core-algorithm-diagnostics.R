@@ -256,7 +256,7 @@ test_that("M-HRF-LSS preserves signal reconstruction fidelity and manifold geome
     # Reconstruct HRFs
     H_est <- reconstruct_hrf_shapes_core(
       B_reconstructor_matrix = manifold$B_reconstructor_matrix,
-      Xi_smoothed_matrix = ident_result$Xi_ident_matrix
+      Xi_manifold_coords_matrix = ident_result$Xi_ident_matrix
     )
     
     # Compute recovery errors

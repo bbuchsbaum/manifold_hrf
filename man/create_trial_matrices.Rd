@@ -2,11 +2,11 @@
 % Please edit documentation in R/mhrf_lss_interface.R
 \name{create_trial_matrices}
 \alias{create_trial_matrices}
-\title{Create Trial-wise Design Matrices}
+\title{Create Trial-wise Design Matrices (DEPRECATED)}
 \usage{
 create_trial_matrices(event_model, event_table, sframe)
 }
 \description{
-Create Trial-wise Design Matrices
+Create Trial-wise Design Matrices (DEPRECATED)
 }
 \keyword{internal}

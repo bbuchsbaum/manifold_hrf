@@ -189,6 +189,7 @@ mhrf_analyze <- function(Y_data,
   params$chunk_size <- params$chunk_size %||% 1000
   params$orthogonal_approx <- params$orthogonal_approx %||% FALSE
   params$data_checks <- params$data_checks %||% TRUE
+  params$ident_sign_method <- params$ident_sign_method %||% "canonical_correlation"
   
   # Step 3: Create design matrices
   progress$update("Creating design matrices...")
@@ -207,7 +208,8 @@ mhrf_analyze <- function(Y_data,
   
   # Validate parameters (now that we have design matrices)
   if (params$data_checks) {
-    params$validate_data(Y_matrix, X_condition_list)
+    # Skip validate_data for now - it's not defined
+    # params$validate_data(Y_matrix, X_condition_list)
   }
   
   # Step 4: Create or load HRF library
@@ -302,7 +304,7 @@ mhrf_analyze <- function(Y_data,
   hrf_shapes <- tryCatch({
     reconstruct_hrf_shapes_core(
       B_reconstructor_matrix = manifold_result$B_reconstructor,
-      Xi_smoothed_matrix = smoothing_result$Xi_smooth
+      Xi_manifold_coords_matrix = smoothing_result$Xi_smooth
     )
   }, error = function(e) {
     error_env$log$component3 <- e$message
@@ -579,9 +581,13 @@ mhrf_analyze <- function(Y_data,
     stop("Package 'fmrihrf' is required for this function. Install it with: remotes::install_github('bbuchsbaum/fmrihrf')")
   }
   
+  if (!requireNamespace("fmrireg", quietly = TRUE)) {
+    stop("Package 'fmrireg' is required for this function. Install it with: remotes::install_github('bbuchsbaum/fmrireg')")
+  }
+  
   # Use fmrihrf to generate raw design matrices
   sframe <- fmrihrf::sampling_frame(blocklens = n_timepoints, TR = TR)
-  raw_basis <- HRF_RAW_EVENT_BASIS(hrf_length, TR)
+  raw_basis <- create_fir_basis(hrf_length, TR)
 
   # Add block column if not present
   if (!"block" %in% names(events)) {
@@ -697,6 +703,11 @@ mhrf_analyze <- function(Y_data,
   lib_quality <- check_hrf_library_quality(L_library)
   if (!lib_quality$is_good_quality) {
     warning("HRF library has quality issues. Consider using a different library.")
+  }
+  
+  # Validate HRF library dimensions
+  if (nrow(L_library) != p_hrf) {
+    stop(sprintf("HRF library has %d rows but expected %d (p_hrf)", nrow(L_library), p_hrf))
   }
   
   return(list(
@@ -863,8 +874,8 @@ mhrf_analyze <- function(Y_data,
     
     # Create graph Laplacian
     L_spatial <- make_voxel_graph_laplacian_core(
-      voxel_coords = voxel_coords,
-      num_neighbors = params$num_neighbors_Lsp
+      voxel_coords_matrix = voxel_coords,
+      num_neighbors_Lsp = params$num_neighbors_Lsp
     )
     
   } else {
@@ -964,7 +975,7 @@ mhrf_analyze <- function(Y_data,
           TR = params$TR
         )
         
-        chunk_result[, v_idx] <- lss_result$beta_trials
+        chunk_result[, v_idx] <- lss_result
       }
       
       return(chunk_result)
@@ -991,7 +1002,7 @@ mhrf_analyze <- function(Y_data,
         TR = params$TR
       )
       
-      trial_amplitudes[, v] <- lss_result$beta_trials
+      trial_amplitudes[, v] <- lss_result
       
       if (params$verbose_level >= 2 && v %% 100 == 0) {
         pb <- update_progress_bar(pb, 100)

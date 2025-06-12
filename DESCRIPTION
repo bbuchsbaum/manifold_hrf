@@ -32,9 +32,10 @@ Imports:
     RcppArmadillo,
     hrfals,
     rsvd,
-    fmrireg,
     fmrilss (>= 0.1.0),
-    matrixStats
+    fmrireg,
+    matrixStats,
+    R6
 Suggests:
     testthat (>= 3.0.0),
     knitr,
@@ -44,8 +45,11 @@ Suggests:
     parallel,
     proxy,
     RcppHNSW,
-    microbenchmark
+    microbenchmark,
+    fmrireg
 VignetteBuilder: knitr, rmarkdown
 URL: https://github.com/bbuchsbaum/manifold_hrf
 BugReports: https://github.com/bbuchsbaum/manifold_hrf/issues 
-
+Remotes:
+    bbuchsbaum/fmrilss,
+    bbuchsbaum/fmrireg

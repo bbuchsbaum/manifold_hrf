@@ -47,3 +47,79 @@ HRF_RAW_EVENT_BASIS <- function(p_length, TR_sample, name = NULL) {
 private_level_token <- function(factor_name, level) {
   paste0(make.names(factor_name), ".", make.names(level))
 }
+
+#' Create FIR (Finite Impulse Response) Basis
+#'
+#' Creates a finite impulse response basis set for HRF estimation.
+#' This is a more standard alternative to HRF_RAW_EVENT_BASIS that
+#' doesn't depend on fmrireg internals.
+#'
+#' @param n_basis Number of basis functions (time points)
+#' @param TR Repetition time in seconds
+#' @param name Optional name for the basis
+#' @return An HRF object compatible with fmrireg
+#' @export
+create_fir_basis <- function(n_basis, TR, name = NULL) {
+  # Input validation
+  n_basis <- as.integer(n_basis)
+  if (n_basis < 1) {
+    stop("n_basis must be at least 1")
+  }
+  
+  if (!is.numeric(TR) || TR <= 0) {
+    stop("TR must be a positive number")
+  }
+  
+  # Total duration of the HRF
+  span <- n_basis * TR
+  
+  # Create the basis evaluation function
+  basis_fun <- function(t) {
+    if (length(t) == 0) {
+      return(matrix(0, nrow = 0, ncol = n_basis))
+    }
+    
+    # Initialize output matrix
+    out <- matrix(0, nrow = length(t), ncol = n_basis)
+    
+    # For each time point, determine which basis function is active
+    # FIR basis uses indicator functions for each time bin
+    for (i in 1:n_basis) {
+      # Time window for this basis function
+      t_start <- (i - 1) * TR
+      t_end <- i * TR
+      
+      # Set to 1 where t falls in this window
+      in_window <- t >= t_start & t < t_end
+      out[in_window, i] <- 1
+    }
+    
+    # Handle the edge case for the last basis function
+    # Include t == span in the last bin
+    if (n_basis > 0) {
+      out[t == span, n_basis] <- 1
+    }
+    
+    return(out)
+  }
+  
+  # Set name if not provided
+  if (is.null(name)) {
+    name <- sprintf("FIR_%d_TR%.2f", n_basis, TR)
+  }
+  
+  # Create HRF object using fmrireg
+  if (!requireNamespace("fmrireg", quietly = TRUE)) {
+    stop("Package 'fmrireg' is required. Install it with: remotes::install_github('bbuchsbaum/fmrireg')")
+  }
+  
+  hrf_obj <- fmrireg::as_hrf(
+    basis_fun, 
+    name = name, 
+    nbasis = n_basis, 
+    span = span,
+    params = list(n_basis = n_basis, TR = TR)
+  )
+  
+  return(hrf_obj)
+}

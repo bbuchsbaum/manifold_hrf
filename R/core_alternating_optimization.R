@@ -27,12 +27,17 @@
 #'   
 #' @details This function implements Component 4 of the M-HRF-LSS pipeline.
 #'   It re-estimates condition-level amplitudes using the final smoothed HRF
-#'   shapes. Regressors for all voxels are precomputed in a vectorized manner to
-#'   avoid redundant convolutions, yielding a noticeable efficiency improvement.
-#'   For very large datasets, a C++ (Rcpp) implementation of this step could
-#'   provide further acceleration. The MVP version does a single pass
-#'   (max_iter=1), but the framework supports iterative refinement between HRFs
-#'   and betas.
+#'   shapes. 
+#'   
+#'   Memory optimization: Instead of precomputing all k × (n × V) matrices
+#'   (which requires ~10GB for whole brain), this implementation computes
+#'   regressors on-the-fly for each voxel, reducing memory usage to O(n × k).
+#'   
+#'   Numerical stability: Uses Cholesky decomposition when possible, falling
+#'   back to QR decomposition for non-positive definite cases.
+#'   
+#'   The MVP version does a single pass (max_iter=1), but the framework 
+#'   supports iterative refinement between HRFs and betas.
 #'   
 #' @examples
 #' \dontrun{
@@ -153,28 +158,6 @@ estimate_final_condition_betas_core <- function(Y_proj_matrix,
     }
   }
   
-  # Precompute condition-specific regressors for all voxels
-  # Each entry in conv_design_list[[c]] is an n x V matrix where column v is the
-  # regressor for condition c and voxel v
-  conv_design_list <- lapply(X_condition_list_proj_matrices, function(Xc) {
-    Xc %*% H_shapes_allvox_matrix
-  })
-
-  # Precompute cross products with the data (XtY) and between regressors (XtX)
-  XtY_matrix <- matrix(0, nrow = k, ncol = V)
-  for (c in 1:k) {
-    XtY_matrix[c, ] <- colSums(conv_design_list[[c]] * Y_proj_matrix)
-  }
-
-  XtX_array <- array(0, dim = c(k, k, V))
-  for (c1 in 1:k) {
-    for (c2 in c1:k) {
-      prod_vec <- colSums(conv_design_list[[c1]] * conv_design_list[[c2]])
-      XtX_array[c1, c2, ] <- prod_vec
-      XtX_array[c2, c1, ] <- prod_vec
-    }
-  }
-
   # Initialize output matrix
   Beta_condition_final_matrix <- matrix(0, nrow = k, ncol = V)
 
@@ -188,24 +171,48 @@ estimate_final_condition_betas_core <- function(Y_proj_matrix,
     }
     
     voxel_fun <- function(v) {
-      XtX_voxel_reg <- XtX_array[, , v] + lambda_beta_final * diag(k)
-      XtY_voxel <- XtY_matrix[, v]
-
-      if (any(is.na(XtX_voxel_reg)) || any(is.infinite(XtX_voxel_reg))) {
-        warning(sprintf("Numerical issues in voxel %d, setting betas to zero", v))
-        rep(0, k)
-      } else {
+      # Build n x k design matrix on the fly for this voxel
+      D_v <- vapply(X_condition_list_proj_matrices,
+                    function(Xc) Xc %*% H_shapes_allvox_matrix[, v],
+                    numeric(n))
+      
+      # Compute cross products for this voxel
+      XtX <- crossprod(D_v) + lambda_beta_final * diag(k)
+      XtY <- crossprod(D_v, Y_proj_matrix[, v])
+      
+      # Use Cholesky decomposition for stability
+      tryCatch({
+        chol_XtX <- chol(XtX)
+        betas <- backsolve(chol_XtX, forwardsolve(t(chol_XtX), XtY))
+        as.vector(betas)
+      }, error = function(e) {
+        # Fall back to QR if Cholesky fails (matrix not positive definite)
         tryCatch({
-          as.vector(solve(XtX_voxel_reg, XtY_voxel))
-        }, error = function(e) {
+          qr_D <- qr(D_v)
+          betas <- qr.coef(qr_D, Y_proj_matrix[, v])
+          as.vector(betas)
+        }, error = function(e2) {
           warning(sprintf("Failed to solve for voxel %d: %s. Setting betas to zero.",
-                          v, e$message))
+                          v, e2$message))
           rep(0, k)
         })
-      }
+      })
     }
 
-    res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
+    # Use centralized parallel processing helper if available
+    if (exists(".lss_process_voxels", mode = "function")) {
+      res_list <- .lss_process_voxels(
+        voxel_indices = seq_len(V),
+        worker_fun = voxel_fun,
+        n_cores = n_jobs,
+        progress = FALSE,
+        .globals = c("X_condition_list_proj_matrices", "H_shapes_allvox_matrix", 
+                     "Y_proj_matrix", "lambda_beta_final", "n", "k")
+      )
+    } else {
+      # Fall back to .parallel_lapply if helper not available
+      res_list <- .parallel_lapply(seq_len(V), voxel_fun, n_jobs)
+    }
     Beta_condition_final_matrix <- do.call(cbind, res_list)
     
     # Check convergence (only relevant if max_iter > 1)

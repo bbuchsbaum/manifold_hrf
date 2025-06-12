@@ -15,6 +15,44 @@ Gamma <- matrix(rnorm(m * k * V), m * k, V)
    expect_equal(dim(res$Beta_raw_matrix), c(k, V))
  })
 
+test_that("extract_xi_beta_raw_svd_core handles matrix orientation correctly", {
+  # Test with specific values to verify correct reshape
+  m_test <- 3  # manifold dimensions
+  k_test <- 2  # conditions
+  V_test <- 1  # single voxel for clarity
+  
+  # Create gamma vector ordered as [cond1_dim1, cond1_dim2, cond1_dim3, cond2_dim1, cond2_dim2, cond2_dim3]
+  # This represents condition 1 = [1, 2, 3] and condition 2 = [4, 5, 6]
+  gamma_vec <- 1:6
+  Gamma_test <- matrix(gamma_vec, nrow = k_test * m_test, ncol = V_test)
+  
+  # Expected k x m matrix after reshape:
+  # Row 1: condition 1 = [1, 2, 3]
+  # Row 2: condition 2 = [4, 5, 6]
+  expected_G <- matrix(c(1, 2, 3, 4, 5, 6), nrow = k_test, ncol = m_test, byrow = TRUE)
+  
+  # Compute SVD of expected matrix
+  expected_svd <- svd(expected_G)
+  
+  # Run extraction
+  res <- extract_xi_beta_raw_svd_core(Gamma_test, m_test, k_test)
+  
+  # Verify dimensions
+  expect_equal(dim(res$Xi_raw_matrix), c(m_test, V_test))
+  expect_equal(dim(res$Beta_raw_matrix), c(k_test, V_test))
+  
+  # Verify the SVD decomposition is correct
+  # Reconstruct the matrix from extracted components
+  xi_extracted <- res$Xi_raw_matrix[, 1]
+  beta_extracted <- res$Beta_raw_matrix[, 1]
+  
+  # The rank-1 approximation should match the first singular value decomposition
+  reconstructed <- outer(beta_extracted, xi_extracted)
+  expected_rank1 <- expected_svd$d[1] * outer(expected_svd$u[, 1], expected_svd$v[, 1])
+  
+  expect_equal(reconstructed, expected_rank1, tolerance = 1e-10)
+})
+
  test_that("apply_intrinsic_identifiability_core works", {
    Xi_raw <- matrix(rnorm(m * V), m, V)
    Beta_raw <- matrix(rnorm(k * V), k, V)
@@ -52,9 +90,12 @@ test_that("apply_spatial_smoothing_core returns same dimension", {
 test_that("prepare_lss_fixed_components_core returns matrices of correct size", {
   # Create a matrix where q_lss < n (3 columns, 10 rows)
   A <- cbind(1, matrix(rnorm(20), nrow = 10, ncol = 2))
-  res <- prepare_lss_fixed_components_core(A, 1, 0.01)
-  expect_equal(dim(res$P_lss_matrix), c(ncol(A), nrow(A)))
-  expect_length(res$p_lss_vector, nrow(A))
+  res <- prepare_lss_fixed_components_core(
+    A_fixed_regressors_matrix = A, 
+    lambda_ridge_A = 0.01
+  )
+  expect_null(res$P_lss)  # fmrilss handles internally
+  expect_true(res$has_intercept)  # Should detect intercept column
 })
 
 test_that("reconstruct_hrf_shapes_core multiplies matrices", {
@@ -74,7 +115,7 @@ test_that("run_lss_for_voxel returns vector of length T", {
     h_voxel = H,
     TR = 2
   )
-  expect_length(res$beta_trials, length(X_list))
+  expect_length(res, length(X_list))
 })
 
 test_that("estimate_final_condition_betas_core returns matrix of correct dims", {

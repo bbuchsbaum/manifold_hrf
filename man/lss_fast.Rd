@@ -2,11 +2,19 @@
 % Please edit documentation in R/core_lss.R
 \name{lss_fast}
 \alias{lss_fast}
-\title{Fast LSS implementation using fmrilss}
+\title{Fast LSS implementation}
 \usage{
 lss_fast(Y, dmat_base, dmat_ran, dmat_fixed = NULL)
 }
-\description{
-Fast LSS implementation using fmrilss
+\arguments{
+\item{Y}{Data matrix}
+
+\item{dmat_base}{Base design matrix}
+
+\item{dmat_ran}{Random effects design}
+
+\item{dmat_fixed}{Fixed effects design}
 }
-\keyword{internal}
+\description{
+Wrapper for fmrilss package functionality
+}

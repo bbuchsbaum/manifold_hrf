@@ -2,40 +2,55 @@
 % Please edit documentation in R/core_lss.R
 \name{run_lss_voxel_loop_core}
 \alias{run_lss_voxel_loop_core}
-\title{Run LSS Across Voxels (Core)}
+\title{Run LSS voxel loop with memory optimization strategies}
 \usage{
 run_lss_voxel_loop_core(
   Y_proj_matrix,
   X_trial_onset_list_of_matrices,
-  H_shapes_allvox_matrix,
-  A_lss_fixed_matrix,
-  P_lss_matrix,
-  p_lss_vector,
-  n_jobs = 1,
-  ram_heuristic_GB_for_Rt = 1
+  B_reconstructor_matrix,
+  Xi_smoothed_allvox_matrix,
+  A_lss_fixed_matrix = NULL,
+  memory_strategy = "auto",
+  chunk_size = 50,
+  ram_limit_GB = 4,
+  n_cores = 1,
+  progress = TRUE,
+  verbose = TRUE
 )
 }
 \arguments{
-\item{Y_proj_matrix}{n x V projected BOLD data matrix}
+\item{Y_proj_matrix}{n x V matrix of projected BOLD data}
 
-\item{X_trial_onset_list_of_matrices}{List of length T with n x p design matrices}
+\item{X_trial_onset_list_of_matrices}{List of T sparse matrices (n x p each)}
 
-\item{H_shapes_allvox_matrix}{p x V matrix of HRF shapes}
+\item{B_reconstructor_matrix}{p x m manifold basis matrix}
 
-\item{A_lss_fixed_matrix}{n x q matrix of fixed regressors}
+\item{Xi_smoothed_allvox_matrix}{m x V smoothed manifold coordinates}
 
-\item{P_lss_matrix}{q x n matrix from \code{prepare_lss_fixed_components_core}}
+\item{A_lss_fixed_matrix}{Optional n x q fixed regressors matrix}
 
-\item{p_lss_vector}{Intercept projection vector (unused)}
+\item{memory_strategy}{Character string specifying computation method:
+\itemize{
+\item{"auto"}{ (Default) Automatically selects based on data size}
+\item{"full"}{ Precomputes all trial regressors. Fastest but uses most memory}
+\item{"chunked"}{ Processes trials in batches. Good balance of speed/memory}
+\item{"streaming"}{ Processes one trial at a time. Lowest memory usage}
+}}
 
-\item{n_jobs}{Number of parallel workers for voxel-wise computation}
+\item{chunk_size}{Integer number of trials per chunk when using "chunked" strategy}
 
-\item{ram_heuristic_GB_for_Rt}{RAM limit in gigabytes (currently unused)}
+\item{ram_limit_GB}{Memory limit in GB for auto strategy selection}
+
+\item{n_cores}{Number of CPU cores to use for parallel processing (1 = sequential)}
+
+\item{progress}{Logical whether to show progress bar (requires progressr package)}
+
+\item{verbose}{Logical whether to print progress messages}
 }
 \value{
-A T x V matrix of trial-wise beta estimates
+T x V matrix of trial-wise beta estimates
 }
 \description{
-Computes trial-wise LSS estimates for all voxels using parallel processing.
-Routes all computation through the fmrilss package.
+Main dispatcher function that performs trial-wise LSS estimation using
+one of three memory strategies based on dataset size and available resources.
 }

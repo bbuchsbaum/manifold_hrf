@@ -38,7 +38,7 @@ test_that("LS-A and LS-S are equivalent for T=2", {
   
   expect_equal(
     as.vector(lsa_result),
-    as.vector(lss_result$beta_trials),
+    as.vector(lss_result),
     tolerance = 1e-2,
     info = "LS-A and LS-S should be equivalent for T=2"
   )
@@ -87,8 +87,7 @@ test_that("LS-A and LS-S are equivalent for T=2 with confounds", {
   expect_equal(
     as.vector(lsa_betas),
     as.vector(lss_result),
-    tolerance = 1e-2,
-    info = "LS-A and LS-S should be equivalent for T=2 with confounds"
+    tolerance = 1e-2
   )
 })
 
@@ -119,7 +118,6 @@ test_that("Memory usage is reasonable for LS-S", {
   # Should not allocate large n×n matrices
   expect_lt(
     abs(mem_change), 
-    1e6,  # 1 MB
-    info = "LS-S should not allocate large n×n matrices"
+    1e6  # 1 MB
   )
 }) 

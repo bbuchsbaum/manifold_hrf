@@ -46,12 +46,17 @@ HRF shapes from the manifold estimation pipeline.
 \details{
 This function implements Component 4 of the M-HRF-LSS pipeline.
 It re-estimates condition-level amplitudes using the final smoothed HRF
-shapes. Regressors for all voxels are precomputed in a vectorized manner to
-avoid redundant convolutions, yielding a noticeable efficiency improvement.
-For very large datasets, a C++ (Rcpp) implementation of this step could
-provide further acceleration. The MVP version does a single pass
-(max_iter=1), but the framework supports iterative refinement between HRFs
-and betas.
+shapes.
+
+Memory optimization: Instead of precomputing all k × (n × V) matrices
+(which requires ~10GB for whole brain), this implementation computes
+regressors on-the-fly for each voxel, reducing memory usage to O(n × k).
+
+Numerical stability: Uses Cholesky decomposition when possible, falling
+back to QR decomposition for non-positive definite cases.
+
+The MVP version does a single pass (max_iter=1), but the framework
+supports iterative refinement between HRFs and betas.
 }
 \examples{
 \dontrun{

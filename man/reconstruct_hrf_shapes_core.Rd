@@ -2,22 +2,18 @@
 % Please edit documentation in R/core_lss.R
 \name{reconstruct_hrf_shapes_core}
 \alias{reconstruct_hrf_shapes_core}
-\title{Reconstruct HRF Shapes from Manifold Coordinates (Core)}
+\title{Reconstruct HRF shapes from manifold coordinates}
 \usage{
-reconstruct_hrf_shapes_core(B_reconstructor_matrix, Xi_smoothed_matrix)
+reconstruct_hrf_shapes_core(B_reconstructor_matrix, Xi_manifold_coords_matrix)
 }
 \arguments{
-\item{B_reconstructor_matrix}{The p x m reconstructor matrix from
-\code{get_manifold_basis_reconstructor_core}, where p is HRF length
-and m is manifold dimensionality}
+\item{B_reconstructor_matrix}{p x m manifold basis matrix}
 
-\item{Xi_smoothed_matrix}{The m x V matrix of spatially smoothed manifold
-coordinates from Component 2, where V is number of voxels}
+\item{Xi_manifold_coords_matrix}{m x V manifold coordinates}
 }
 \value{
-H_shapes_allvox_matrix A p x V matrix of reconstructed HRF shapes
+p x V matrix of reconstructed HRF shapes
 }
 \description{
-Transforms smoothed manifold coordinates back to HRF shape space using
-the reconstructor matrix from manifold construction.
+Reconstruct HRF shapes from manifold coordinates
 }
