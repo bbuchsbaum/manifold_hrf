@@ -24,10 +24,11 @@ run_voxelwise_hrf_fit <- function(Y_data, X_condition_list, B_hrf_manifold,
   
   # Extract Xi and Beta
   if (use_robust_svd) {
-    result <- extract_xi_beta_raw_svd_robust(
+    result <- extract_xi_beta_raw_svd_core(
       Gamma_coeffs_matrix = Gamma,
       m_manifold_dim = ncol(B_hrf_manifold),
-      k_conditions = length(X_condition_list)
+      k_conditions = length(X_condition_list),
+      method = "robust"
     )
   } else {
     result <- extract_xi_beta_raw_svd_core(

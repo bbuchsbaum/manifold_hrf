@@ -236,10 +236,11 @@ test_that("M-HRF-LSS preserves signal reconstruction fidelity and manifold geome
     )
     
     # Extract Xi and Beta
-    xi_beta <- extract_xi_beta_raw_svd_robust(
+    xi_beta <- extract_xi_beta_raw_svd_core(
       Gamma_coeffs_matrix = Gamma_est,
       m_manifold_dim = manifold$m_manifold_dim,
-      k_conditions = n_conditions
+      k_conditions = n_conditions,
+      method = "robust"
     )
     
     # Apply identifiability

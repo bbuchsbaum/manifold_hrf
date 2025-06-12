@@ -9,18 +9,20 @@ test_that("verbose_warnings parameter exists and function works", {
   Gamma <- matrix(rnorm(k * m * V), nrow = k * m, ncol = V)
   
   # Test that function works with verbose_warnings = FALSE (default)
-  result_quiet <- extract_xi_beta_raw_svd_robust(
+  result_quiet <- extract_xi_beta_raw_svd_core(
     Gamma_coeffs_matrix = Gamma,
     m_manifold_dim = m,
     k_conditions = k,
+    method = "robust",
     verbose_warnings = FALSE
   )
   
   # Test that function works with verbose_warnings = TRUE
-  result_verbose <- extract_xi_beta_raw_svd_robust(
+  result_verbose <- extract_xi_beta_raw_svd_core(
     Gamma_coeffs_matrix = Gamma,
     m_manifold_dim = m,
     k_conditions = k,
+    method = "robust",
     verbose_warnings = TRUE
   )
   

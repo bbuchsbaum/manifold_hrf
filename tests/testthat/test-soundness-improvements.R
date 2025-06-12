@@ -247,10 +247,11 @@ test_that("Robust SVD extraction handles edge cases", {
   Gamma[, 3] <- Gamma[, 3] * 1e10  # Large values
   
   # Run robust extraction
-  result <- extract_xi_beta_raw_svd_robust(
+  result <- extract_xi_beta_raw_svd_core(
     Gamma_coeffs_matrix = Gamma,
     m_manifold_dim = m,
-    k_conditions = k
+    k_conditions = k,
+    method = "robust"
   )
   
   expect_equal(dim(result$Xi_raw_matrix), c(m, V))
