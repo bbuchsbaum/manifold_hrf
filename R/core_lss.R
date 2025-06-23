@@ -142,6 +142,69 @@ reconstruct_hrf_shapes_core <- function(B_reconstructor_matrix,
   B_reconstructor_matrix %*% Xi_manifold_coords_matrix
 }
 
+#' Remove zero and duplicate columns from a matrix
+#' 
+#' Removes columns that are all zeros or duplicates to prevent rank-deficiency.
+#' Returns the cleaned matrix and a mapping of kept columns.
+#' 
+#' @param C Matrix to clean
+#' @param tol Tolerance for considering columns as duplicates
+#' @return List with cleaned matrix and column mapping
+#' @keywords internal
+.remove_zero_columns <- function(C, tol = 1e-10) {
+  # Find non-zero columns
+  col_sums <- colSums(abs(C))
+  non_zero <- which(col_sums > .Machine$double.eps)
+  
+  if (length(non_zero) == 0) {
+    # All columns are zero - return minimal matrix to avoid errors
+    return(list(
+      C = matrix(0, nrow(C), 1),
+      keep = integer(0),
+      n_removed = ncol(C),
+      duplicates_removed = 0
+    ))
+  }
+  
+  # Among non-zero columns, check for duplicates
+  keep <- integer(0)
+  C_subset <- C[, non_zero, drop = FALSE]
+  
+  for (i in seq_along(non_zero)) {
+    is_duplicate <- FALSE
+    if (length(keep) > 0) {
+      # Check if this column is duplicate of any kept column
+      for (j in seq_along(keep)) {
+        col_diff <- C_subset[, i] - C[, keep[j]]
+        if (sqrt(sum(col_diff^2)) < tol * sqrt(sum(C_subset[, i]^2))) {
+          is_duplicate <- TRUE
+          break
+        }
+      }
+    }
+    if (!is_duplicate) {
+      keep <- c(keep, non_zero[i])
+    }
+  }
+  
+  if (length(keep) == 0) {
+    # Shouldn't happen, but safety check
+    return(list(
+      C = matrix(0, nrow(C), 1),
+      keep = integer(0),
+      n_removed = ncol(C),
+      duplicates_removed = 0
+    ))
+  }
+  
+  list(
+    C = C[, keep, drop = FALSE],
+    keep = keep,
+    n_removed = ncol(C) - length(keep),
+    duplicates_removed = length(non_zero) - length(keep)
+  )
+}
+
 #' Run LSS for a single voxel
 #'
 #' Core single-voxel LSS implementation using fmrilss
@@ -167,14 +230,50 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
     C_matrix[, t] <- X_trial_onset_list_of_matrices[[t]] %*% h_voxel_shape_vector
   }
   
-  # Use fmrilss for the computation
-  betas <- fmrilss::lss(
-    Y = matrix(Y_proj_voxel_vector, ncol = 1),
-    X = C_matrix,
-    Z = A_lss_fixed_matrix,
-    method = "r_optimized"
-  )
-  return(as.vector(betas))
+  # Remove zero columns to prevent rank-deficiency warnings
+  cleaned <- .remove_zero_columns(C_matrix)
+  
+  if (length(cleaned$keep) == 0) {
+    # All regressors are zero - return zeros
+    return(rep(0, T_trials))
+  }
+  
+  # Use fmrilss for the computation with cleaned matrix
+  # Wrap in tryCatch to handle Cholesky decomposition failures
+  betas_subset <- tryCatch({
+    fmrilss::lss(
+      Y = matrix(Y_proj_voxel_vector, ncol = 1),
+      X = cleaned$C,
+      Z = A_lss_fixed_matrix,
+      method = "r_optimized"
+    )
+  }, error = function(e) {
+    if (grepl("chol|positive definite|singular", e$message, ignore.case = TRUE)) {
+      # Fall back to regularized least squares
+      if (ncol(cleaned$C) == 1) {
+        # Single column case - simple division
+        if (sum(cleaned$C^2) > 0) {
+          sum(cleaned$C * Y_proj_voxel_vector) / sum(cleaned$C^2)
+        } else {
+          0
+        }
+      } else {
+        # Multiple columns - use QR with small regularization
+        X_reg <- rbind(cleaned$C, sqrt(1e-8) * diag(ncol(cleaned$C)))
+        Y_reg <- c(Y_proj_voxel_vector, rep(0, ncol(cleaned$C)))
+        qr.coef(qr(X_reg), Y_reg)
+      }
+    } else {
+      # Re-throw other errors
+      stop(e)
+    }
+  })
+  
+  # Map back to full beta vector
+  betas <- rep(0, T_trials)
+  betas[cleaned$keep] <- as.vector(betas_subset)
+  
+  return(betas)
 }
 
 # ==============================================================================
@@ -211,14 +310,52 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
       C_voxel[, t] <- R_matrices[[t]][, v_idx]
     }
     
-    # Run LSS for this voxel
-    betas <- fmrilss::lss(
-      Y = Y_data[, v_idx, drop = FALSE],
-      X = C_voxel,
-      Z = A_fixed,
-      method = "r_optimized"
-    )
-    return(as.vector(betas))
+    # Remove zero columns before running LSS
+    cleaned <- .remove_zero_columns(C_voxel)
+    
+    if (length(cleaned$keep) == 0) {
+      # All regressors are zero - return zeros
+      return(rep(0, T_trials))
+    }
+    
+    # Run LSS for this voxel with cleaned matrix
+    # Wrap in tryCatch to handle Cholesky decomposition failures
+    betas_subset <- tryCatch({
+      fmrilss::lss(
+        Y = Y_data[, v_idx, drop = FALSE],
+        X = cleaned$C,
+        Z = A_fixed,
+        method = "r_optimized"
+      )
+    }, error = function(e) {
+      # Check both message and condition text
+      error_text <- paste(as.character(e), collapse = " ")
+      if (grepl("chol|positive definite|singular|leading minor", error_text, ignore.case = TRUE)) {
+        # Fall back to regularized least squares
+        y_voxel <- Y_data[, v_idx]
+        if (ncol(cleaned$C) == 1) {
+          # Single column case - simple division
+          if (sum(cleaned$C^2) > 0) {
+            sum(cleaned$C * y_voxel) / sum(cleaned$C^2)
+          } else {
+            0
+          }
+        } else {
+          # Multiple columns - use QR with small regularization
+          X_reg <- rbind(cleaned$C, sqrt(1e-8) * diag(ncol(cleaned$C)))
+          Y_reg <- c(y_voxel, rep(0, ncol(cleaned$C)))
+          qr.coef(qr(X_reg), Y_reg)
+        }
+      } else {
+        # Re-throw other errors
+        stop(e)
+      }
+    })
+    
+    # Map back to full beta vector
+    betas <- rep(0, T_trials)
+    betas[cleaned$keep] <- as.vector(betas_subset)
+    return(betas)
   }
   
   # Process voxels using parallel helper
@@ -283,14 +420,52 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
         C_voxel_chunk[, i] <- X_trials_chunk[[t]] %*% h_voxel
       }
       
-      # Run LSS
-      betas <- fmrilss::lss(
-        Y = Y_data[, v_idx, drop = FALSE],
-        X = C_voxel_chunk,
-        Z = A_fixed,
-        method = "r_optimized"
-      )
-      return(as.vector(betas))
+      # Remove zero columns before running LSS
+      cleaned <- .remove_zero_columns(C_voxel_chunk)
+      
+      if (length(cleaned$keep) == 0) {
+        # All regressors are zero - return zeros
+        return(rep(0, length(trials_idx)))
+      }
+      
+      # Run LSS with cleaned matrix
+      # Wrap in tryCatch to handle Cholesky decomposition failures
+      betas_subset <- tryCatch({
+        fmrilss::lss(
+          Y = Y_data[, v_idx, drop = FALSE],
+          X = cleaned$C,
+          Z = A_fixed,
+          method = "r_optimized"
+        )
+      }, error = function(e) {
+        # Check both message and condition text
+        error_text <- paste(as.character(e), collapse = " ")
+        if (grepl("chol|positive definite|singular|leading minor", error_text, ignore.case = TRUE)) {
+          # Fall back to regularized least squares
+          y_voxel <- Y_data[, v_idx]
+          if (ncol(cleaned$C) == 1) {
+            # Single column case - simple division
+            if (sum(cleaned$C^2) > 0) {
+              sum(cleaned$C * y_voxel) / sum(cleaned$C^2)
+            } else {
+              0
+            }
+          } else {
+            # Multiple columns - use QR with small regularization
+            X_reg <- rbind(cleaned$C, sqrt(1e-8) * diag(ncol(cleaned$C)))
+            Y_reg <- c(y_voxel, rep(0, ncol(cleaned$C)))
+            qr.coef(qr(X_reg), Y_reg)
+          }
+        } else {
+          # Re-throw other errors
+          stop(e)
+        }
+      })
+      
+      # Map back to chunk-sized beta vector
+      betas <- rep(0, length(trials_idx))
+      betas[cleaned$keep] <- as.vector(betas_subset)
+      return(betas)
     }
     
     # Process voxels in parallel for this chunk
@@ -343,14 +518,51 @@ run_lss_for_voxel_core <- function(Y_proj_voxel_vector,
       C_voxel[, t] <- X_trials[[t]] %*% h_voxel
     }
     
-    # Run LSS for this voxel
-    betas <- fmrilss::lss(
-      Y = matrix(y_voxel, ncol = 1),
-      X = C_voxel,
-      Z = A_fixed,
-      method = "r_optimized"
-    )
-    return(as.vector(betas))
+    # Remove zero columns before running LSS
+    cleaned <- .remove_zero_columns(C_voxel)
+    
+    if (length(cleaned$keep) == 0) {
+      # All regressors are zero - return zeros
+      return(rep(0, T_trials))
+    }
+    
+    # Run LSS for this voxel with cleaned matrix
+    # Wrap in tryCatch to handle Cholesky decomposition failures
+    betas_subset <- tryCatch({
+      fmrilss::lss(
+        Y = matrix(y_voxel, ncol = 1),
+        X = cleaned$C,
+        Z = A_fixed,
+        method = "r_optimized"
+      )
+    }, error = function(e) {
+      # Check both message and condition text
+      error_text <- paste(as.character(e), collapse = " ")
+      if (grepl("chol|positive definite|singular|leading minor", error_text, ignore.case = TRUE)) {
+        # Fall back to regularized least squares
+        if (ncol(cleaned$C) == 1) {
+          # Single column case - simple division
+          if (sum(cleaned$C^2) > 0) {
+            sum(cleaned$C * y_voxel) / sum(cleaned$C^2)
+          } else {
+            0
+          }
+        } else {
+          # Multiple columns - use QR with small regularization
+          X_reg <- rbind(cleaned$C, sqrt(1e-8) * diag(ncol(cleaned$C)))
+          Y_reg <- c(y_voxel, rep(0, ncol(cleaned$C)))
+          qr.coef(qr(X_reg), Y_reg)
+        }
+      } else {
+        # Re-throw other errors
+        stop(e)
+      }
+    })
+    
+    # Map back to full beta vector
+    betas <- rep(0, T_trials)
+    betas[cleaned$keep] <- as.vector(betas_subset)
+    return(betas)
   }
   
   # Process all voxels
@@ -621,11 +833,39 @@ lss_fast <- function(Y, dmat_base, dmat_ran, dmat_fixed = NULL) {
   # Combine base and random designs
   X_combined <- cbind(dmat_base, dmat_ran)
   
-  # Call fmrilss
-  fmrilss::lss(
+  # Remove zero columns to prevent rank-deficiency warnings
+  cleaned <- .remove_zero_columns(X_combined)
+  
+  if (length(cleaned$keep) == 0) {
+    # All regressors are zero - return zero matrix
+    return(matrix(0, nrow = nrow(dmat_ran), ncol = ncol(Y)))
+  }
+  
+  # Call fmrilss with cleaned matrix
+  betas_subset <- fmrilss::lss(
     Y = Y,
-    X = X_combined,
+    X = cleaned$C,
     Z = dmat_fixed,
     method = "r_optimized"
   )
+  
+  # Map back to full beta matrix
+  betas <- matrix(0, nrow = ncol(X_combined), ncol = ncol(Y))
+  betas[cleaned$keep, ] <- betas_subset
+  
+  # Only return the random effects portion
+  start_idx <- ncol(dmat_base) + 1
+  end_idx <- ncol(X_combined)
+  kept_in_range <- cleaned$keep[cleaned$keep >= start_idx & cleaned$keep <= end_idx]
+  
+  if (length(kept_in_range) == 0) {
+    return(matrix(0, nrow = ncol(dmat_ran), ncol = ncol(Y)))
+  }
+  
+  # Adjust indices to be relative to dmat_ran
+  adjusted_indices <- kept_in_range - ncol(dmat_base)
+  result <- matrix(0, nrow = ncol(dmat_ran), ncol = ncol(Y))
+  result[adjusted_indices, ] <- betas[kept_in_range, ]
+  
+  return(result)
 }

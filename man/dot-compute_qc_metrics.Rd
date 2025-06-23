@@ -15,15 +15,15 @@
 )
 }
 \arguments{
-\item{Y_data}{n \times V matrix of observed time series}
+\item{Y_data}{n x V matrix of observed time series}
 
 \item{X_condition_list}{list of condition design matrices}
 
-\item{hrf_shapes}{p \times V matrix of estimated HRF shapes}
+\item{hrf_shapes}{p x V matrix of estimated HRF shapes}
 
-\item{amplitudes}{k \times V matrix of condition amplitudes}
+\item{amplitudes}{k x V matrix of condition amplitudes}
 
-\item{manifold_coords}{m \times V matrix of manifold coordinates}
+\item{manifold_coords}{m x V matrix of manifold coordinates}
 
 \item{params}{List of pipeline parameters}
 }

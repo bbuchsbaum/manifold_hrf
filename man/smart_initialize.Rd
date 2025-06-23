@@ -13,6 +13,22 @@ smart_initialize(
   m_manifold_dim = 5
 )
 }
+\arguments{
+\item{Y_data}{n x V matrix of fMRI data}
+
+\item{X_condition_list}{List of n x p design matrices for each condition}
+
+\item{hrf_canonical}{Canonical HRF shape vector of length p}
+
+\item{use_spatial_clusters}{Whether to use spatial clustering for initialization}
+
+\item{voxel_coords}{V x 3 matrix of voxel coordinates (if use_spatial_clusters = TRUE)}
+
+\item{m_manifold_dim}{Target manifold dimension}
+}
+\value{
+List with initialization values
+}
 \description{
 Smart initialization for voxelwise fit
 }

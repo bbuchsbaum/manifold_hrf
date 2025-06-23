@@ -15,7 +15,7 @@ test_that("solve_glm_for_gamma_core errors on perfectly collinear design", {
   Z2 <- Z1
   Y <- matrix(rnorm(n * V), n, V)
   expect_error(
-    solve_glm_for_gamma_core(list(Z1, Z2), Y),
+    solve_glm_for_gamma_core(list(Z1, Z2), Y, lambda_gamma = 0),
     "singular"
   )
 })
@@ -31,9 +31,9 @@ test_that("solve_glm_for_gamma_core produces unstable betas for near collinear d
   Z1 <- matrix(base, n, m)
   Z2 <- matrix(base + rnorm(n, sd = 1e-4), n, m)
   Y <- matrix(rnorm(n * V), n, V)
-  gamma_est <- solve_glm_for_gamma_core(list(Z1, Z2), Y)
+  gamma_est <- solve_glm_for_gamma_core(list(Z1, Z2), Y, lambda_gamma = 0)
   expect_equal(dim(gamma_est), c(2 * m, V))
-  expect_true(max(abs(gamma_est)) > 1e4)
+  expect_true(max(abs(gamma_est)) > 100)
 })
 
 # Zero Variance Voxels

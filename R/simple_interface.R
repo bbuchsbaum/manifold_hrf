@@ -20,27 +20,28 @@ mhrf_lss_parameters <- function(preset = "balanced", ...) {
 #'
 #' This wrapper provides a streamlined interface for running the
 #' M-HRF-LSS algorithm when design matrices are already available.
+#' This is the core implementation without neuroimaging-specific handling.
 #'
-#' @param Y_bold Numeric matrix of BOLD time series (time \eqn{\times} voxels).
+#' @param Y_data Numeric matrix of BOLD time series (time \eqn{\times} voxels).
 #' @param X_condition_list List of condition-level design matrices.
 #' @param X_trial_list List of trial-level design matrices.
 #' @param Z_confounds Optional matrix of confound regressors.
-#' @param voxel_coordinates Optional matrix of voxel coordinates for
+#' @param voxel_coords Optional matrix of voxel coordinates for
 #'   spatial smoothing.
 #' @param TR Repetition time in seconds.
-#' @param parameters List of algorithm parameters as created by
+#' @param params List of algorithm parameters as created by
 #'   \code{mhrf_lss_parameters()}.
 #' @return List with M-HRF-LSS results.
 #' @export
-mhrf_lss <- function(Y_bold,
-                     X_condition_list,
-                     X_trial_list,
-                     Z_confounds = NULL,
-                     voxel_coordinates = NULL,
-                     TR = 2,
-                     parameters = mhrf_lss_parameters()) {
+mhrf_lss_core <- function(Y_data,
+                          X_condition_list,
+                          X_trial_list,
+                          Z_confounds = NULL,
+                          voxel_coords = NULL,
+                          TR = 2,
+                          params = mhrf_lss_parameters()) {
 
-  stopifnot(is.matrix(Y_bold))
+  stopifnot(is.matrix(Y_data))
   stopifnot(is.list(X_condition_list))
   stopifnot(is.list(X_trial_list))
 
@@ -53,18 +54,18 @@ mhrf_lss <- function(Y_bold,
 
   manifold <- create_hrf_manifold(
     hrf_library = "gamma_grid",
-    params = parameters,
+    params = params,
     TR = TR,
     verbose = FALSE
   )
 
   result <- run_mhrf_lss_standard(
-    Y_data = Y_bold,
+    Y_data = Y_data,
     design_info = design_info,
     manifold = manifold,
     Z_confounds = Z_confounds,
-    voxel_coords = voxel_coordinates,
-    params = parameters,
+    voxel_coords = voxel_coords,
+    params = params,
     outlier_weights = NULL,
     estimation = if (length(X_trial_list) > 0) "both" else "condition",
     progress = FALSE

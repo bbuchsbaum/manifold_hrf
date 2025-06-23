@@ -19,6 +19,18 @@ solve_glm_for_gamma_core(
   orthogonal_approx_flag = FALSE
 )
 }
+\arguments{
+\item{Z_list_of_matrices}{List of n x m transformed design matrices}
+
+\item{Y_proj_matrix}{n x V projected data matrix}
+
+\item{lambda_gamma}{Ridge regularization parameter}
+
+\item{orthogonal_approx_flag}{Whether to use orthogonal approximation}
+}
+\value{
+(k*m) x V matrix of gamma coefficients
+}
 \description{
 Solve GLM for gamma (improved wrapper)
 

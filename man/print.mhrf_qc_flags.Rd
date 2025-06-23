@@ -6,6 +6,11 @@
 \usage{
 \method{print}{mhrf_qc_flags}(x, ...)
 }
+\arguments{
+\item{x}{An mhrf_qc_flags object}
+
+\item{...}{Additional arguments (not used)}
+}
 \description{
 Print QC Flags
 }

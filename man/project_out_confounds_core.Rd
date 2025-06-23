@@ -17,6 +17,16 @@ project_out_confounds_core(
   Z_confounds_matrix = NULL
 )
 }
+\arguments{
+\item{Y_data_matrix}{n x V matrix of fMRI time series data}
+
+\item{X_list_of_matrices}{List of n x p design matrices for each condition}
+
+\item{Z_confounds_matrix}{Optional n x q matrix of confound regressors}
+}
+\value{
+List with Y_proj_matrix and X_list_proj_matrices
+}
 \description{
 Project out confounds (backward compatible wrapper)
 

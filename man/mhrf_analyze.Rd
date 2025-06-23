@@ -65,6 +65,8 @@ debugging (default: FALSE)}
 (default: temporary directory). If the directory does not exist, it will be
 created automatically.}
 
+\item{logger}{Optional logger object for structured logging (default: NULL)}
+
 \item{...}{Additional parameters to override preset values. See
 \code{\link{get_preset_params}} for available options.}
 }

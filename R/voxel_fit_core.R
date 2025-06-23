@@ -3,7 +3,10 @@
 
 #' Project out confounds from data and design matrices
 #'
-#' @inheritParams project_out_confounds_core
+#' @param Y_data_matrix n x V matrix of fMRI time series data
+#' @param X_list_of_matrices List of n x p design matrices for each condition
+#' @param Z_confounds_matrix Optional n x q matrix of confound regressors
+#' @return List with Y_proj_matrix and X_list_proj_matrices
 #' @export
 project_out_confounds_core <- function(Y_data_matrix,
                                       X_list_of_matrices,
@@ -42,7 +45,9 @@ project_out_confounds_core <- function(Y_data_matrix,
 
 #' Transform designs to manifold basis
 #'
-#' @inheritParams transform_designs_to_manifold_basis_core
+#' @param X_condition_list_proj_matrices List of n x p projected design matrices
+#' @param B_reconstructor_matrix p x m manifold basis matrix
+#' @return List of n x m transformed design matrices
 #' @export
 transform_designs_to_manifold_basis_core <- function(X_condition_list_proj_matrices,
                                                     B_reconstructor_matrix) {
@@ -73,7 +78,11 @@ transform_designs_to_manifold_basis_core <- function(X_condition_list_proj_matri
 
 #' Solve GLM for gamma coefficients
 #'
-#' @inheritParams solve_glm_for_gamma_core
+#' @param Z_list_of_matrices List of n x m transformed design matrices
+#' @param Y_proj_matrix n x V projected data matrix
+#' @param lambda_gamma Ridge regularization parameter
+#' @param orthogonal_approx_flag Whether to use orthogonal approximation
+#' @return (k*m) x V matrix of gamma coefficients
 #' @export
 solve_glm_for_gamma_core <- function(Z_list_of_matrices,
                                     Y_proj_matrix,
@@ -122,12 +131,49 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
     XtX <- XtX_approx
   }
   XtX_reg <- XtX + lambda_gamma * diag(k * m)
+  
+  # Check for perfect collinearity before attempting solve
+  if (lambda_gamma == 0) {
+    # Check rank of XtX for perfect collinearity
+    svd_XtX <- svd(XtX, nu = 0, nv = 0)
+    tol <- max(dim(XtX)) * max(svd_XtX$d) * .Machine$double.eps * 100
+    rank_XtX <- sum(svd_XtX$d > tol)
+    if (rank_XtX < k * m) {
+      stop("Design matrix is singular (perfectly collinear columns)")
+    }
+  }
+  
   cond_num <- kappa(XtX_reg, exact = FALSE)
   if (cond_num > 1e10) {
     warning(sprintf("XtX_reg has high condition number (%.2e). Consider increasing lambda_gamma.", cond_num))
   }
   XtY <- crossprod(X_tilde, Y_proj_matrix)
-  qr.solve(XtX_reg, XtY)
+  
+  # Try to solve, handling near-singular cases
+  tryCatch({
+    solve(XtX_reg, XtY, tol = .Machine$double.eps)
+  }, error = function(e) {
+    if (grepl("singular|computationally singular", e$message, ignore.case = TRUE) && lambda_gamma == 0) {
+      # For near-singular cases with no regularization, 
+      # use SVD-based pseudoinverse to get potentially large coefficients
+      warning("Near-singular matrix detected. Using pseudoinverse.")
+      svd_XtX <- svd(XtX_reg)
+      # Keep only non-zero singular values
+      tol <- max(dim(XtX_reg)) * max(svd_XtX$d) * .Machine$double.eps
+      pos <- svd_XtX$d > tol
+      if (sum(pos) == 0) {
+        # Completely singular - return zeros
+        return(matrix(0, nrow = k * m, ncol = V))
+      }
+      # Compute pseudoinverse
+      d_inv <- numeric(length(svd_XtX$d))
+      d_inv[pos] <- 1 / svd_XtX$d[pos]
+      XtX_pinv <- svd_XtX$v %*% (d_inv * t(svd_XtX$u))
+      XtX_pinv %*% XtY
+    } else {
+      stop(e)
+    }
+  })
 }
 
 # internal standard SVD implementation
@@ -138,10 +184,32 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
   Xi_raw <- matrix(0, m_manifold_dim, V)
   Beta_raw <- matrix(0, k_conditions, V)
   for (v in seq_len(V)) {
-    Gv <- matrix(Gamma_coeffs_matrix[, v], nrow = k_conditions,
+    gamma_v <- Gamma_coeffs_matrix[, v]
+    
+    # Check for NA/NaN values
+    if (any(!is.finite(gamma_v))) {
+      warning(sprintf("Voxel %d: Contains NA/NaN/Inf values, skipping", v))
+      next
+    }
+    
+    Gv <- matrix(gamma_v, nrow = k_conditions,
                  ncol = m_manifold_dim, byrow = TRUE)
-    sv <- svd(Gv)
-    if (length(sv$d) == 0 || sv$d[1] < .Machine$double.eps) next
+    
+    # Check for zero matrix
+    if (all(abs(Gv) < .Machine$double.eps)) {
+      next
+    }
+    
+    # Perform SVD with error handling
+    sv <- tryCatch({
+      svd(Gv)
+    }, error = function(e) {
+      warning(sprintf("Voxel %d: SVD failed - %s", v, e$message))
+      return(NULL)
+    })
+    
+    if (is.null(sv) || length(sv$d) == 0 || sv$d[1] < .Machine$double.eps) next
+    
     Beta_raw[, v] <- sv$u[, 1] * sqrt(sv$d[1])
     Xi_raw[, v] <- sv$v[, 1] * sqrt(sv$d[1])
   }
@@ -172,6 +240,18 @@ solve_glm_for_gamma_core <- function(Z_list_of_matrices,
   )
   for (v in 1:V) {
     gamma_v <- Gamma_coeffs_matrix[, v]
+    
+    # Check for NA/NaN/Inf values
+    if (any(!is.finite(gamma_v))) {
+      Xi_raw[, v] <- 0
+      Beta_raw[, v] <- 0
+      quality_metrics$svd_method[v] <- "non-finite"
+      if (verbose_warnings) {
+        warning(sprintf("Voxel %d: Contains non-finite values, skipping", v))
+      }
+      next
+    }
+    
     Gamma_mat <- matrix(gamma_v, nrow = k_conditions, ncol = m_manifold_dim, byrow = TRUE)
     if (all(abs(gamma_v) < .Machine$double.eps)) {
       Xi_raw[, v] <- 0
@@ -268,11 +348,31 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
   if (!is.matrix(Gamma_coeffs_matrix)) {
     stop("Gamma_coeffs_matrix must be a matrix")
   }
+  
+  # Validate m and k
+  if (!is.numeric(m_manifold_dim) || length(m_manifold_dim) != 1 || 
+      m_manifold_dim <= 0 || m_manifold_dim != round(m_manifold_dim)) {
+    stop("m_manifold_dim must be a positive integer")
+  }
+  if (!is.numeric(k_conditions) || length(k_conditions) != 1 || 
+      k_conditions <= 0 || k_conditions != round(k_conditions)) {
+    stop("k_conditions must be a positive integer")
+  }
+  
   expected_rows <- k_conditions * m_manifold_dim
   if (nrow(Gamma_coeffs_matrix) != expected_rows) {
     stop(sprintf("Gamma_coeffs_matrix has %d rows but expected %d (k * m)",
                  nrow(Gamma_coeffs_matrix), expected_rows))
   }
+  
+  # Check for NA/NaN/Inf values in the matrix
+  if (any(!is.finite(Gamma_coeffs_matrix))) {
+    n_bad <- sum(!is.finite(Gamma_coeffs_matrix))
+    n_total <- length(Gamma_coeffs_matrix)
+    warning(sprintf("Gamma_coeffs_matrix contains %d non-finite values (%.1f%%). These will be handled per voxel.",
+                    n_bad, 100 * n_bad / n_total))
+  }
+  
   if (method == "robust") {
     .extract_xi_beta_raw_svd_robust_impl(Gamma_coeffs_matrix, m_manifold_dim, k_conditions, ...)
   } else {
@@ -281,6 +381,12 @@ extract_xi_beta_raw_svd_core <- function(Gamma_coeffs_matrix,
 }
 
 #' Wrapper for robust SVD extraction
+#' 
+#' @param Gamma_coeffs_matrix (km) x V matrix of coefficients
+#' @param m_manifold_dim Number of manifold dimensions
+#' @param k_conditions Number of conditions
+#' @param ... Additional arguments passed to the robust implementation
+#' @return List with Xi_raw_matrix and Beta_raw_matrix
 #' @export
 extract_xi_beta_raw_svd_robust <- function(Gamma_coeffs_matrix,
                                           m_manifold_dim,
@@ -292,7 +398,20 @@ extract_xi_beta_raw_svd_robust <- function(Gamma_coeffs_matrix,
 
 #' Apply intrinsic identifiability constraints
 #'
-#' @inheritParams apply_intrinsic_identifiability_core
+#' @param Xi_raw_matrix m x V matrix of raw manifold coordinates
+#' @param Beta_raw_matrix k x V matrix of raw condition amplitudes
+#' @param B_reconstructor_matrix p x m manifold basis matrix
+#' @param h_ref_shape_vector Reference HRF shape vector of length p
+#' @param ident_scale_method Scaling method: "l2_norm", "max_abs_val", or "none"
+#' @param ident_sign_method Sign alignment method: "canonical_correlation" or "data_fit_correlation"
+#' @param zero_tol Tolerance for considering values as zero
+#' @param correlation_threshold Threshold for correlation-based alignment
+#' @param Y_proj_matrix Optional n x V projected data matrix (for data_fit_correlation)
+#' @param X_condition_list_proj_matrices Optional list of projected design matrices
+#' @param consistency_check Whether to perform consistency checks
+#' @param n_jobs Number of parallel jobs
+#' @param verbose Whether to print progress messages
+#' @return List with Xi_ident_matrix and Beta_ident_matrix
 #' @export
 apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
                                                 Beta_raw_matrix,
@@ -336,15 +455,13 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
   }
   message(sprintf("Using '%s' for sign alignment", ident_sign_method))
   if (ident_sign_method == "canonical_correlation") {
-    result <- .apply_identifiability_vectorized(
-      Xi_raw_matrix = Xi_raw_matrix,
-      Beta_raw_matrix = Beta_raw_matrix,
-      B_reconstructor_matrix = B_reconstructor_matrix,
-      h_ref_shape_vector = h_ref_shape_vector,
-      scale_method = ident_scale_method,
-      correlation_threshold = correlation_threshold,
-      zero_tol = zero_tol,
-      consistency_check = consistency_check
+    result <- apply_identifiability_vectorized(
+      Xi_raw = Xi_raw_matrix,
+      Beta_raw = Beta_raw_matrix,
+      B = B_reconstructor_matrix,
+      h_ref = h_ref_shape_vector,
+      h_mode = "max_correlation",
+      scale_method = ident_scale_method
     )
     return(result)
   } else {
@@ -380,7 +497,13 @@ apply_intrinsic_identifiability_core <- function(Xi_raw_matrix,
 
 #' Smart initialization for voxelwise fit
 #'
-#' @inheritParams smart_initialize
+#' @param Y_data n x V matrix of fMRI data
+#' @param X_condition_list List of n x p design matrices for each condition
+#' @param hrf_canonical Canonical HRF shape vector of length p
+#' @param use_spatial_clusters Whether to use spatial clustering for initialization
+#' @param voxel_coords V x 3 matrix of voxel coordinates (if use_spatial_clusters = TRUE)
+#' @param m_manifold_dim Target manifold dimension
+#' @return List with initialization values
 #' @export
 smart_initialize <- function(Y_data, X_condition_list, hrf_canonical,
                            use_spatial_clusters = TRUE,
@@ -390,26 +513,61 @@ smart_initialize <- function(Y_data, X_condition_list, hrf_canonical,
   V <- ncol(Y_data)
   k <- length(X_condition_list)
   message("Computing smart initialization...")
-  X_canonical <- matrix(0, n, k)
+  
+  # More memory-efficient approach: compute X_canonical one column at a time
+  # and immediately compute XtX without storing full X_canonical
+  XtX <- matrix(0, k, k)
+  XtY <- matrix(0, k, V)
+  
+  # Process conditions one at a time to reduce memory usage
   for (c in 1:k) {
-    X_canonical[, c] <- X_condition_list[[c]] %*% hrf_canonical
+    X_c <- as.vector(X_condition_list[[c]] %*% hrf_canonical)
+    
+    # Update XtX
+    for (c2 in c:k) {
+      X_c2 <- if (c2 == c) X_c else as.vector(X_condition_list[[c2]] %*% hrf_canonical)
+      XtX[c, c2] <- XtX[c2, c] <- crossprod(X_c, X_c2)
+    }
+    
+    # Update XtY
+    XtY[c, ] <- crossprod(X_c, Y_data)
   }
-  XtX <- crossprod(X_canonical)
+  
+  # Regularize and invert
   XtX_reg <- XtX + diag(0.01, k)
   XtX_inv <- solve(XtX_reg)
-  Beta_init <- matrix(0, k, V)
+  
+  # Compute Beta_init directly from XtY
+  Beta_init <- XtX_inv %*% XtY
+  
+  # Compute R2 in chunks to reduce memory usage
   R2_init <- numeric(V)
-  for (v in 1:V) {
-    beta_v <- XtX_inv %*% crossprod(X_canonical, Y_data[, v])
-    Beta_init[, v] <- beta_v
-    y_pred <- X_canonical %*% beta_v
-    ss_tot <- sum((Y_data[, v] - mean(Y_data[, v]))^2)
-    ss_res <- sum((Y_data[, v] - y_pred)^2)
-    if (ss_tot < .Machine$double.eps) {
-      R2_init[v] <- 0
-    } else {
-      R2_init[v] <- 1 - ss_res / ss_tot
-      R2_init[v] <- max(0, min(1, R2_init[v]))
+  chunk_size <- min(1000, V)
+  n_chunks <- ceiling(V / chunk_size)
+  
+  for (chunk in 1:n_chunks) {
+    start_idx <- (chunk - 1) * chunk_size + 1
+    end_idx <- min(chunk * chunk_size, V)
+    chunk_voxels <- start_idx:end_idx
+    
+    # Reconstruct X_canonical for this chunk only
+    X_canonical_chunk <- matrix(0, n, k)
+    for (c in 1:k) {
+      X_canonical_chunk[, c] <- X_condition_list[[c]] %*% hrf_canonical
+    }
+    
+    for (v in chunk_voxels) {
+      y_pred <- X_canonical_chunk %*% Beta_init[, v]
+      y_v <- Y_data[, v]
+      ss_tot <- sum((y_v - mean(y_v))^2)
+      ss_res <- sum((y_v - y_pred)^2)
+      
+      if (ss_tot < .Machine$double.eps) {
+        R2_init[v] <- 0
+      } else {
+        R2_init[v] <- 1 - ss_res / ss_tot
+        R2_init[v] <- max(0, min(1, R2_init[v]))
+      }
     }
   }
   good_voxels <- which(R2_init > quantile(R2_init, 0.75, na.rm = TRUE))
@@ -417,10 +575,22 @@ smart_initialize <- function(Y_data, X_condition_list, hrf_canonical,
     n_clusters <- min(20, length(good_voxels) / 5)
     kmeans_result <- kmeans(voxel_coords[good_voxels, ], centers = n_clusters)
     cluster_centers <- kmeans_result$centers
-    nearest_cluster <- apply(voxel_coords, 1, function(v) {
-      distances <- rowSums((cluster_centers - matrix(v, n_clusters, 3, byrow = TRUE))^2)
-      which.min(distances)
-    })
+    # More memory-efficient nearest cluster assignment
+    nearest_cluster <- integer(V)
+    chunk_size <- min(1000, V)
+    n_chunks <- ceiling(V / chunk_size)
+    
+    for (chunk in 1:n_chunks) {
+      start_idx <- (chunk - 1) * chunk_size + 1
+      end_idx <- min(chunk * chunk_size, V)
+      chunk_voxels <- start_idx:end_idx
+      
+      # Process chunk of voxels
+      for (v in chunk_voxels) {
+        distances <- rowSums((cluster_centers - matrix(voxel_coords[v, ], n_clusters, 3, byrow = TRUE))^2)
+        nearest_cluster[v] <- which.min(distances)
+      }
+    }
     message(sprintf("Using %d spatial clusters for initialization", n_clusters))
   } else {
     nearest_cluster <- rep(1, V)
@@ -460,7 +630,11 @@ fix_stuck_voxels <- function(Xi_current, Xi_previous,
 
 #' Construct voxel graph Laplacian
 #'
-#' @inheritParams make_voxel_graph_laplacian_core
+#' @param voxel_coords_matrix V x 3 matrix of voxel coordinates
+#' @param num_neighbors_Lsp Number of nearest neighbors for graph construction
+#' @param distance_engine Distance computation method: "euclidean" or "ann_euclidean"
+#' @param ann_threshold Threshold for switching to approximate nearest neighbors
+#' @return Sparse Laplacian matrix
 #' @export
 make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, num_neighbors_Lsp = 6,
                                             distance_engine = c("euclidean", "ann_euclidean"),

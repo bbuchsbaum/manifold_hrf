@@ -6,6 +6,15 @@
 #' An object-oriented implementation of the voxel-wise GLM fitting engine
 #' with pre-computation of shared matrices and support for parallelization.
 #'
+#' @field Z Confound matrix (n x q)
+#' @field Z_qr QR decomposition of confound matrix Z
+#' @field Q_Z Q matrix from QR decomposition of Z
+#' @field rank_Z Rank of the confound matrix Z
+#' @field n_timepoints Number of timepoints in the data
+#' @field ridge_lambda Ridge regularization parameter (default: 1e-6)
+#' @field use_parallel Whether to use parallel processing (default: TRUE)
+#' @field chunk_size Number of voxels to process per chunk (default: 1000)
+#'
 #' @importFrom R6 R6Class
 #' @importFrom Matrix sparseMatrix Diagonal
 #' @export
@@ -250,10 +259,12 @@ extract_xi_beta_svd_block <- function(Gamma, m, k, block_size = 100) {
 #' @param B p x m manifold basis
 #' @param h_ref p x 1 reference HRF shape
 #' @param h_mode Sign alignment mode
+#' @param scale_method Method for scaling: "l2_norm", "max_abs_val", "beta_norm", or "none"
 #' @return List with aligned Xi and Beta
 #' @export
 apply_identifiability_vectorized <- function(Xi_raw, Beta_raw, B, h_ref, 
-                                           h_mode = "max_correlation") {
+                                           h_mode = "max_correlation",
+                                           scale_method = "l2_norm") {
   m <- nrow(Xi_raw)
   k <- nrow(Beta_raw)
   V <- ncol(Xi_raw)
@@ -307,12 +318,68 @@ apply_identifiability_vectorized <- function(Xi_raw, Beta_raw, B, h_ref,
     }
   }
   
-  # L2 normalization of Beta
-  beta_norms <- sqrt(colSums(Beta_ident^2))
-  beta_norms[beta_norms == 0] <- 1
-  
-  Xi_ident <- Xi_ident * rep(beta_norms, each = m)
-  Beta_ident <- Beta_ident / rep(beta_norms, each = k)
+  # Apply scaling based on method
+  if (scale_method == "l2_norm") {
+    # L2 normalization of HRF 
+    # To preserve signal (Xi * Beta), we need to redistribute the scaling
+    for (v in 1:V) {
+      # Check if Xi values are effectively zero (tiny values)
+      if (all(abs(Xi_ident[, v]) < 1e-10)) {
+        Xi_ident[, v] <- 0
+        Beta_ident[, v] <- 0
+      } else if (any(Xi_ident[, v] != 0)) {
+        hrf <- B %*% Xi_ident[, v]
+        hrf_norm <- sqrt(sum(hrf^2))
+        if (hrf_norm > 0) {
+          # Scale Xi to normalize HRF
+          Xi_ident[, v] <- Xi_ident[, v] / hrf_norm
+          # Scale Beta inversely to preserve signal
+          Beta_ident[, v] <- Beta_ident[, v] * hrf_norm
+        }
+      }
+    }
+  } else if (scale_method == "max_abs_val") {
+    # Max absolute value normalization of HRF
+    for (v in 1:V) {
+      # Check if Xi values are effectively zero (tiny values)
+      if (all(abs(Xi_ident[, v]) < 1e-10)) {
+        Xi_ident[, v] <- 0
+        Beta_ident[, v] <- 0
+      } else if (any(Xi_ident[, v] != 0)) {
+        hrf <- B %*% Xi_ident[, v]
+        max_abs <- max(abs(hrf))
+        if (max_abs > 0) {
+          # Scale Xi to normalize HRF
+          Xi_ident[, v] <- Xi_ident[, v] / max_abs
+          # Scale Beta inversely to preserve signal
+          Beta_ident[, v] <- Beta_ident[, v] * max_abs
+        }
+      }
+    }
+  } else if (scale_method == "beta_norm") {
+    # Original Beta normalization (for backward compatibility)
+    # First check for tiny Xi values
+    for (v in 1:V) {
+      if (all(abs(Xi_ident[, v]) < 1e-10)) {
+        Xi_ident[, v] <- 0
+        Beta_ident[, v] <- 0
+      }
+    }
+    
+    beta_norms <- sqrt(colSums(Beta_ident^2))
+    beta_norms[beta_norms == 0] <- 1
+    
+    Xi_ident <- Xi_ident * rep(beta_norms, each = m)
+    Beta_ident <- Beta_ident / rep(beta_norms, each = k)
+  } else {
+    # scale_method == "none", but still check for tiny values
+    for (v in 1:V) {
+      if (all(abs(Xi_ident[, v]) < 1e-10)) {
+        Xi_ident[, v] <- 0
+        Beta_ident[, v] <- 0
+      }
+    }
+  }
   
   return(list(
     Xi_ident_matrix = Xi_ident,

@@ -9,6 +9,14 @@ transform_designs_to_manifold_basis_core(
   B_reconstructor_matrix
 )
 }
+\arguments{
+\item{X_condition_list_proj_matrices}{List of n x p projected design matrices}
+
+\item{B_reconstructor_matrix}{p x m manifold basis matrix}
+}
+\value{
+List of n x m transformed design matrices
+}
 \description{
 Transform designs to manifold basis
 }

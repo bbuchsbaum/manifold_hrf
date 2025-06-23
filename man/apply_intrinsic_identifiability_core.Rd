@@ -20,6 +20,36 @@ apply_intrinsic_identifiability_core(
   verbose = FALSE
 )
 }
+\arguments{
+\item{Xi_raw_matrix}{m x V matrix of raw manifold coordinates}
+
+\item{Beta_raw_matrix}{k x V matrix of raw condition amplitudes}
+
+\item{B_reconstructor_matrix}{p x m manifold basis matrix}
+
+\item{h_ref_shape_vector}{Reference HRF shape vector of length p}
+
+\item{ident_scale_method}{Scaling method: "l2_norm", "max_abs_val", or "none"}
+
+\item{ident_sign_method}{Sign alignment method: "canonical_correlation" or "data_fit_correlation"}
+
+\item{zero_tol}{Tolerance for considering values as zero}
+
+\item{correlation_threshold}{Threshold for correlation-based alignment}
+
+\item{Y_proj_matrix}{Optional n x V projected data matrix (for data_fit_correlation)}
+
+\item{X_condition_list_proj_matrices}{Optional list of projected design matrices}
+
+\item{consistency_check}{Whether to perform consistency checks}
+
+\item{n_jobs}{Number of parallel jobs}
+
+\item{verbose}{Whether to print progress messages}
+}
+\value{
+List with Xi_ident_matrix and Beta_ident_matrix
+}
 \description{
 Apply intrinsic identifiability constraints
 }

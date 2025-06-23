@@ -131,6 +131,15 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
     }
   } else {
     # Use exact distances with Rcpp
+    # Check memory requirements first
+    tryCatch({
+      check_distance_memory(N, safety_factor = 0.4)  # Conservative for manifold construction
+    }, error = function(e) {
+      stop("Cannot create affinity matrix: ", e$message, 
+           "\nConsider using distance_engine = 'ann_euclidean' or reducing the HRF library size.",
+           call. = FALSE)
+    })
+    
     dist_mat <- pairwise_distances_cpp(L_library_matrix)
     dist_no_self <- dist_mat + diag(Inf, N)
     
@@ -139,23 +148,25 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
     if (requireNamespace("matrixStats", quietly = TRUE)) {
       # rowOrderStats is much faster than sorting each row
       sigma_i <- matrixStats::rowOrderStats(dist_no_self, which = k_local_nn_for_sigma)
-      # Handle edge cases (zero or NA distances)
+      # Handle edge cases (zero or NA distances) with minimum threshold
       problematic <- which(sigma_i == 0 | is.na(sigma_i))
       if (length(problematic) > 0) {
         for (i in problematic) {
           nz <- dist_no_self[i, dist_no_self[i, ] > 0 & dist_no_self[i, ] < Inf]
-          sigma_i[i] <- if (length(nz) > 0) median(nz) else 1e-6
+          sigma_i[i] <- if (length(nz) > 0) max(median(nz), 1e-6) else 1e-6
         }
       }
+      # Ensure all sigma values meet minimum threshold
+      sigma_i <- pmax(sigma_i, 1e-6)
     } else {
       # Fallback: still faster than full sort - use partial sort
       sigma_i <- apply(dist_no_self, 1, function(row) {
         val <- sort.int(row, partial = k_local_nn_for_sigma)[k_local_nn_for_sigma]
         if (val == 0 || is.na(val)) {
           nz <- row[row > 0 & row < Inf]
-          if (length(nz) > 0) median(nz) else 1e-6
+          if (length(nz) > 0) max(median(nz), 1e-6) else 1e-6
         } else {
-          val
+          max(val, 1e-6)  # Ensure minimum threshold
         }
       })
     }
@@ -171,8 +182,14 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
   # or lowering ann_threshold for better performance.
   if (!inherits(W, "Matrix") && !is.null(sparse_threshold) &&
       N > sparse_threshold && !is.null(k_nn_sparse)) {
-    warning(paste("Manual sparsification of dense matrix is inefficient for N =", N, 
-                  ". Consider using distance_engine = 'ann_euclidean' instead."))
+    warning(paste0(
+      "Manual sparsification of dense matrix is inefficient for N = ", N, ".\n",
+      "  For better performance, use one of these options:\n",
+      "  1. Set distance_engine = 'ann_euclidean' (recommended)\n", 
+      "  2. Lower ann_threshold (current: ", ann_threshold, ") to enable automatic ANN\n",
+      "  3. Set use_sparse_W_params = NULL to keep dense matrix\n",
+      "  Current call is computing all ", N*N, " distances then discarding most."
+    ))
     
     # More efficient sparsification using matrixStats if available
     if (requireNamespace("matrixStats", quietly = TRUE)) {
@@ -266,14 +283,31 @@ calculate_manifold_affinity_core <- function(L_library_matrix,
   
   # Step 5: Ensure positive definiteness and create normalized matrix
   # Add small regularization to diagonal to ensure positive definiteness
-  # Handle sparse matrices carefully to avoid long vector issues
+  # Use consistent regularization strategy for both sparse and dense matrices
+  
+  # Calculate mean diagonal value for scaling regularization
   if (inherits(W, "Matrix")) {
-    # For sparse matrices, use a fixed small regularization
-    eps_reg <- 1e-6
+    # For sparse matrices, extract diagonal efficiently
+    diag_vals <- Matrix::diag(W)
+    mean_diag <- mean(diag_vals[diag_vals > 0])  # Use positive values only
+    if (!is.finite(mean_diag) || mean_diag == 0) {
+      mean_diag <- 1  # Fallback if no positive diagonal values
+    }
+  } else {
+    # For dense matrices
+    diag_vals <- diag(W)
+    mean_diag <- mean(diag_vals[diag_vals > 0])
+    if (!is.finite(mean_diag) || mean_diag == 0) {
+      mean_diag <- 1
+    }
+  }
+  
+  # Apply consistent regularization scaled by mean diagonal
+  eps_reg <- 1e-6 * mean_diag
+  
+  if (inherits(W, "Matrix")) {
     W <- W + Matrix::Diagonal(N, x = eps_reg)
   } else {
-    # For dense matrices, scale by mean diagonal
-    eps_reg <- 1e-6 * mean(diag(W))
     diag(W) <- diag(W) + eps_reg
   }
   
@@ -343,6 +377,7 @@ calculate_manifold_affinity_core_safe <- function(L_library_matrix,
 #' @param L_library_matrix p x N matrix of HRF shapes (same as used for S_markov_matrix)
 #' @param m_manifold_dim_target Target manifold dimensionality (e.g., 3-5)
 #' @param m_manifold_dim_min_variance Minimum variance explained threshold (default 0.95)
+#' @param verbose Logical whether to show diagnostic messages (default: FALSE)
 #' 
 #' @return A list containing:
 #'   \itemize{
@@ -385,7 +420,8 @@ calculate_manifold_affinity_core_safe <- function(L_library_matrix,
 get_manifold_basis_reconstructor_core <- function(S_markov_matrix,
                                                  L_library_matrix,
                                                  m_manifold_dim_target,
-                                                 m_manifold_dim_min_variance = 0.95) {
+                                                 m_manifold_dim_min_variance = 0.95,
+                                                 verbose = FALSE) {
   if (!is.matrix(S_markov_matrix) && !inherits(S_markov_matrix, "Matrix")) {
     stop("S_markov_matrix must be a matrix or Matrix object")
   }
@@ -446,7 +482,7 @@ get_manifold_basis_reconstructor_core <- function(S_markov_matrix,
     # No non-trivial eigenvalues, use dimension 1
     m_auto <- 1
   } else {
-    dim_info <- select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance)
+    dim_info <- select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance, verbose = verbose)
     m_auto <- dim_info$m_auto
   }
   

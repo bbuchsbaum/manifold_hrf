@@ -182,10 +182,11 @@ test_that("apply_identifiability_vectorized is efficient", {
   B <- qr.Q(qr(matrix(rnorm(p * m), p, m)))
   h_ref <- rnorm(p)
   
-  # Test max_abs mode
+  # Test max_abs mode with beta normalization
   result <- apply_identifiability_vectorized(
     Xi_raw, Beta_raw, B, h_ref, 
-    h_mode = "max_abs"
+    h_mode = "max_abs",
+    scale_method = "beta_norm"
   )
   
   expect_equal(dim(result$Xi_ident_matrix), c(m, V))

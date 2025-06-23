@@ -34,17 +34,29 @@ track_convergence_metrics <- function(current_values,
   
   # Compute changes if previous values provided
   if (!is.null(previous_values)) {
-    diff_vals <- current_values - previous_values
-    
-    # Relative change (avoid division by zero)
-    denom <- pmax(abs(previous_values), 1e-10)
-    rel_change <- sqrt(mean((diff_vals / denom)^2))
-    
-    # Absolute change
-    abs_change <- sqrt(mean(diff_vals^2))
-    
-    # Maximum change
-    max_change <- max(abs(diff_vals))
+    # Check for finite values
+    finite_mask <- is.finite(current_values) & is.finite(previous_values)
+    if (!any(finite_mask)) {
+      warning("No finite values for convergence check")
+      rel_change <- NA
+      abs_change <- NA
+      max_change <- NA
+    } else {
+      current_finite <- current_values[finite_mask]
+      previous_finite <- previous_values[finite_mask]
+      diff_vals <- current_finite - previous_finite
+      
+      # Relative change (avoid division by zero and handle NaN/Inf)
+      denom <- abs(previous_finite)
+      denom[denom < 1e-10] <- 1e-10
+      rel_change <- sqrt(mean((diff_vals / denom)^2))
+      
+      # Absolute change
+      abs_change <- sqrt(mean(diff_vals^2))
+      
+      # Maximum change
+      max_change <- max(abs(diff_vals))
+    }
     
     history$relative_change <- c(history$relative_change, rel_change)
     history$absolute_change <- c(history$absolute_change, abs_change)
@@ -279,11 +291,19 @@ handle_zero_voxels <- function(Y_data, min_variance = 1e-8, replace_with = "skip
   V <- ncol(Y_data)
   
   # Identify problematic voxels
-  voxel_vars <- apply(Y_data, 2, var, na.rm = TRUE)
-  voxel_means <- colMeans(Y_data, na.rm = TRUE)
-  
-  # Check for non-finite values (Inf, -Inf, NaN)
+  # Check for non-finite values first (Inf, -Inf, NaN)
   has_nonfinite <- apply(Y_data, 2, function(x) any(!is.finite(x)))
+  
+  # Calculate variance safely after checking for finite values
+  voxel_vars <- apply(Y_data, 2, function(x) {
+    finite_vals <- x[is.finite(x)]
+    if (length(finite_vals) < 2) {
+      return(NA_real_)  # Not enough finite values
+    }
+    var(finite_vals)
+  })
+  
+  voxel_means <- colMeans(Y_data, na.rm = TRUE)
   
   all_zero <- abs(voxel_means) < .Machine$double.eps & voxel_vars < .Machine$double.eps
   low_variance <- voxel_vars < min_variance

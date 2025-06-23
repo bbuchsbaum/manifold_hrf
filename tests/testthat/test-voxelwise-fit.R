@@ -1,6 +1,9 @@
 # Tests for Core Voxel-wise Fit Functions (Component 1)
 # Tests for MHRF-CORE-VOXFIT-01 through MHRF-CORE-VOXFIT-05
 
+library(testthat)
+library(manifoldhrf)
+
 test_that("project_out_confounds_core works without confounds", {
   # Create test data
   set.seed(123)

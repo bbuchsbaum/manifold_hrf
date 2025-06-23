@@ -6,6 +6,14 @@
 \usage{
 \method{summary}{mhrf_manifold}(object, ...)
 }
+\arguments{
+\item{object}{An mhrf_manifold object}
+
+\item{...}{Additional arguments (not used)}
+}
+\value{
+Summary list (invisibly)
+}
 \description{
 Summary method for mhrf_manifold objects
 }

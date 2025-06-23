@@ -8,7 +8,8 @@ get_manifold_basis_reconstructor_core(
   S_markov_matrix,
   L_library_matrix,
   m_manifold_dim_target,
-  m_manifold_dim_min_variance = 0.95
+  m_manifold_dim_min_variance = 0.95,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ get_manifold_basis_reconstructor_core(
 \item{m_manifold_dim_target}{Target manifold dimensionality (e.g., 3-5)}
 
 \item{m_manifold_dim_min_variance}{Minimum variance explained threshold (default 0.95)}
+
+\item{verbose}{Logical whether to show diagnostic messages (default: FALSE)}
 }
 \value{
 A list containing:

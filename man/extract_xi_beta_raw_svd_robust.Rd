@@ -11,6 +11,18 @@ extract_xi_beta_raw_svd_robust(
   ...
 )
 }
+\arguments{
+\item{Gamma_coeffs_matrix}{(km) x V matrix of coefficients}
+
+\item{m_manifold_dim}{Number of manifold dimensions}
+
+\item{k_conditions}{Number of conditions}
+
+\item{...}{Additional arguments passed to the robust implementation}
+}
+\value{
+List with Xi_raw_matrix and Beta_raw_matrix
+}
 \description{
 Wrapper for robust SVD extraction
 }

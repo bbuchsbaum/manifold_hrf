@@ -4,7 +4,7 @@
 \alias{select_manifold_dim}
 \title{Select manifold dimensionality based on eigenvalues}
 \usage{
-select_manifold_dim(eigenvalues, min_var = 0.95)
+select_manifold_dim(eigenvalues, min_var = 0.95, verbose = FALSE)
 }
 \arguments{
 \item{eigenvalues}{Numeric vector of eigenvalues from the Markov matrix
@@ -12,6 +12,9 @@ select_manifold_dim(eigenvalues, min_var = 0.95)
 eigenvalue equal to 1.}
 
 \item{min_var}{Minimum cumulative variance to retain (between 0 and 1).}
+
+\item{verbose}{Logical whether to show diagnostic messages about negative
+eigenvalues (default: FALSE).}
 }
 \value{
 A list with elements:

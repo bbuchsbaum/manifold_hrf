@@ -27,10 +27,28 @@ suggest_parameters <- function(Y_data, X_design_list = NULL, voxel_coords = NULL
   
   # Spatial smoothing - adapt to voxel density
   if (!is.null(voxel_coords) && V > 10) {
-    # Estimate typical voxel spacing
-    distances <- as.matrix(dist(voxel_coords))
-    diag(distances) <- NA
-    median_nn_dist <- median(apply(distances, 1, min, na.rm = TRUE))
+    n_voxels <- nrow(voxel_coords)
+    
+    # Check memory requirements before creating distance matrix
+    tryCatch({
+      check_distance_memory(n_voxels, safety_factor = 0.3)  # More conservative for distance matrices
+    }, error = function(e) {
+      warning("Distance matrix memory check failed: ", e$message,
+              "\nUsing approximate neighbor calculation instead.", call. = FALSE)
+      # Set flag to use approximate methods
+      n_voxels <- 10001  # Force approximate method
+    })
+    
+    if (n_voxels > 10000) {
+      # Use approximate method for large datasets
+      params$lambda_spatial_smooth <- 1.0  # Conservative default
+      median_nn_dist <- 3  # Reasonable default
+    } else {
+      # Estimate typical voxel spacing
+      distances <- as.matrix(dist(voxel_coords))
+      diag(distances) <- NA
+      median_nn_dist <- median(apply(distances, 1, min, na.rm = TRUE))
+    }
     
     # Less smoothing for denser sampling
     if (median_nn_dist < 2) {

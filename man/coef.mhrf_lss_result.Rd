@@ -6,6 +6,16 @@
 \usage{
 \method{coef}{mhrf_lss_result}(object, type = c("condition", "trial", "hrf"), ...)
 }
+\arguments{
+\item{object}{An mhrf_lss_result object}
+
+\item{type}{Type of coefficients to extract: "condition", "trial", or "hrf"}
+
+\item{...}{Additional arguments (not used)}
+}
+\value{
+Matrix of requested coefficients
+}
 \description{
 Extract Coefficients from M-HRF-LSS Fit
 }

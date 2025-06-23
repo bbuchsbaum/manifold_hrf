@@ -75,8 +75,14 @@
     }
   }
   
-  # Check variance
-  voxel_vars <- apply(Y_matrix, 2, var, na.rm = TRUE)
+  # Check variance with safe handling of constant columns
+  voxel_vars <- apply(Y_matrix, 2, function(x) {
+    finite_vals <- x[is.finite(x)]
+    if (length(finite_vals) < 2) {
+      return(0)  # Not enough finite values to compute variance
+    }
+    var(finite_vals)
+  })
   zero_var_voxels <- sum(voxel_vars < .Machine$double.eps, na.rm = TRUE)
   
   if (zero_var_voxels == ncol(Y_matrix)) {
@@ -171,7 +177,8 @@
     )
   }
   
-  max_time <- (n_timepoints - 1) * TR
+  # Cast to numeric to avoid integer overflow
+  max_time <- (as.numeric(n_timepoints) - 1) * as.numeric(TR)
   late_events <- events$onset > max_time
   
   if (any(late_events)) {

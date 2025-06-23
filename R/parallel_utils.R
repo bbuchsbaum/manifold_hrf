@@ -31,11 +31,39 @@
   
   if (.is_windows()) {
     # Use socket cluster on Windows
-    cl <- parallel::makeCluster(n_jobs)
+    cl <- tryCatch(
+      parallel::makeCluster(n_jobs),
+      error = function(e) {
+        warning("Failed to create cluster: ", e$message, 
+                ". Falling back to sequential execution.")
+        return(NULL)
+      }
+    )
+    
+    if (is.null(cl)) {
+      return(lapply(X, FUN))
+    }
+    
     on.exit(parallel::stopCluster(cl), add = TRUE)
-    parallel::parLapply(cl, X, FUN)
+    
+    tryCatch(
+      parallel::parLapply(cl, X, FUN),
+      error = function(e) {
+        warning("Error in parallel execution: ", e$message, 
+                ". Falling back to sequential execution.")
+        parallel::stopCluster(cl)
+        lapply(X, FUN)
+      }
+    )
   } else {
     # Use forking on Unix-like systems
-    parallel::mclapply(X, FUN, mc.cores = n_jobs)
+    tryCatch(
+      parallel::mclapply(X, FUN, mc.cores = n_jobs),
+      error = function(e) {
+        warning("Error in parallel execution: ", e$message, 
+                ". Falling back to sequential execution.")
+        lapply(X, FUN)
+      }
+    )
   }
 }

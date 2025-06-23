@@ -39,6 +39,7 @@
 #' @param output_dir Directory for saving results and intermediate files
 #'   (default: temporary directory). If the directory does not exist, it will be
 #'   created automatically.
+#' @param logger Optional logger object for structured logging (default: NULL)
 #' @param ... Additional parameters to override preset values. See 
 #'   \code{\link{get_preset_params}} for available options.
 #'
@@ -208,8 +209,16 @@ mhrf_analyze <- function(Y_data,
   
   # Validate parameters (now that we have design matrices)
   if (params$data_checks) {
-    # Skip validate_data for now - it's not defined
-    # params$validate_data(Y_matrix, X_condition_list)
+    # Basic validation checks
+    if (ncol(Y_matrix) == 0) {
+      stop("No valid voxels found in data matrix")
+    }
+    if (length(X_condition_list) == 0) {
+      stop("No condition design matrices provided")
+    }
+    if (nrow(Y_matrix) != nrow(X_condition_list[[1]])) {
+      stop("Data matrix and design matrices must have same number of timepoints")
+    }
   }
   
   # Step 4: Create or load HRF library
@@ -1020,11 +1029,11 @@ mhrf_analyze <- function(Y_data,
 #' reconstructed using the estimated HRFs and amplitudes and the resulting
 #' R\eqn{^2} statistics are summarized.
 #'
-#' @param Y_data n \times V matrix of observed time series
+#' @param Y_data n x V matrix of observed time series
 #' @param X_condition_list list of condition design matrices
-#' @param hrf_shapes p \times V matrix of estimated HRF shapes
-#' @param amplitudes k \times V matrix of condition amplitudes
-#' @param manifold_coords m \times V matrix of manifold coordinates
+#' @param hrf_shapes p x V matrix of estimated HRF shapes
+#' @param amplitudes k x V matrix of condition amplitudes
+#' @param manifold_coords m x V matrix of manifold coordinates
 #' @param params List of pipeline parameters
 #' @keywords internal
 .compute_qc_metrics <- function(Y_data, X_condition_list, hrf_shapes, amplitudes,

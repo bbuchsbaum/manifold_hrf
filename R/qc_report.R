@@ -317,6 +317,9 @@ create_qc_flags <- function(results,
 
 
 #' Print QC Flags
+#' 
+#' @param x An mhrf_qc_flags object
+#' @param ... Additional arguments (not used)
 #' @export
 print.mhrf_qc_flags <- function(x, ...) {
   cat("M-HRF-LSS QC Flags Summary\n")

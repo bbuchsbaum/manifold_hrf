@@ -6,6 +6,11 @@
 \usage{
 \method{print}{mhrf_manifold}(x, ...)
 }
+\arguments{
+\item{x}{An mhrf_manifold object}
+
+\item{...}{Additional arguments (not used)}
+}
 \description{
 Print method for mhrf_manifold objects
 }

@@ -13,3 +13,16 @@ An object of class \code{mhrf_logger} with methods \code{add} and \code{get}.
 The logger accumulates messages, warnings and decisions during the
 analysis pipeline. Messages are timestamped for reproducibility.
 }
+\details{
+\strong{Thread Safety Warning}: This logger is NOT thread-safe. When using
+parallel processing (e.g., with future, parallel, or foreach), logger
+methods should only be called from the main thread. Calling logger
+methods from worker threads may result in lost messages or race conditions.
+
+For parallel processing scenarios, consider:
+\itemize{
+\item Collecting messages in each worker and returning them to the main thread
+\item Using the logger only before and after parallel sections
+\item Implementing a thread-safe logging solution if concurrent logging is critical
+}
+}

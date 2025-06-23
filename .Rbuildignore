@@ -1,0 +1,12 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^README\.Rmd$
+^README-.*\.png$
+^\.github$
+^data-raw$
+^inst/experimental$
+^AUDIT.*$
+^repomix-output\.xml$
+^lss_memory_optimization_summary\.md$
+^test_output\.log$
+^examples$

@@ -90,25 +90,80 @@ remove_duplicate_hrfs <- function(L_library_matrix, cor_threshold = 0.99) {
   N <- ncol(L_library_matrix)
   if (N <= 1) return(L_library_matrix)
   
+  # For large libraries, use a more efficient approach
+  if (N > 1000) {
+    # Use hashing approach for O(n log n) complexity
+    return(.remove_duplicates_fast(L_library_matrix, cor_threshold))
+  }
+  
+  # For smaller libraries, use the correlation approach
   # Compute correlations
   cor_matrix <- cor(L_library_matrix)
   
-  # Find which HRFs to keep
+  # Find which HRFs to keep using vectorized operations
   keep <- rep(TRUE, N)
   
-  for (i in 1:(N-1)) {
-    if (keep[i]) {
-      # Mark duplicates of HRF i for removal
-      duplicates <- which(cor_matrix[i, (i+1):N] > cor_threshold) + i
-      if (length(duplicates) > 0) {
-        keep[duplicates] <- FALSE
+  # Vectorized approach to find duplicates
+  upper_tri <- upper.tri(cor_matrix)
+  high_cor_pairs <- which(cor_matrix > cor_threshold & upper_tri, arr.ind = TRUE)
+  
+  if (nrow(high_cor_pairs) > 0) {
+    # Keep the first of each duplicate pair
+    duplicates <- unique(high_cor_pairs[, 2])
+    keep[duplicates] <- FALSE
+  }
+  
+  n_removed <- sum(!keep)
+  if (n_removed > 0) {
+    message(sprintf("Removed %d duplicate HRFs (correlation > %.2f)", 
+                   n_removed, cor_threshold))
+  }
+  
+  return(L_library_matrix[, keep, drop = FALSE])
+}
+
+# Fast duplicate removal for large libraries
+.remove_duplicates_fast <- function(L_library_matrix, cor_threshold = 0.99) {
+  N <- ncol(L_library_matrix)
+  p <- nrow(L_library_matrix)
+  
+  # Normalize HRFs for comparison
+  L_norm <- scale(L_library_matrix, center = FALSE, 
+                  scale = sqrt(colSums(L_library_matrix^2)))
+  
+  # Use clustering approach for efficiency
+  # First, use k-means to group similar HRFs
+  n_clusters <- min(round(N / 10), 100)
+  
+  # Use a subset of time points for initial clustering (faster)
+  sample_rows <- seq(1, p, length.out = min(p, 20))
+  kmeans_result <- kmeans(t(L_norm[sample_rows, , drop = FALSE]), 
+                          centers = n_clusters, nstart = 1)
+  
+  # Within each cluster, check for duplicates
+  keep <- rep(TRUE, N)
+  
+  for (k in 1:n_clusters) {
+    cluster_idx <- which(kmeans_result$cluster == k)
+    if (length(cluster_idx) > 1) {
+      # Check correlations within this cluster only
+      cluster_cors <- cor(L_library_matrix[, cluster_idx, drop = FALSE])
+      
+      # Find duplicates within cluster
+      for (i in 1:(length(cluster_idx) - 1)) {
+        if (keep[cluster_idx[i]]) {
+          dups <- which(cluster_cors[i, (i+1):length(cluster_idx)] > cor_threshold) + i
+          if (length(dups) > 0) {
+            keep[cluster_idx[dups]] <- FALSE
+          }
+        }
       }
     }
   }
   
   n_removed <- sum(!keep)
   if (n_removed > 0) {
-    message(sprintf("Removed %d duplicate HRFs (correlation > %.2f)", 
+    message(sprintf("Removed %d duplicate HRFs using fast method (correlation > %.2f)", 
                    n_removed, cor_threshold))
   }
   

@@ -6,6 +6,15 @@
 \usage{
 \method{plot}{mhrf_lss_result}(x, type = c("hrfs", "manifold", "diagnostics"), voxels = NULL, ...)
 }
+\arguments{
+\item{x}{An mhrf_lss_result object}
+
+\item{type}{Type of plot to generate: "hrfs", "manifold", or "diagnostics"}
+
+\item{voxels}{Indices of voxels to plot (default: sample of voxels)}
+
+\item{...}{Additional arguments passed to plotting functions}
+}
 \description{
 Plot M-HRF-LSS Results
 }

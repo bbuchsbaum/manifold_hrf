@@ -388,6 +388,9 @@ create_manifold_hrf_object <- function(B_reconstructor, name, nbasis) {
 }
 
 #' Print method for mhrf_manifold objects
+#' 
+#' @param x An mhrf_manifold object
+#' @param ... Additional arguments (not used)
 #' @export
 print.mhrf_manifold <- function(x, ...) {
   cat("M-HRF Manifold Object\n")
@@ -409,6 +412,10 @@ print.mhrf_manifold <- function(x, ...) {
 }
 
 #' Summary method for mhrf_manifold objects
+#' 
+#' @param object An mhrf_manifold object
+#' @param ... Additional arguments (not used)
+#' @return Summary list (invisibly)
 #' @export
 summary.mhrf_manifold <- function(object, ...) {
   cat("M-HRF Manifold Summary\n")

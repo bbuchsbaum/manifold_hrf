@@ -1,6 +1,112 @@
 # Fallback Cascade and Memory Safety
 # Implementation of SOUND-FALLBACK-CASCADE and SOUND-MEMORY-SAFE
 
+#' Get available system memory in GB (platform agnostic)
+#' 
+#' @return Available memory in GB, or NULL if unable to determine
+#' @keywords internal
+.get_available_memory_gb <- function() {
+  bytes_to_gb <- function(bytes) bytes / 1024^3
+  
+  os_type <- Sys.info()["sysname"]
+  
+  # Try multiple approaches based on platform
+  available_gb <- NULL
+  
+  if (os_type == "Linux") {
+    # Linux: use /proc/meminfo or free command
+    mem_info <- try(readLines("/proc/meminfo"), silent = TRUE)
+    if (!inherits(mem_info, "try-error")) {
+      # Parse MemAvailable or MemFree
+      avail_line <- grep("^MemAvailable:", mem_info, value = TRUE)
+      if (length(avail_line) == 0) {
+        avail_line <- grep("^MemFree:", mem_info, value = TRUE)
+      }
+      if (length(avail_line) > 0) {
+        available_kb <- as.numeric(sub(".*:\\s*(\\d+).*", "\\1", avail_line))
+        available_gb <- available_kb / 1024^2
+      }
+    } else {
+      # Fallback to free command
+      mem_info <- try(system("free -b", intern = TRUE), silent = TRUE)
+      if (!inherits(mem_info, "try-error")) {
+        available_line <- grep("^Mem:", mem_info, value = TRUE)
+        if (length(available_line) > 0) {
+          fields <- strsplit(available_line, "\\s+")[[1]]
+          if (length(fields) >= 7) {
+            available_bytes <- as.numeric(fields[7])
+            available_gb <- bytes_to_gb(available_bytes)
+          }
+        }
+      }
+    }
+    
+  } else if (os_type == "Darwin") {
+    # macOS: use vm_stat command
+    vm_stat <- try(system("vm_stat", intern = TRUE), silent = TRUE)
+    if (!inherits(vm_stat, "try-error")) {
+      # Get page size
+      page_size_line <- grep("page size of", vm_stat, value = TRUE)
+      page_size <- 4096  # default
+      if (length(page_size_line) > 0) {
+        page_size <- as.numeric(sub(".*page size of (\\d+) bytes.*", "\\1", page_size_line))
+      }
+      
+      # Get free pages
+      free_line <- grep("Pages free:", vm_stat, value = TRUE)
+      inactive_line <- grep("Pages inactive:", vm_stat, value = TRUE)
+      
+      free_pages <- 0
+      inactive_pages <- 0
+      
+      if (length(free_line) > 0) {
+        free_pages <- as.numeric(sub(".*:\\s*(\\d+).*", "\\1", free_line))
+      }
+      if (length(inactive_line) > 0) {
+        inactive_pages <- as.numeric(sub(".*:\\s*(\\d+).*", "\\1", inactive_line))
+      }
+      
+      available_bytes <- (free_pages + inactive_pages) * page_size
+      available_gb <- bytes_to_gb(available_bytes)
+    }
+    
+  } else if (os_type == "Windows") {
+    # Windows: use wmic command
+    wmic_cmd <- try(system("wmic OS get FreePhysicalMemory /value", intern = TRUE), silent = TRUE)
+    if (!inherits(wmic_cmd, "try-error")) {
+      free_line <- grep("FreePhysicalMemory=", wmic_cmd, value = TRUE)
+      if (length(free_line) > 0) {
+        free_kb <- as.numeric(sub(".*=(\\d+).*", "\\1", free_line))
+        available_gb <- free_kb / 1024^2
+      }
+    }
+  }
+  
+  # If platform-specific methods fail, try to use memory.limit() on Windows
+  if (is.null(available_gb) && os_type == "Windows") {
+    mem_limit <- try(memory.limit(), silent = TRUE)
+    if (!inherits(mem_limit, "try-error") && is.finite(mem_limit)) {
+      # memory.limit returns MB on Windows
+      # Estimate available as 50% of limit (conservative)
+      available_gb <- mem_limit / 1024 * 0.5
+    }
+  }
+  
+  # Final fallback: use a conservative estimate based on total memory
+  if (is.null(available_gb)) {
+    # Try to estimate from gc()
+    gc_info <- gc()
+    # Use max memory used as a lower bound for total memory
+    max_used_mb <- max(gc_info[, "max used"])
+    if (max_used_mb > 0) {
+      # Assume we can use 2x what we've used so far (very conservative)
+      available_gb <- max_used_mb / 1024
+    }
+  }
+  
+  return(available_gb)
+}
+
 #' Estimate Memory Requirements
 #'
 #' Estimates memory needed for M-HRF-LSS pipeline
@@ -55,18 +161,8 @@ estimate_memory_requirements <- function(n_timepoints, n_voxels, n_conditions,
     peak_estimate_no_precompute_gb = bytes_to_gb(mem_peak - mem_R_precompute)
   )
   
-  # Check available memory
-  if (Sys.info()["sysname"] == "Linux") {
-    # Try to get available memory on Linux
-    mem_info <- try(system("free -b", intern = TRUE), silent = TRUE)
-    if (!inherits(mem_info, "try-error")) {
-      available_line <- grep("^Mem:", mem_info, value = TRUE)
-      if (length(available_line) > 0) {
-        available_bytes <- as.numeric(strsplit(available_line, "\\s+")[[1]][7])
-        memory_report$available_gb <- bytes_to_gb(available_bytes)
-      }
-    }
-  }
+  # Check available memory - platform agnostic approach
+  memory_report$available_gb <- .get_available_memory_gb()
   
   # Print summary
   message("Memory Requirements Estimate:")
@@ -336,10 +432,14 @@ safe_matrix_operation <- function(operation, ..., gc_before = TRUE, gc_after = T
     if (grepl("cannot allocate", e$message, ignore.case = TRUE)) {
       warning("Memory allocation failed. Attempting cleanup and retry...")
       
-      # Aggressive cleanup
-      gc()
-      rm(list = ls(envir = parent.frame()), envir = parent.frame())
-      gc()
+      # Safe cleanup - only garbage collection
+      gc(verbose = FALSE, full = TRUE)
+      
+      # Optionally suggest user actions
+      message("Consider: \n",
+              "- Reducing data size\n", 
+              "- Closing other R sessions\n",
+              "- Using chunked processing")
       
       # Try once more
       operation(...)

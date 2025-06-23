@@ -524,6 +524,7 @@ create_trial_matrices <- function(event_model, event_table, sframe) {
 #' Run Standard M-HRF-LSS Pipeline
 #'
 #' @keywords internal
+#' @export
 run_mhrf_lss_standard <- function(Y_data, design_info, manifold, Z_confounds,
                                   voxel_coords, params, outlier_weights,
                                   estimation, progress) {
@@ -755,6 +756,10 @@ print.mhrf_lss_result <- function(x, ...) {
 
 #' Extract Coefficients from M-HRF-LSS Fit
 #'
+#' @param object An mhrf_lss_result object
+#' @param type Type of coefficients to extract: "condition", "trial", or "hrf"
+#' @param ... Additional arguments (not used)
+#' @return Matrix of requested coefficients
 #' @export
 coef.mhrf_lss_result <- function(object, type = c("condition", "trial", "hrf"), ...) {
   
@@ -770,6 +775,10 @@ coef.mhrf_lss_result <- function(object, type = c("condition", "trial", "hrf"), 
 
 #' Plot M-HRF-LSS Results
 #'
+#' @param x An mhrf_lss_result object
+#' @param type Type of plot to generate: "hrfs", "manifold", or "diagnostics"
+#' @param voxels Indices of voxels to plot (default: sample of voxels)
+#' @param ... Additional arguments passed to plotting functions
 #' @export
 plot.mhrf_lss_result <- function(x, type = c("hrfs", "manifold", "diagnostics"),
                                  voxels = NULL, ...) {

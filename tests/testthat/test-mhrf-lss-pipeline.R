@@ -1,6 +1,7 @@
 context("mhrf_lss pipeline integration")
 
 library(testthat)
+library(manifoldhrf)
 
 
 test_that("LSS failure propagation does not crash pipeline", {
@@ -38,19 +39,16 @@ test_that("LSS failure propagation does not crash pipeline", {
 
   Z_confounds <- matrix(0, n, 1)
 
-  expect_error(
-    fit <- run_mhrf_lss_standard(
-      Y_data = Y,
-      design_info = design_info,
-      manifold = manifold,
-      Z_confounds = Z_confounds,
-      voxel_coords = NULL,
-      params = manifold$parameters,
-      outlier_weights = NULL,
-      estimation = "trial",
-      progress = FALSE
-    ),
-    NA
+  fit <- run_mhrf_lss_standard(
+    Y_data = Y,
+    design_info = design_info,
+    manifold = manifold,
+    Z_confounds = Z_confounds,
+    voxel_coords = NULL,
+    params = manifold$parameters,
+    outlier_weights = NULL,
+    estimation = "trial",
+    progress = FALSE
   )
 
   expect_equal(dim(fit$Beta_trial), c(length(X_trials), V))

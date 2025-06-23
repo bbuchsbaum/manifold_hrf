@@ -1,10 +1,11 @@
 # Core Spatial Smoothing Functions (Component 2)
 # Implementation of MHRF-CORE-SPSMOOTH-01 and MHRF-CORE-SPSMOOTH-02
 
-#' Construct Graph Laplacian for Voxel Coordinates (Core)
+#' Construct Graph Laplacian for Voxel Coordinates with Weights (Internal)
 #'
 #' Creates a sparse graph Laplacian matrix for spatial smoothing based on
-#' k-nearest neighbors in 3D voxel space.
+#' k-nearest neighbors in 3D voxel space. This is an internal version that
+#' supports weighted graphs.
 #'
 #' @param voxel_coords_matrix A V x 3 matrix of voxel coordinates, where V is 
 #'   the number of voxels and columns are x, y, z coordinates
@@ -38,14 +39,14 @@
 #' voxel_coords <- as.matrix(coords)
 #' 
 #' # Construct 6-neighbor Laplacian (face-connected)
-#' L_sparse <- make_voxel_graph_laplacian_core(voxel_coords, num_neighbors_Lsp = 6)
+#' L_sparse <- .make_voxel_graph_laplacian_weighted(voxel_coords, num_neighbors_Lsp = 6)
 #' 
 #' # Construct 26-neighbor Laplacian (corner-connected)
-#' L_sparse_full <- make_voxel_graph_laplacian_core(voxel_coords, num_neighbors_Lsp = 26)
+#' L_sparse_full <- .make_voxel_graph_laplacian_weighted(voxel_coords, num_neighbors_Lsp = 26)
 #' }
 #' 
-#' @export
-make_voxel_graph_laplacian_core <- function(voxel_coords_matrix,
+#' @keywords internal
+.make_voxel_graph_laplacian_weighted <- function(voxel_coords_matrix,
                                            num_neighbors_Lsp,
                                            distance_engine = c("euclidean", "ann_euclidean"),
                                            ann_threshold = 10000,

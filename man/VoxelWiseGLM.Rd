@@ -7,6 +7,27 @@
 An object-oriented implementation of the voxel-wise GLM fitting engine
 with pre-computation of shared matrices and support for parallelization.
 }
+\section{Public fields}{
+\if{html}{\out{<div class="r6-fields">}}
+\describe{
+\item{\code{Z}}{Confound matrix (n x q)}
+
+\item{\code{Z_qr}}{QR decomposition of confound matrix Z}
+
+\item{\code{Q_Z}}{Q matrix from QR decomposition of Z}
+
+\item{\code{rank_Z}}{Rank of the confound matrix Z}
+
+\item{\code{n_timepoints}}{Number of timepoints in the data}
+
+\item{\code{ridge_lambda}}{Ridge regularization parameter (default: 1e-6)}
+
+\item{\code{use_parallel}}{Whether to use parallel processing (default: TRUE)}
+
+\item{\code{chunk_size}}{Number of voxels to process per chunk (default: 1000)}
+}
+\if{html}{\out{</div>}}
+}
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{

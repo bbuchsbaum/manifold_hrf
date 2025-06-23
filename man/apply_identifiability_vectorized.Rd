@@ -9,7 +9,8 @@ apply_identifiability_vectorized(
   Beta_raw,
   B,
   h_ref,
-  h_mode = "max_correlation"
+  h_mode = "max_correlation",
+  scale_method = "l2_norm"
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ apply_identifiability_vectorized(
 \item{h_ref}{p x 1 reference HRF shape}
 
 \item{h_mode}{Sign alignment mode}
+
+\item{scale_method}{Method for scaling: "l2_norm", "max_abs_val", "beta_norm", or "none"}
 }
 \value{
 List with aligned Xi and Beta

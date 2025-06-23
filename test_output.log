@@ -19,39 +19,66 @@ Type 'q()' to quit R.
 
 > devtools::test()
 ℹ Testing manifoldhrf
+Registered S3 methods overwritten by 'fmridataset':
+  method                  from   
+  blockids.sampling_frame fmrihrf
+  samples.sampling_frame  fmrihrf
 Registered S3 method overwritten by 'future':
   method               from      
   all.equal.connection parallelly
-Registered S3 method overwritten by 'fmrireg':
-  method                from   
-  as.character.AFNI_HRF fmrihrf
 ✔ | F W  S  OK | Context
 
 ⠏ |          0 | adjust_hrf_utils                                               
 ✔ |         10 | adjust_hrf_utils
 
+⠏ |          0 | alternating-optimization-refactored                            
+⠙ |          2 | alternating-optimization-refactored                            
+⠧ |          8 | alternating-optimization-refactored                            
+⠇ |          9 | alternating-optimization-refactored                            
+✔ |         11 | alternating-optimization-refactored [6.5s]
+
 ⠏ |          0 | alternating-optimization                                       
-✔ |         42 | alternating-optimization
+✔ |   1     42 | alternating-optimization
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-alternating-optimization.R:327:3'): estimate_final_condition_betas_core parallel matches serial
+package ‘future’ was built under R version 4.3.3
+Backtrace:
+     ▆
+  1. └─manifoldhrf::estimate_final_condition_betas_core(...) at test-alternating-optimization.R:327:3
+  2.   └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_alternating_optimization.R:204:7
+  3.     └─future.apply::future_lapply(...) at manifold_hrf/R/core_lss.R:516:3
+  4.       └─future.apply:::future_xapply(...)
+  5.         └─future::future(...)
+  6.           ├─future::run(future)
+  7.           └─future:::run.Future(future)
+  8.             ├─future::launchFuture(backend, future = future)
+  9.             └─future:::launchFuture.SequentialFutureBackend(backend, future = future)
+ 10.               └─future:::evalFuture(data)
+ 11.                 ├─base::tryCatch(...)
+ 12.                 │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 13.                 │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 14.                 │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 15.                 └─future:::evalFutureInternal(data)
+ 16.                   └─future:::attachPackages(backendPackages)
+ 17.                     ├─base::tryCatch(...)
+ 18.                     │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+ 19.                     │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+ 20.                     │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 21.                     └─base::library(...)
+ 22.                       └─base (local) testRversion(pkgInfo, package, pkgpath)
+────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | compute-local-snr                                              
 ⠏ |          0 | compute_local_snr                                              
 ✔ |          2 | compute_local_snr
 
 ⠏ |          0 | core-algorithm-diagnostics                                     
-⠼ |   1      4 | core-algorithm-diagnostics                                     
-✔ |   1      9 | core-algorithm-diagnostics
-────────────────────────────────────────────────────────────────────────────────
-Warning ('test-core-algorithm-diagnostics.R:63:3'): M-HRF-LSS preserves signal reconstruction fidelity and manifold geometry
-Found 4 negative eigenvalues (min: -2.216355e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at test-core-algorithm-diagnostics.R:63:3
- 2.   └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-────────────────────────────────────────────────────────────────────────────────
+⠸ |          4 | core-algorithm-diagnostics                                     
+✔ |          9 | core-algorithm-diagnostics
 
 ⠏ |          0 | core-voxelfit-engine                                           
 ⠏ |          0 | core voxel fit engine                                          
-✔ |         13 | core voxel fit engine
+✔ |         16 | core voxel fit engine
 
 ⠏ |          0 | design-truncation                                              
 ⠏ |          0 | Design matrix truncation                                       
@@ -87,7 +114,7 @@ Manifold approach failed: invalid arguments
 Backtrace:
     ▆
  1. └─manifoldhrf::run_with_fallback_cascade(Y, X, params) at test-fallback-cascade.R:8:3
- 2.   └─base::tryCatch(...) at manifold_hrf/R/fallback_memory_safety.R:217:3
+ 2.   └─base::tryCatch(...) at manifold_hrf/R/fallback_memory_safety.R:313:3
  3.     └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.       └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.         └─value[[3L]](cond)
@@ -95,64 +122,44 @@ Backtrace:
 
 ⠏ |          0 | fmrireg-benchmarks                                             
 ⠋ |          1 | fmrireg-benchmarks                                             
-⠴ |   1  1   4 | fmrireg-benchmarks                                             
-✖ | 1 7  2   6 | fmrireg-benchmarks
+⠧ |          8 | fmrireg-benchmarks                                             
+⠴ |   1     15 | fmrireg-benchmarks                                             
+✔ |   5     17 | fmrireg-benchmarks
 ────────────────────────────────────────────────────────────────────────────────
-Warning ('test-fmrireg-benchmarks.R:282:3'): M-HRF-LSS handles variable HRFs across voxels
-the standard deviation is zero
-Backtrace:
-    ▆
- 1. └─stats::cor(hrf_shapes) at test-fmrireg-benchmarks.R:282:3
-
-Failure ('test-fmrireg-benchmarks.R:412:3'): M-HRF-LSS performs trial-wise estimation correctly
-`n_finite` is not strictly more than 0. Difference: 0
-
-Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
+Warning ('test-fmrireg-benchmarks.R:523:3'): M-HRF-LSS handles complex realistic scenario
 HRF library has quality issues:
 Backtrace:
     ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:523:3
 
-Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
+Warning ('test-fmrireg-benchmarks.R:523:3'): M-HRF-LSS handles complex realistic scenario
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:523:3
 
-Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
+Warning ('test-fmrireg-benchmarks.R:523:3'): M-HRF-LSS handles complex realistic scenario
   - Library is ill-conditioned (condition number: 5.05e+16)
 Backtrace:
     ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:523:3
 
-Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
+Warning ('test-fmrireg-benchmarks.R:523:3'): M-HRF-LSS handles complex realistic scenario
   - Low diversity in HRF shapes
 Backtrace:
     ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:523:3
 
-Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
- 3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 7.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-fmrireg-benchmarks.R:498:3'): M-HRF-LSS handles complex realistic scenario
+Warning ('test-fmrireg-benchmarks.R:523:3'): M-HRF-LSS handles complex realistic scenario
 Target dimension 4 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:498:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+ 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-fmrireg-benchmarks.R:523:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/manifold_utils.R:287:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 6.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/manifold_utils.R:307:5
 ────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | fmrireg-helpers                                                
@@ -165,32 +172,116 @@ Backtrace:
 
 ⠏ |          0 | input-validation-core                                          
 ⠏ |          0 | input validation core                                          
-✔ |          5 | input validation core
+✔ |          9 | input validation core
 
 ⠏ |          0 | lss-correction-validation                                      
 === LSS Implementation Comparison ===
 True betas:      1 -0.5 2 0 1.5 -1 0.8 0.3 
 Direct LSS:      0.903 -0.469 1.9 0.875 1.462 -1.71 0.663 0 
-fmrilss:         1.107 -0.793 1.793 0.722 1.598 -1.81 0.935 NaN 
+fmrilss:         1.107 -0.793 1.793 0.722 1.598 -1.81 0.935 0 
 
 === Differences from Direct ===
-fmrilss diff:    0.203588 -0.324309 -0.106797 -0.153517 0.135818 -0.099671 0.27179 NaN 
+fmrilss diff:    0.203588 -0.324309 -0.106797 -0.153517 0.135818 -0.099671 0.27179 0 
 
 === Mean Squared Errors ===
 Direct MSE:      0.1752 
-fmrilss MSE:     NaN 
+fmrilss MSE:     0.1795 
 
 === Simultaneous Estimation ===
 Simultaneous:    0.903 -0.469 1.9 0.875 1.462 -1.71 0.663 0 
 Diff from true:  -0.097 0.031 -0.1 0.875 -0.038 -0.71 -0.137 -0.3 
 
-✔ |          1 | lss-correction-validation
+✔ |   1      1 | lss-correction-validation
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-lss-correction-validation.R:73:3'): fmrilss implementation matches ground truth LSS
+Trial regressor 'Trial_8' appears to be zero (norm = 0). This may cause numerical issues or NaN results.
+Backtrace:
+    ▆
+ 1. └─fmrilss::lss(Y = matrix(y, ncol = 1), X = C, Z = Z, method = "r_optimized") at test-lss-correction-validation.R:73:3
+ 2.   └─fmrilss:::.check_zero_regressors(X)
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | lss-fixes                                                      
+⠼ |   5     10 | lss-fixes                                                      
+✔ |   5     15 | lss-fixes
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-lss-fixes.R:37:7'): chunk_size parameter is respected in auto-selection
+Trial regressor 'Trial_1' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. ├─testthat::with_mocked_bindings(...) at test-lss-fixes.R:30:3
+ 2. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-fixes.R:37:7
+ 3.   └─manifoldhrf:::.lss_execute_chunked(...) at manifold_hrf/R/core_lss.R:82:3
+ 4.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:364:5
+ 5.       └─base::lapply(...) at manifold_hrf/R/core_lss.R:482:7
+ 6.         └─manifoldhrf (local) FUN(X[[i]], ...)
+ 7.           └─manifoldhrf (local) worker_fun(v, ...) at manifold_hrf/R/core_lss.R:483:9
+ 8.             └─fmrilss::lss(...) at manifold_hrf/R/core_lss.R:349:7
+ 9.               └─fmrilss:::.check_zero_regressors(X)
+
+Warning ('test-lss-fixes.R:37:7'): chunk_size parameter is respected in auto-selection
+Trial regressor 'Trial_1' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. ├─testthat::with_mocked_bindings(...) at test-lss-fixes.R:30:3
+ 2. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-fixes.R:37:7
+ 3.   └─manifoldhrf:::.lss_execute_chunked(...) at manifold_hrf/R/core_lss.R:82:3
+ 4.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:364:5
+ 5.       └─base::lapply(...) at manifold_hrf/R/core_lss.R:482:7
+ 6.         └─manifoldhrf (local) FUN(X[[i]], ...)
+ 7.           └─manifoldhrf (local) worker_fun(v, ...) at manifold_hrf/R/core_lss.R:483:9
+ 8.             └─fmrilss::lss(...) at manifold_hrf/R/core_lss.R:349:7
+ 9.               └─fmrilss:::.check_zero_regressors(X)
+
+Warning ('test-lss-fixes.R:37:7'): chunk_size parameter is respected in auto-selection
+Trial regressor 'Trial_1' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. ├─testthat::with_mocked_bindings(...) at test-lss-fixes.R:30:3
+ 2. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-fixes.R:37:7
+ 3.   └─manifoldhrf:::.lss_execute_chunked(...) at manifold_hrf/R/core_lss.R:82:3
+ 4.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:364:5
+ 5.       └─base::lapply(...) at manifold_hrf/R/core_lss.R:482:7
+ 6.         └─manifoldhrf (local) FUN(X[[i]], ...)
+ 7.           └─manifoldhrf (local) worker_fun(v, ...) at manifold_hrf/R/core_lss.R:483:9
+ 8.             └─fmrilss::lss(...) at manifold_hrf/R/core_lss.R:349:7
+ 9.               └─fmrilss:::.check_zero_regressors(X)
+
+Warning ('test-lss-fixes.R:37:7'): chunk_size parameter is respected in auto-selection
+Trial regressor 'Trial_1' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. ├─testthat::with_mocked_bindings(...) at test-lss-fixes.R:30:3
+ 2. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-fixes.R:37:7
+ 3.   └─manifoldhrf:::.lss_execute_chunked(...) at manifold_hrf/R/core_lss.R:82:3
+ 4.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:364:5
+ 5.       └─base::lapply(...) at manifold_hrf/R/core_lss.R:482:7
+ 6.         └─manifoldhrf (local) FUN(X[[i]], ...)
+ 7.           └─manifoldhrf (local) worker_fun(v, ...) at manifold_hrf/R/core_lss.R:483:9
+ 8.             └─fmrilss::lss(...) at manifold_hrf/R/core_lss.R:349:7
+ 9.               └─fmrilss:::.check_zero_regressors(X)
+
+Warning ('test-lss-fixes.R:37:7'): chunk_size parameter is respected in auto-selection
+Trial regressor 'Trial_1' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. ├─testthat::with_mocked_bindings(...) at test-lss-fixes.R:30:3
+ 2. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-fixes.R:37:7
+ 3.   └─manifoldhrf:::.lss_execute_chunked(...) at manifold_hrf/R/core_lss.R:82:3
+ 4.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:364:5
+ 5.       └─base::lapply(...) at manifold_hrf/R/core_lss.R:482:7
+ 6.         └─manifoldhrf (local) FUN(X[[i]], ...)
+ 7.           └─manifoldhrf (local) worker_fun(v, ...) at manifold_hrf/R/core_lss.R:483:9
+ 8.             └─fmrilss::lss(...) at manifold_hrf/R/core_lss.R:349:7
+ 9.               └─fmrilss:::.check_zero_regressors(X)
+────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | lss-loop-core                                                  
 ✔ |          2 | lss-loop-core
 
 ⠏ |          0 | lss-lsa-equivalence                                            
-✔ |   1  1   2 | lss-lsa-equivalence
+⠸ |   1      3 | lss-lsa-equivalence                                            
+✔ |   1      3 | lss-lsa-equivalence
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-lss-lsa-equivalence.R:74:3'): LS-A and LS-S are equivalent for T=2 with confounds
 No intercept detected in dmat_base. Consider adding one for proper baseline modeling.
@@ -198,153 +289,256 @@ Backtrace:
     ▆
  1. └─fmrilss::lss(...) at test-lss-lsa-equivalence.R:74:3
  2.   └─fmrilss:::.lss_r_optimized(Y_clean, X_clean, Z)
- 3.     └─fmrilss::lss_optimized(Y, bdes)
+ 3.     └─fmrilss::lss_optimized(Y, bdes, use_cpp = FALSE)
  4.       └─fmrilss:::.lss_engine_optimized(...)
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | lss-memory-strategies                                          
+⠼ |          5 | lss-memory-strategies                                          
+✔ |         19 | lss-memory-strategies
+
+⠏ |          0 | lss-parallel                                                   
+⠋ |          1 | lss-parallel                                                   
+⠙ |          2 | lss-parallel                                                   
+⠸ |          4 | lss-parallel                                                   
+⠇ |   1      8 | lss-parallel                                                   
+⠴ |   6     10 | lss-parallel                                                   
+✔ |   6     10 | lss-parallel [23.6s]
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-lss-parallel.R:148:3'): Parallel execution handles edge cases
+Trial regressor 'Trial_1' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-parallel.R:148:3
+ 2.   └─manifoldhrf:::.lss_execute_full(...) at manifold_hrf/R/core_lss.R:82:3
+ 3.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:280:3
+ 4.       └─future.apply::future_lapply(...) at manifold_hrf/R/core_lss.R:516:3
+ 5.         └─future.apply:::future_xapply(...)
+ 6.           ├─future::value(fs)
+ 7.           └─future:::value.list(fs)
+ 8.             └─future (local) signalConditionsASAP(...)
+ 9.               └─future:::signalConditions(...)
+
+Warning ('test-lss-parallel.R:148:3'): Parallel execution handles edge cases
+Trial regressor 'Trial_2' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-parallel.R:148:3
+ 2.   └─manifoldhrf:::.lss_execute_full(...) at manifold_hrf/R/core_lss.R:82:3
+ 3.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:280:3
+ 4.       └─future.apply::future_lapply(...) at manifold_hrf/R/core_lss.R:516:3
+ 5.         └─future.apply:::future_xapply(...)
+ 6.           ├─future::value(fs)
+ 7.           └─future:::value.list(fs)
+ 8.             └─future (local) signalConditionsASAP(...)
+ 9.               └─future:::signalConditions(...)
+
+Warning ('test-lss-parallel.R:148:3'): Parallel execution handles edge cases
+Trial regressor 'Trial_1' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-parallel.R:148:3
+ 2.   └─manifoldhrf:::.lss_execute_full(...) at manifold_hrf/R/core_lss.R:82:3
+ 3.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:280:3
+ 4.       └─future.apply::future_lapply(...) at manifold_hrf/R/core_lss.R:516:3
+ 5.         └─future.apply:::future_xapply(...)
+ 6.           ├─future::value(fs)
+ 7.           └─future:::value.list(fs)
+ 8.             └─future (local) signalConditionsASAP(...)
+ 9.               └─future:::signalConditions(...)
+
+Warning ('test-lss-parallel.R:148:3'): Parallel execution handles edge cases
+Trial regressor 'Trial_2' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-parallel.R:148:3
+ 2.   └─manifoldhrf:::.lss_execute_full(...) at manifold_hrf/R/core_lss.R:82:3
+ 3.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:280:3
+ 4.       └─future.apply::future_lapply(...) at manifold_hrf/R/core_lss.R:516:3
+ 5.         └─future.apply:::future_xapply(...)
+ 6.           ├─future::value(fs)
+ 7.           └─future:::value.list(fs)
+ 8.             └─future (local) signalConditionsASAP(...)
+ 9.               └─future:::signalConditions(...)
+
+Warning ('test-lss-parallel.R:148:3'): Parallel execution handles edge cases
+Trial regressor 'Trial_1' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-parallel.R:148:3
+ 2.   └─manifoldhrf:::.lss_execute_full(...) at manifold_hrf/R/core_lss.R:82:3
+ 3.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:280:3
+ 4.       └─future.apply::future_lapply(...) at manifold_hrf/R/core_lss.R:516:3
+ 5.         └─future.apply:::future_xapply(...)
+ 6.           ├─future::value(fs)
+ 7.           └─future:::value.list(fs)
+ 8.             └─future (local) signalConditionsASAP(...)
+ 9.               └─future:::signalConditions(...)
+
+Warning ('test-lss-parallel.R:148:3'): Parallel execution handles edge cases
+Trial regressor 'Trial_2' has very low variance (0) and may cause numerical instability.
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::run_lss_voxel_loop_core(...) at test-lss-parallel.R:148:3
+ 2.   └─manifoldhrf:::.lss_execute_full(...) at manifold_hrf/R/core_lss.R:82:3
+ 3.     └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:280:3
+ 4.       └─future.apply::future_lapply(...) at manifold_hrf/R/core_lss.R:516:3
+ 5.         └─future.apply:::future_xapply(...)
+ 6.           ├─future::value(fs)
+ 7.           └─future:::value.list(fs)
+ 8.             └─future (local) signalConditionsASAP(...)
+ 9.               └─future:::signalConditions(...)
 ────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | lss-safety-net                                                 
 ✔ |          2 | lss-safety-net
 
 ⠏ |          0 | lss                                                            
-✖ | 3       19 | lss
-────────────────────────────────────────────────────────────────────────────────
-Failure ('test-lss.R:198:3'): validate_design_matrix_list catches errors
-`validate_design_matrix_list(matrix(1:50, 50, 1), n)` threw an error with unexpected message.
-Expected match: "X_list must be a list"
-Actual message: "Design matrices must be provided as a non-empty list"
-Backtrace:
-    ▆
- 1. ├─testthat::expect_error(...) at test-lss.R:198:3
- 2. │ └─testthat:::quasi_capture(...)
- 3. │   ├─testthat (local) .capture(...)
- 4. │   │ └─base::withCallingHandlers(...)
- 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 6. └─manifoldhrf:::validate_design_matrix_list(...)
+✔ |         19 | lss
 
-Failure ('test-lss.R:204:3'): validate_design_matrix_list catches errors
-`validate_design_matrix_list(list(), n)` threw an error with unexpected message.
-Expected match: "X_list must contain at least one matrix"
-Actual message: "Design matrices must be provided as a non-empty list"
-Backtrace:
-    ▆
- 1. ├─testthat::expect_error(...) at test-lss.R:204:3
- 2. │ └─testthat:::quasi_capture(...)
- 3. │   ├─testthat (local) .capture(...)
- 4. │   │ └─base::withCallingHandlers(...)
- 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 6. └─manifoldhrf:::validate_design_matrix_list(list(), n)
-
-Failure ('test-lss.R:214:3'): validate_design_matrix_list catches errors
-`validate_design_matrix_list(X_wrong, n)` threw an error with unexpected message.
-Expected match: "must have 50 rows"
-Actual message: "Design matrix 1 has 40 rows but expected 50"
-Backtrace:
-    ▆
- 1. ├─testthat::expect_error(...) at test-lss.R:214:3
- 2. │ └─testthat:::quasi_capture(...)
- 3. │   ├─testthat (local) .capture(...)
- 4. │   │ └─base::withCallingHandlers(...)
- 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 6. └─manifoldhrf:::validate_design_matrix_list(X_wrong, n)
-────────────────────────────────────────────────────────────────────────────────
+⠏ |          0 | manifold-construction-refactored                               
+⠹ |         13 | manifold-construction-refactored                               
+⠇ |         29 | manifold-construction-refactored                               
+✔ |         34 | manifold-construction-refactored
 
 ⠏ |          0 | manifold-construction                                          
-⠏ |   6  1  33 | manifold-construction                                          
-✔ |   6  1  33 | manifold-construction
+⠦ |   1      6 | manifold-construction                                          
+⠦ |   2     15 | manifold-construction                                          
+⠧ |   2     26 | manifold-construction                                          
+⠼ |   2     33 | manifold-construction                                          
+⠦ |   2  1  34 | manifold-construction                                          
+⠙ |   2  1  39 | manifold-construction                                          
+✔ |   2  1  43 | manifold-construction
 ────────────────────────────────────────────────────────────────────────────────
-Warning ('test-manifold-construction.R:43:3'): calculate_manifold_affinity_core handles sparse matrix parameters
-Manual sparsification of dense matrix is inefficient for N = 100 . Consider using distance_engine = 'ann_euclidean' instead.
+Warning ('test-manifold-construction.R:45:3'): calculate_manifold_affinity_core handles sparse matrix parameters
+Manual sparsification of dense matrix is inefficient for N = 100.
+  For better performance, use one of these options:
+  1. Set distance_engine = 'ann_euclidean' (recommended)
+  2. Lower ann_threshold (current: 10000) to enable automatic ANN
+  3. Set use_sparse_W_params = NULL to keep dense matrix
+  Current call is computing all 10000 distances then discarding most.
 Backtrace:
     ▆
- 1. └─manifoldhrf::calculate_manifold_affinity_core(...) at test-manifold-construction.R:43:3
+ 1. └─manifoldhrf::calculate_manifold_affinity_core(...) at test-manifold-construction.R:45:3
 
-Warning ('test-manifold-construction.R:78:3'): k_nn_for_W_sparse larger than N is truncated
-Manual sparsification of dense matrix is inefficient for N = 10 . Consider using distance_engine = 'ann_euclidean' instead.
+Warning ('test-manifold-construction.R:79:3'): k_nn_for_W_sparse larger than N is truncated
+Manual sparsification of dense matrix is inefficient for N = 10.
+  For better performance, use one of these options:
+  1. Set distance_engine = 'ann_euclidean' (recommended)
+  2. Lower ann_threshold (current: 10000) to enable automatic ANN
+  3. Set use_sparse_W_params = NULL to keep dense matrix
+  Current call is computing all 100 distances then discarding most.
 Backtrace:
     ▆
- 1. └─manifoldhrf::calculate_manifold_affinity_core(...) at test-manifold-construction.R:78:3
-
-Warning ('test-manifold-construction.R:147:3'): get_manifold_basis_reconstructor_core works with basic inputs
-Found 9 negative eigenvalues (min: -8.697041e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at test-manifold-construction.R:147:3
- 2.   └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-manifold-construction.R:183:3'): get_manifold_basis_reconstructor_core handles variance threshold
-Found 11 negative eigenvalues (min: -3.953779e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at test-manifold-construction.R:183:3
- 2.   └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-manifold-construction.R:190:3'): get_manifold_basis_reconstructor_core handles variance threshold
-Found 11 negative eigenvalues (min: -3.953779e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at test-manifold-construction.R:190:3
- 2.   └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-manifold-construction.R:237:3'): get_manifold_basis_reconstructor_core reconstruction works
-Found 13 negative eigenvalues (min: -6.392901e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at test-manifold-construction.R:237:3
- 2.   └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 1. └─manifoldhrf::calculate_manifold_affinity_core(...) at test-manifold-construction.R:79:3
 ────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | mhrf-lss-interface                                             
-⠸ |      2  32 | mhrf-lss-interface                                             
-✔ |      2  41 | mhrf-lss-interface
+⠸ |      1   3 | mhrf-lss-interface                                             
+✔ |      3  41 | mhrf-lss-interface
 
 ⠏ |          0 | mhrf-lss-parameters                                            
 ✔ |          4 | mhrf-lss-parameters
 
+⠏ |          0 | mhrf-lss-pipeline                                              
+⠏ |          0 | mhrf_lss pipeline integration                                  
+✖ | 2 3      1 | mhrf_lss pipeline integration
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-mhrf-lss-pipeline.R:41:3'): LSS failure propagation does not crash pipeline
+Z_confounds_matrix is rank deficient; using independent columns only
+Backtrace:
+    ▆
+ 1. └─manifoldhrf:::run_mhrf_lss_standard(...) at test-mhrf-lss-pipeline.R:41:3
+ 2.   └─manifoldhrf::project_out_confounds_core(...) at manifold_hrf/R/mhrf_lss_interface.R:534:3
+
+Error ('test-mhrf-lss-pipeline.R:41:3'): LSS failure propagation does not crash pipeline
+Error in `chol.default(XtX)`: the leading minor of order 1 is not positive
+Backtrace:
+     ▆
+  1. └─manifoldhrf:::run_mhrf_lss_standard(...) at test-mhrf-lss-pipeline.R:41:3
+  2.   └─manifoldhrf::run_lss_voxel_loop_core(...) at manifold_hrf/R/mhrf_lss_interface.R:631:5
+  3.     └─manifoldhrf:::.lss_execute_full(...) at manifold_hrf/R/core_lss.R:82:3
+  4.       └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:280:3
+  5.         └─base::lapply(voxel_indices, worker_fun, ...) at manifold_hrf/R/core_lss.R:488:7
+  6.           └─manifoldhrf (local) FUN(X[[i]], ...)
+  7.             └─fmrilss::lss(...) at manifold_hrf/R/core_lss.R:265:5
+  8.               └─fmrilss:::.lss_r_optimized(Y_clean, X_clean, Z)
+  9.                 └─fmrilss::lss_optimized(Y, bdes, use_cpp = FALSE)
+ 10.                   └─fmrilss:::.lss_engine_optimized(...)
+ 11.                     └─fmrilss:::.project_R_optimized(X_base_fixed, Y, dmat_ran)
+ 12.                       ├─base::chol2inv(chol(XtX))
+ 13.                       ├─base::chol(XtX)
+ 14.                       └─base::chol.default(XtX)
+
+Warning ('test-mhrf-lss-pipeline.R:88:3'): inconsistent masking between stages triggers error
+Z_confounds_matrix is rank deficient; using independent columns only
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-mhrf-lss-pipeline.R:88:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf:::run_mhrf_lss_standard(...)
+ 7.   └─manifoldhrf::project_out_confounds_core(...) at manifold_hrf/R/mhrf_lss_interface.R:534:3
+
+Warning ('test-mhrf-lss-pipeline.R:141:3'): metadata alignment handles non sequential trials
+Z_confounds_matrix is rank deficient; using independent columns only
+Backtrace:
+    ▆
+ 1. └─manifoldhrf:::run_mhrf_lss_standard(...) at test-mhrf-lss-pipeline.R:141:3
+ 2.   └─manifoldhrf::project_out_confounds_core(...) at manifold_hrf/R/mhrf_lss_interface.R:534:3
+
+Error ('test-mhrf-lss-pipeline.R:141:3'): metadata alignment handles non sequential trials
+Error in `chol.default(XtX)`: the leading minor of order 1 is not positive
+Backtrace:
+     ▆
+  1. └─manifoldhrf:::run_mhrf_lss_standard(...) at test-mhrf-lss-pipeline.R:141:3
+  2.   └─manifoldhrf::run_lss_voxel_loop_core(...) at manifold_hrf/R/mhrf_lss_interface.R:631:5
+  3.     └─manifoldhrf:::.lss_execute_full(...) at manifold_hrf/R/core_lss.R:82:3
+  4.       └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:280:3
+  5.         └─base::lapply(voxel_indices, worker_fun, ...) at manifold_hrf/R/core_lss.R:488:7
+  6.           └─manifoldhrf (local) FUN(X[[i]], ...)
+  7.             └─fmrilss::lss(...) at manifold_hrf/R/core_lss.R:265:5
+  8.               └─fmrilss:::.lss_r_optimized(Y_clean, X_clean, Z)
+  9.                 └─fmrilss::lss_optimized(Y, bdes, use_cpp = FALSE)
+ 10.                   └─fmrilss:::.lss_engine_optimized(...)
+ 11.                     └─fmrilss:::.project_R_optimized(X_base_fixed, Y, dmat_ran)
+ 12.                       ├─base::chol2inv(chol(XtX))
+ 13.                       ├─base::chol(XtX)
+ 14.                       └─base::chol.default(XtX)
+────────────────────────────────────────────────────────────────────────────────
+
 ⠏ |          0 | neuroimaging-wrappers                                          
-⠧ |   6     22 | neuroimaging-wrappers                                          
-⠇ |   6     23 | neuroimaging-wrappers                                          
-✔ |   12  1  44 | neuroimaging-wrappers [4.0s]
+⠋ |   1     10 | neuroimaging-wrappers                                          
+⠧ |   2     16 | neuroimaging-wrappers                                          
+⠼ |   3     22 | neuroimaging-wrappers                                          
+⠴ |   3     23 | neuroimaging-wrappers                                          
+⠏ |   4     26 | neuroimaging-wrappers                                          
+⠙ |   4     38 | neuroimaging-wrappers                                          
+✔ |   6  1  44 | neuroimaging-wrappers [5.2s]
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-neuroimaging-wrappers.R:38:3'): construct_hrf_manifold_nim works with half-cosine library
-Found 9 negative eigenvalues (min: -5.263158e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:38:3
- 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
- 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-neuroimaging-wrappers.R:38:3'): construct_hrf_manifold_nim works with half-cosine library
 Target dimension 4 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
  1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:38:3
- 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
-
-Warning ('test-neuroimaging-wrappers.R:51:3'): construct_hrf_manifold_nim works with gamma grid library
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:51:3
- 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
- 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-neuroimaging-wrappers.R:75:3'): construct_hrf_manifold_nim handles custom matrix input
-Found 7 negative eigenvalues (min: -2.354368e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:75:3
- 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
- 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:208:3
 
 Warning ('test-neuroimaging-wrappers.R:75:3'): construct_hrf_manifold_nim handles custom matrix input
 Target dimension 4 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
  1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:75:3
- 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
+ 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:208:3
 
 Warning ('test-neuroimaging-wrappers.R:118:3'): construct_hrf_manifold_nim handles sparse matrices for large libraries
-Manual sparsification of dense matrix is inefficient for N = 6000 . Consider using distance_engine = 'ann_euclidean' instead.
+Manual sparsification of dense matrix is inefficient for N = 6000.
+  For better performance, use one of these options:
+  1. Set distance_engine = 'ann_euclidean' (recommended)
+  2. Lower ann_threshold (current: 10000) to enable automatic ANN
+  3. Set use_sparse_W_params = NULL to keep dense matrix
+  Current call is computing all 36000000 distances then discarding most.
 Backtrace:
     ▆
  1. ├─testthat::expect_message(...) at test-neuroimaging-wrappers.R:118:3
@@ -353,22 +547,14 @@ Backtrace:
  4. │   │ └─base::withCallingHandlers(...)
  5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  6. └─manifoldhrf::construct_hrf_manifold_nim(...)
- 7.   └─manifoldhrf::calculate_manifold_affinity_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:196:3
-
-Warning ('test-neuroimaging-wrappers.R:152:3'): print and summary methods work for mhrf_manifold
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:152:3
- 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
- 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 7.   └─manifoldhrf::calculate_manifold_affinity_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:201:3
 
 Warning ('test-neuroimaging-wrappers.R:152:3'): print and summary methods work for mhrf_manifold
 Target dimension 4 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
  1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:152:3
- 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
+ 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:208:3
 
 Warning ('test-neuroimaging-wrappers.R:219:3'): construct_hrf_manifold_nim evaluates fmrireg HRF objects
 HRF library has only 2 HRFs but target manifold dimension is 2. Adjusting target.
@@ -381,102 +567,70 @@ Adjusting k_local_nn_for_sigma from 7 to 1 due to small library size (N=2)
 Backtrace:
     ▆
  1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:219:3
-
-Warning ('test-neuroimaging-wrappers.R:241:3'): subject-level wrapper runs on minimal data
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:241:3
- 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
- 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-neuroimaging-wrappers.R:241:3'): subject-level wrapper runs on minimal data
-Target dimension 2 is much lower than auto-selected 9 (for 95.0% variance)
-Backtrace:
-    ▆
- 1. └─manifoldhrf::construct_hrf_manifold_nim(...) at test-neuroimaging-wrappers.R:241:3
- 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/neuroimaging_wrappers.R:203:3
 ────────────────────────────────────────────────────────────────────────────────
 
-⠏ |          0 | output-dir                                                     
-⠏ |          0 | Output directory handling                                      Validating data compatibility with preset...
-✓ Data appears compatible with preset
+⠏ |          0 | new-interface                                                  
+✔ |         41 | new-interface
 
-⠧ |   6      2 | Output directory handling                                      
-✔ |   6      4 | Output directory handling
+⠏ |          0 | output-dir                                                     
+⠏ |          0 | Output directory handling                                      
+⠹ |   2      1 | Output directory handling                                      
+✔ |   5      4 | Output directory handling
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
   - Library is ill-conditioned (condition number: 1.79e+202)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-output-dir.R:21:3'): mhrf_analyze creates missing output directory
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-output-dir.R:21:3
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 ────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | parallel-utils                                                 
@@ -486,12 +640,12 @@ Backtrace:
 ⠏ |          0 | plot-trial-betas                                               
 ✔ |          1 | plot-trial-betas
 
-⠏ |          0 | qc-report                                                      [WARNING] Div at mhrf_qc_report.knit.md line 26 column 1 unclosed at mhrf_qc_report.knit.md line 211 column 1, closing implicitly.
+⠏ |          0 | qc-report                                                      [WARNING] Div at mhrf_qc_report.knit.md line 26 column 1 unclosed at mhrf_qc_report.knit.md line 216 column 1, closing implicitly.
 
-⠋ |          1 | qc-report                                                      [WARNING] Div at mhrf_qc_report.knit.md line 26 column 1 unclosed at mhrf_qc_report.knit.md line 196 column 1, closing implicitly.
+⠋ |          1 | qc-report                                                      [WARNING] Div at mhrf_qc_report.knit.md line 26 column 1 unclosed at mhrf_qc_report.knit.md line 201 column 1, closing implicitly.
 
 ⠦ |         27 | qc-report                                                      
-✔ |         36 | qc-report [2.5s]
+✔ |         36 | qc-report [2.9s]
 
 ⠏ |          0 | robust-spatial-outlier-regression                              
 ✔ |          6 | robust-spatial-outlier-regression
@@ -506,7 +660,8 @@ Backtrace:
 ⠏ |          0 | smart-initialize                                               
 ✔ |          9 | smart-initialize
 
-⠏ |          0 | soundness-adversarial                                          
+⠏ |          0 | soundness-adversarial                                            |                                                                              |                                                                      |   0%  |                                                                              |=                                                                     |   1%  |                                                                              |=                                                                     |   2%  |                                                                              |==                                                                    |   3%  |                                                                              |===                                                                   |   4%  |                                                                              |====                                                                  |   5%  |                                                                              |====                                                                  |   6%  |                                                                              |=====                                                                 |   7%  |                                                                              |======                                                                |   8%  |                                                                              |======                                                                |   9%  |                                                                              |=======                                                               |  10%  |                                                                              |========                                                              |  11%  |                                                                              |========                                                              |  12%  |                                                                              |=========                                                             |  13%  |                                                                              |==========                                                            |  14%  |                                                                              |==========                                                            |  15%  |                                                                              |===========                                                           |  16%  |                                                                              |============                                                          |  17%  |                                                                              |=============                                                         |  18%  |                                                                              |=============                                                         |  19%  |                                                                              |==============                                                        |  20%  |                                                                              |===============                                                       |  21%  |                                                                              |===============                                                       |  22%  |                                                                              |================                                                      |  23%  |                                                                              |=================                                                     |  24%  |                                                                              |==================                                                    |  25%  |                                                                              |==================                                                    |  26%  |                                                                              |===================                                                   |  27%  |                                                                              |====================                                                  |  28%  |                                                                              |====================                                                  |  29%  |                                                                              |=====================                                                 |  30%
+⠋ |   4     37 | soundness-adversarial                                          
 ✔ |   4     39 | soundness-adversarial
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-soundness-adversarial.R:21:5'): ADVERSARIAL: Handles pathological all-zero input
@@ -543,106 +698,84 @@ the standard deviation is zero
 Backtrace:
     ▆
  1. └─manifoldhrf:::check_hrf_library_quality(L_empty) at test-soundness-adversarial.R:152:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:20:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/manifold_utils.R:22:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─stats::cor(L_library_matrix) at manifold_hrf/R/soundness_improvements.R:21:5
+ 6.   └─stats::cor(L_library_matrix) at manifold_hrf/R/manifold_utils.R:23:5
 ────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | soundness-improvements                                         Validating data compatibility with preset...
 ✓ Data appears compatible with preset
-[2025-06-11 05:05:48] INFO: M-HRF-LSS workflow initialized with 'balanced' preset
-[2025-06-11 05:05:48] INFO: Test message
+[2025-06-23 14:05:25] INFO: M-HRF-LSS workflow initialized with 'balanced' preset
+[2025-06-23 14:05:25] INFO: Test message
 
-⠧ |   4     74 | soundness-improvements                                         
-⠦ |   5     82 | soundness-improvements                                         
-✔ |   7    131 | soundness-improvements
+⠹ |   2     51 | soundness-improvements                                         
+⠴ |   4     82 | soundness-improvements                                           |                                                                              |                                                                      |   0%  |                                                                              |=======                                                               |  10%  |                                                                              |==============                                                        |  20%  |                                                                              |=====================                                                 |  30%  |                                                                              |============================                                          |  40%  |                                                                              |===================================                                   |  50%
+✔ |   6    131 | soundness-improvements
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-soundness-improvements.R:42:3'): HRF library quality check works correctly
 the standard deviation is zero
 Backtrace:
     ▆
  1. └─manifoldhrf:::check_hrf_library_quality(L_zero) at test-soundness-improvements.R:42:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:20:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/manifold_utils.R:22:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─stats::cor(L_library_matrix) at manifold_hrf/R/soundness_improvements.R:21:5
-
-Warning ('test-soundness-improvements.R:100:3'): Robust manifold construction with fallback works
-Found 4 negative eigenvalues (min: -1.283356e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-soundness-improvements.R:100:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
- 3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 7.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─stats::cor(L_library_matrix) at manifold_hrf/R/manifold_utils.R:23:5
 
 Warning ('test-soundness-improvements.R:100:3'): Robust manifold construction with fallback works
 Target dimension 3 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
  1. └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at test-soundness-improvements.R:100:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/manifold_utils.R:287:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 6.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/manifold_utils.R:307:5
 
-Warning ('test-soundness-improvements.R:419:3'): Voxel screening identifies bad voxels
+Warning ('test-soundness-improvements.R:420:3'): Voxel screening identifies bad voxels
 Excluded 5 low-quality voxels
 Backtrace:
     ▆
- 1. └─manifoldhrf::screen_voxels(Y_data) at test-soundness-improvements.R:419:3
+ 1. └─manifoldhrf::screen_voxels(Y_data) at test-soundness-improvements.R:420:3
 
-Warning ('test-soundness-improvements.R:419:3'): Voxel screening identifies bad voxels
+Warning ('test-soundness-improvements.R:420:3'): Voxel screening identifies bad voxels
 Flagged 5 voxels with potential artifacts
 Backtrace:
     ▆
- 1. └─manifoldhrf::screen_voxels(Y_data) at test-soundness-improvements.R:419:3
+ 1. └─manifoldhrf::screen_voxels(Y_data) at test-soundness-improvements.R:420:3
 
-Warning ('test-soundness-improvements.R:469:3'): Data scaling check works
+Warning ('test-soundness-improvements.R:470:3'): Data scaling check works
 Data values very large (median > 1e6). Auto-scaling applied.
 Backtrace:
     ▆
- 1. └─manifoldhrf::check_and_scale_data(Y_large) at test-soundness-improvements.R:469:3
+ 1. └─manifoldhrf::check_and_scale_data(Y_large) at test-soundness-improvements.R:470:3
 
-Warning ('test-soundness-improvements.R:476:3'): Data scaling check works
+Warning ('test-soundness-improvements.R:477:3'): Data scaling check works
 Data values very small (median < 1e-6). Auto-scaling applied.
 Backtrace:
     ▆
- 1. └─manifoldhrf::check_and_scale_data(Y_small) at test-soundness-improvements.R:476:3
+ 1. └─manifoldhrf::check_and_scale_data(Y_small) at test-soundness-improvements.R:477:3
 ────────────────────────────────────────────────────────────────────────────────
 
+⠏ |          0 | spatial-smoothing-improvements                                 
+✔ |      2  12 | spatial-smoothing-improvements
+
 ⠏ |          0 | spatial-smoothing                                              
-⠏ |         50 | spatial-smoothing                                              
+⠸ |         54 | spatial-smoothing                                              
 ✔ |         58 | spatial-smoothing
 
-⠏ |          0 | taylor-series-utils                                            
-⠏ |          0 | Taylor series utilities                                        
-✔ |          1 | Taylor series utilities
-
-⠏ |          0 | unified-interface                                              Validating data compatibility with preset...
-✓ Data appears compatible with preset
-
-⠙ |   2      0 | unified-interface                                              Validating data compatibility with preset...
-✓ Data appears compatible with preset
-
-⠇ |   8     11 | unified-interface                                              Validating data compatibility with preset...
-✓ Data appears compatible with preset
-Validating data compatibility with preset...
-✓ Data appears compatible with preset
-
-⠧ |   21     17 | unified-interface                                             Validating data compatibility with preset...
-✓ Data appears compatible with preset
-Validating data compatibility with preset...
-✓ Data appears compatible with preset
-
-⠸ |   31     23 | unified-interface                                             
+⠏ |          0 | unified-interface                                              
+⠙ |   2      0 | unified-interface                                              
+⠦ |   6      1 | unified-interface                                              
+⠇ |   8     11 | unified-interface                                              
+⠧ |   14     14 | unified-interface                                             
+⠴ |   19     17 | unified-interface                                             
+⠋ |   21     20 | unified-interface                                             
+⠏ |   27     23 | unified-interface                                             
 M-HRF-LSS Analysis
 ==================
 
@@ -657,28 +790,15 @@ M-HRF-LSS Analysis
 ==================
 
 Validating inputs...
-Validating data compatibility with preset...
-✓ Data appears compatible with preset
-Validating data compatibility with preset...
-✓ Data appears compatible with preset
 
-⠸ |   43     41 | unified-interface                                             Validating data compatibility with preset...
-⚠️  Potential issues detected:
-   - Design matrix 1 is rank deficient
-   - Design matrix 2 is rank deficient
-
-Consider using 'robust' preset or addressing these issues.
-Validating data compatibility with preset...
-✓ Data appears compatible with preset
-
-⠹ |   57     46 | unified-interface                                             Validating data compatibility with preset...
-✓ Data appears compatible with preset
-
-⠇ |   69     50 | unified-interface                                             Validating data compatibility with preset...
-✓ Data appears compatible with preset
-
-⠦ |   80     57 | unified-interface                                             
-✔ |   80     69 | unified-interface [1.4s]
+⠋ |   32     39 | unified-interface                                             
+⠧ |   37     41 | unified-interface                                             
+⠼ |   42     43 | unified-interface                                             
+⠹ |   47     46 | unified-interface                                             
+⠋ |   52     49 | unified-interface                                             
+⠦ |   57     50 | unified-interface                                             
+⠸ |   62     52 | unified-interface                                             
+✔ |   65     69 | unified-interface [1.7s]
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
 Some events are very close together (min gap: 0.68 s)
@@ -693,739 +813,548 @@ HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
   - Library is ill-conditioned (condition number: Inf)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:18:3'): Basic mhrf_analyze interface works
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:18:3
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
   - Library is ill-conditioned (condition number: Inf)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 Target dimension 3 is much lower than auto-selected 9 (for 90.0% variance)
 Backtrace:
      ▆
   1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
   3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
   4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
   5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/manifold_utils.R:287:3
   9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/manifold_utils.R:307:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
   - Library is ill-conditioned (condition number: Inf)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
-
-Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
- 3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/mhrf_lss.R:731:5
- 8.       └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:60:5'): mhrf_analyze works with different presets
 Target dimension 4 is much lower than auto-selected 9 (for 90.0% variance)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:60:5
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/mhrf_lss.R:731:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/mhrf_lss.R:750:5
 
 Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
   - Library is ill-conditioned (condition number: Inf)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:88:3'): mhrf_analyze handles custom parameters
 Target dimension 3 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
      ▆
   1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:88:3
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
   3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
   4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
   5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
+  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
+  8.       ├─base::tryCatch(...) at manifold_hrf/R/manifold_utils.R:287:3
   9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
+ 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/manifold_utils.R:307:5
 
 Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
   - Library is ill-conditioned (condition number: Inf)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:116:3'): mhrf_analyze S3 methods work correctly
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:116:3
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:197:3'): mhrf_analyze handles edge cases
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:197:3
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:197:3'): mhrf_analyze handles edge cases
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:197:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:197:3'): mhrf_analyze handles edge cases
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:197:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:197:3'): mhrf_analyze handles edge cases
   - Library is ill-conditioned (condition number: Inf)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:197:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:197:3'): mhrf_analyze handles edge cases
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:197:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:197:3'): mhrf_analyze handles edge cases
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:197:3
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:215:3'): mhrf_analyze handles edge cases
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:215:3
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:215:3'): mhrf_analyze handles edge cases
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:215:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:215:3'): mhrf_analyze handles edge cases
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:215:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:215:3'): mhrf_analyze handles edge cases
   - Library is ill-conditioned (condition number: Inf)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:215:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:215:3'): mhrf_analyze handles edge cases
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:215:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:215:3'): mhrf_analyze handles edge cases
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:215:3
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Design matrix is rank deficient: rank 15 < 25 columns
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─params$validate_data(Y_matrix, X_condition_list) at manifold_hrf/R/mhrf_lss.R:210:5
- 3.     └─manifoldhrf::check_design_rank(X_design_list[[i]]) at manifold_hrf/R/soundness_improvements.R:584:7
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Design matrix is rank deficient: rank 15 < 25 columns
-Backtrace:
-    ▆
- 1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─params$validate_data(Y_matrix, X_condition_list) at manifold_hrf/R/mhrf_lss.R:210:5
- 3.     └─manifoldhrf::check_design_rank(X_design_list[[i]]) at manifold_hrf/R/soundness_improvements.R:584:7
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
   - Library is ill-conditioned (condition number: Inf)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:242:3'): mhrf_analyze trial-wise estimation works
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:242:3
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
   - Library is ill-conditioned (condition number: Inf)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:271:3'): mhrf_analyze respects voxel masking
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:271:3
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
 HRF library has quality issues. Consider using a different library.
@@ -1441,7 +1370,7 @@ Backtrace:
   8. │   │     └─base::withVisible(code)
   9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 11.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
 HRF library has quality issues:
@@ -1457,12 +1386,12 @@ Backtrace:
   8. │   │     └─base::withVisible(code)
   9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 11.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  12.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  13.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  14.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 15.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 15.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
   - Found 4950 near-duplicate HRFs
@@ -1478,12 +1407,12 @@ Backtrace:
   8. │   │     └─base::withVisible(code)
   9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 11.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  12.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  13.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  14.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 15.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 15.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
   - Library is ill-conditioned (condition number: Inf)
@@ -1499,12 +1428,12 @@ Backtrace:
   8. │   │     └─base::withVisible(code)
   9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 11.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  12.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  13.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  14.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 15.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 15.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
   - Low diversity in HRF shapes
@@ -1520,39 +1449,12 @@ Backtrace:
   8. │   │     └─base::withVisible(code)
   9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 11.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  12.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  13.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  14.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 15.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:296:3'): mhrf_analyze progress tracking works
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. ├─testthat::expect_output(...) at test-unified-interface.R:296:3
-  2. │ └─testthat:::quasi_capture(...)
-  3. │   ├─testthat (local) .capture(...)
-  4. │   │ └─testthat::capture_output_lines(code, print, width = width)
-  5. │   │   └─testthat:::eval_with_output(code, print = print, width = width)
-  6. │   │     ├─withr::with_output_sink(path, withVisible(code))
-  7. │   │     │ └─base::force(code)
-  8. │   │     └─base::withVisible(code)
-  9. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 10. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 1)
- 11.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
- 12.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 13.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 14.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 15.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
- 17.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
- 18.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 19.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 20.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 21.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 22.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 15.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 16.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
 HRF library has quality issues. Consider using a different library.
@@ -1570,7 +1472,7 @@ Backtrace:
  10. │     │   └─base::withCallingHandlers(...)
  11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 13.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
 HRF library has quality issues:
@@ -1588,12 +1490,12 @@ Backtrace:
  10. │     │   └─base::withCallingHandlers(...)
  11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 13.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  14.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  15.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  16.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 17.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 17.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
   - Found 4950 near-duplicate HRFs
@@ -1611,12 +1513,12 @@ Backtrace:
  10. │     │   └─base::withCallingHandlers(...)
  11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 13.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  14.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  15.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  16.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 17.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 17.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
   - Library is ill-conditioned (condition number: Inf)
@@ -1634,12 +1536,12 @@ Backtrace:
  10. │     │   └─base::withCallingHandlers(...)
  11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 13.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  14.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  15.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  16.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 17.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 17.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
   - Low diversity in HRF shapes
@@ -1657,134 +1559,80 @@ Backtrace:
  10. │     │   └─base::withCallingHandlers(...)
  11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
  12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 13.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  14.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  15.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  16.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 17.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:303:5'): mhrf_analyze progress tracking works
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. ├─testthat::expect_no_error(...) at test-unified-interface.R:302:3
-  2. │ └─testthat:::expect_no_(...)
-  3. │   └─testthat:::quasi_capture(enquo(object), NULL, capture)
-  4. │     ├─testthat (local) .capture(...)
-  5. │     │ └─rlang::try_fetch(...)
-  6. │     │   ├─base::tryCatch(...)
-  7. │     │   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  8. │     │   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  9. │     │   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 10. │     │   └─base::withCallingHandlers(...)
- 11. │     └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 12. └─manifoldhrf::mhrf_analyze(Y_data, events, TR = 2, verbose = 0) at test-unified-interface.R:303:5
- 13.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
- 14.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 15.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 16.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 17.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
- 19.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
- 20.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 21.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 22.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 23.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 24.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 17.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 18.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
 HRF library has quality issues. Consider using a different library.
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
- 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:216:3
+ 2.   └─manifoldhrf:::.prepare_hrf_library(...) at manifold_hrf/R/mhrf_lss.R:226:3
 
 Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
 HRF library has quality issues:
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
   - Found 4950 near-duplicate HRFs
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
   - Library is ill-conditioned (condition number: Inf)
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 
 Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
   - Low diversity in HRF shapes
 Backtrace:
     ▆
  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
- 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
+ 2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:258:3
  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
- 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-
-Warning ('test-unified-interface.R:319:3'): mhrf_analyze metadata is complete
-Found 9 negative eigenvalues (min: -1.010101e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-     ▆
-  1. └─manifoldhrf::mhrf_analyze(...) at test-unified-interface.R:319:3
-  2.   ├─base::tryCatch(...) at manifold_hrf/R/mhrf_lss.R:248:3
-  3.   │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
-  4.   │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
-  5.   │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
-  6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:249:5
-  7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:723:5
-  8.       ├─base::tryCatch(...) at manifold_hrf/R/soundness_improvements.R:230:3
-  9.       │ └─base (local) tryCatchList(expr, classes, parentenv, handlers)
- 10.       │   └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
- 11.       │     └─base (local) doTryCatch(return(expr), name, parentenv, handler)
- 12.       └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/soundness_improvements.R:250:5
- 13.         └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
+ 6.   └─manifoldhrf:::.run_manifold_construction(...) at manifold_hrf/R/mhrf_lss.R:259:5
+ 7.     └─manifoldhrf::get_manifold_basis_reconstructor_robust(...) at manifold_hrf/R/mhrf_lss.R:742:5
 ────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | utils-operators                                                
 ✔ |          3 | utils-operators
 
 ⠏ |          0 | validation-simulation                                          
-⠦ |   6      1 | validation-simulation                                          
-⠧ |   8     90 | validation-simulation                                          
-✔ |   14     98 | validation-simulation
+⠙ |   2      0 | validation-simulation                                          
+⠋ |   2     49 | validation-simulation                                          
+⠧ |   3     75 | validation-simulation                                          
+⠴ |   4     92 | validation-simulation                                          
+✔ |   7     98 | validation-simulation
 ────────────────────────────────────────────────────────────────────────────────
 Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
-Found 4 negative eigenvalues (min: -1.455669e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:8:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
- 4.       └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
 Z_confounds_matrix is rank deficient; using independent columns only
 Backtrace:
     ▆
@@ -1793,45 +1641,12 @@ Backtrace:
  3.     └─manifoldhrf::project_out_confounds_core(...) at manifold_hrf/R/validation_simulation.R:663:3
 
 Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
-Fixed regressor matrix is poorly conditioned (condition number = 1.41e+08). Added jitter = 2.03e-05 to diagonal.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:8:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::prepare_lss_fixed_components_core(...) at manifold_hrf/R/validation_simulation.R:721:3
-
-Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
-Found 4 negative eigenvalues (min: -1.358716e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:8:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
- 4.       └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
 Z_confounds_matrix is rank deficient; using independent columns only
 Backtrace:
     ▆
  1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:8:3
  2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
  3.     └─manifoldhrf::project_out_confounds_core(...) at manifold_hrf/R/validation_simulation.R:663:3
-
-Warning ('test-validation-simulation.R:8:3'): run_mhrf_lss_simulation works with basic parameters
-Fixed regressor matrix is poorly conditioned (condition number = 1.41e+08). Added jitter = 2.03e-05 to diagonal.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:8:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::prepare_lss_fixed_components_core(...) at manifold_hrf/R/validation_simulation.R:721:3
-
-Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
-Found 5 negative eigenvalues (min: -1.304988e-01). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf:::run_pipeline_on_simulated_data(...) at test-validation-simulation.R:233:3
- 2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
- 3.     └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
 
 Warning ('test-validation-simulation.R:233:3'): run_pipeline_on_simulated_data integrates all components
 Target dimension 3 is much lower than auto-selected 9 (for 95.0% variance)
@@ -1841,15 +1656,6 @@ Backtrace:
  2.   └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
 
 Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Found 9 negative eigenvalues (min: -3.839752e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
- 4.       └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
 Target dimension 3 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
@@ -1866,15 +1672,6 @@ Backtrace:
  3.     └─manifoldhrf::project_out_confounds_core(...) at manifold_hrf/R/validation_simulation.R:663:3
 
 Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
-Found 9 negative eigenvalues (min: -3.801822e-02). This may indicate numerical issues in manifold construction. Using abs() to proceed.
-Backtrace:
-    ▆
- 1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
- 2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
- 3.     └─manifoldhrf::get_manifold_basis_reconstructor_core(...) at manifold_hrf/R/validation_simulation.R:652:3
- 4.       └─manifoldhrf:::select_manifold_dim(eigenvalues_S, m_manifold_dim_min_variance) at manifold_hrf/R/core_manifold_construction.R:431:5
-
-Warning ('test-validation-simulation.R:391:3'): simulation parameters are validated
 Target dimension 3 is much lower than auto-selected 9 (for 95.0% variance)
 Backtrace:
     ▆
@@ -1889,84 +1686,241 @@ Backtrace:
  1. └─manifoldhrf::run_mhrf_lss_simulation(...) at test-validation-simulation.R:391:3
  2.   └─manifoldhrf:::run_pipeline_on_simulated_data(...) at manifold_hrf/R/validation_simulation.R:146:5
  3.     └─manifoldhrf::project_out_confounds_core(...) at manifold_hrf/R/validation_simulation.R:663:3
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | voxelfit-engine-collinearity                                   
+⠏ |          0 | core voxel fit engine stability                                
+✖ | 1 1      4 | core voxel fit engine stability
+────────────────────────────────────────────────────────────────────────────────
+Warning ('test-voxelfit-engine-collinearity.R:17:3'): solve_glm_for_gamma_core errors on perfectly collinear design
+XtX_reg has high condition number (8.25e+16). Consider increasing lambda_gamma.
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-voxelfit-engine-collinearity.R:17:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf::solve_glm_for_gamma_core(list(Z1, Z2), Y, lambda_gamma = 0)
+
+Error ('test-voxelfit-engine-collinearity.R:34:3'): solve_glm_for_gamma_core produces unstable betas for near collinear design
+Error in `qr.solve(XtX_reg, XtY)`: singular matrix 'a' in solve
+Backtrace:
+    ▆
+ 1. └─manifoldhrf::solve_glm_for_gamma_core(list(Z1, Z2), Y, lambda_gamma = 0) at test-voxelfit-engine-collinearity.R:34:3
+ 2.   └─base::qr.solve(XtX_reg, XtY) at manifold_hrf/R/voxel_fit_core.R:130:3
+────────────────────────────────────────────────────────────────────────────────
+
+⠏ |          0 | voxelfit-engine-improved                                       
+⠸ | 1       33 | voxelfit-engine-improved                                       
+✖ | 1       36 | voxelfit-engine-improved
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-voxelfit-engine-improved.R:196:3'): apply_identifiability_vectorized is efficient
+all(abs(beta_norms - 1) < 1e-10 | beta_norms == 0) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
 ────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | voxelwise-fit                                                  
-⠴ |        106 | voxelwise-fit                                                  
-⠸ |        324 | voxelwise-fit                                                  
-✔ |        331 | voxelwise-fit
+⠸ | 3      141 | voxelwise-fit                                                  
+✖ | 5      326 | voxelwise-fit
+────────────────────────────────────────────────────────────────────────────────
+Failure ('test-voxelwise-fit.R:490:3'): extract_xi_beta_raw_svd_core validates inputs
+`extract_xi_beta_raw_svd_core(gamma, 0, 3)` threw an error with unexpected message.
+Expected match: "positive integer"
+Actual message: "Gamma_coeffs_matrix has 6 rows but expected 0 (k * m)"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-voxelwise-fit.R:490:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf::extract_xi_beta_raw_svd_core(gamma, 0, 3)
+
+Failure ('test-voxelwise-fit.R:495:3'): extract_xi_beta_raw_svd_core validates inputs
+`extract_xi_beta_raw_svd_core(gamma, 2.5, 3)` threw an error with unexpected message.
+Expected match: "positive integer"
+Actual message: "invalid format '%d'; use format %f, %e, %g or %a for numeric objects"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-voxelwise-fit.R:495:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf::extract_xi_beta_raw_svd_core(gamma, 2.5, 3)
+ 7.   ├─base::stop(...) at manifold_hrf/R/voxel_fit_core.R:307:5
+ 8.   └─base::sprintf(...)
+
+Failure ('test-voxelwise-fit.R:501:3'): extract_xi_beta_raw_svd_core validates inputs
+`extract_xi_beta_raw_svd_core(gamma, 2, -1)` threw an error with unexpected message.
+Expected match: "positive integer"
+Actual message: "Gamma_coeffs_matrix has 6 rows but expected -2 (k * m)"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-voxelwise-fit.R:501:3
+ 2. │ └─testthat:::quasi_capture(...)
+ 3. │   ├─testthat (local) .capture(...)
+ 4. │   │ └─base::withCallingHandlers(...)
+ 5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
+ 6. └─manifoldhrf::extract_xi_beta_raw_svd_core(gamma, 2, -1)
+
+Failure ('test-voxelwise-fit.R:756:3'): apply_intrinsic_identifiability_core handles zero voxels
+result$Beta_ident_matrix[, zero_voxels] not equal to matrix(0, k, length(zero_voxels)).
+6/6 mismatches (average diff: 0.532)
+[1]  0.6342 - 0 ==  0.6342
+[2]  1.2308 - 0 ==  1.2308
+[3] -0.1593 - 0 == -0.1593
+[4]  0.0283 - 0 ==  0.0283
+[5]  0.7997 - 0 ==  0.7997
+[6]  0.3414 - 0 ==  0.3414
+
+Failure ('test-voxelwise-fit.R:779:3'): apply_intrinsic_identifiability_core zeros tiny HRFs
+result$Xi_ident_matrix[, tiny_voxel] not equal to rep(0, m).
+3/3 mismatches (average diff: 0.215)
+[1] 0.215 - 0 == 0.215
+[2] 0.215 - 0 == 0.215
+[3] 0.215 - 0 == 0.215
+────────────────────────────────────────────────────────────────────────────────
 
 ⠏ |          0 | warning-control                                                
 ✔ |          6 | warning-control
 
 ══ Results ═════════════════════════════════════════════════════════════════════
-Duration: 11.9 s
+Duration: 46.8 s
 
 ── Skipped tests (7) ───────────────────────────────────────────────────────────
-• {pryr} is not installed (1): 'test-lss-lsa-equivalence.R:96:3'
+• Cannot test error case without proper mocking (1):
+  'test-spatial-smoothing-improvements.R:44:3'
 • empty test (1): 'test-mhrf-lss-interface.R:3:1'
-• HRF correlation test is too sensitive to random initialization (1):
-  'test-fmrireg-benchmarks.R:167:3'
-• Neuroimaging dimension mismatch - fixing in next iteration (1):
-  'test-neuroimaging-wrappers.R:246:3'
-• Not enough finite beta estimates to test variance recovery (1):
-  'test-fmrireg-benchmarks.R:425:5'
+• HRF_FIR is not exported from fmrireg (1): 'test-mhrf-lss-interface.R:107:3'
 • RcppHNSW installed; cannot test fallback (1):
-  'test-manifold-construction.R:277:3'
-• Requires fmrireg integration (1): 'test-mhrf-lss-interface.R:102:3'
+  'test-manifold-construction.R:278:3'
+• Requires fmrireg integration (1): 'test-mhrf-lss-interface.R:102:1'
+• Requires proper fmrireg event_model integration (1):
+  'test-neuroimaging-wrappers.R:231:3'
+• Weight scheme parameter will be available after next package build (1):
+  'test-spatial-smoothing-improvements.R:91:3'
 
 ── Failed tests ────────────────────────────────────────────────────────────────
-Failure ('test-fmrireg-benchmarks.R:412:3'): M-HRF-LSS performs trial-wise estimation correctly
-`n_finite` is not strictly more than 0. Difference: 0
+Error ('test-mhrf-lss-pipeline.R:41:3'): LSS failure propagation does not crash pipeline
+Error in `chol.default(XtX)`: the leading minor of order 1 is not positive
+Backtrace:
+     ▆
+  1. └─manifoldhrf:::run_mhrf_lss_standard(...) at test-mhrf-lss-pipeline.R:41:3
+  2.   └─manifoldhrf::run_lss_voxel_loop_core(...) at manifold_hrf/R/mhrf_lss_interface.R:631:5
+  3.     └─manifoldhrf:::.lss_execute_full(...) at manifold_hrf/R/core_lss.R:82:3
+  4.       └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:280:3
+  5.         └─base::lapply(voxel_indices, worker_fun, ...) at manifold_hrf/R/core_lss.R:488:7
+  6.           └─manifoldhrf (local) FUN(X[[i]], ...)
+  7.             └─fmrilss::lss(...) at manifold_hrf/R/core_lss.R:265:5
+  8.               └─fmrilss:::.lss_r_optimized(Y_clean, X_clean, Z)
+  9.                 └─fmrilss::lss_optimized(Y, bdes, use_cpp = FALSE)
+ 10.                   └─fmrilss:::.lss_engine_optimized(...)
+ 11.                     └─fmrilss:::.project_R_optimized(X_base_fixed, Y, dmat_ran)
+ 12.                       ├─base::chol2inv(chol(XtX))
+ 13.                       ├─base::chol(XtX)
+ 14.                       └─base::chol.default(XtX)
 
-Failure ('test-lss.R:198:3'): validate_design_matrix_list catches errors
-`validate_design_matrix_list(matrix(1:50, 50, 1), n)` threw an error with unexpected message.
-Expected match: "X_list must be a list"
-Actual message: "Design matrices must be provided as a non-empty list"
+Error ('test-mhrf-lss-pipeline.R:141:3'): metadata alignment handles non sequential trials
+Error in `chol.default(XtX)`: the leading minor of order 1 is not positive
+Backtrace:
+     ▆
+  1. └─manifoldhrf:::run_mhrf_lss_standard(...) at test-mhrf-lss-pipeline.R:141:3
+  2.   └─manifoldhrf::run_lss_voxel_loop_core(...) at manifold_hrf/R/mhrf_lss_interface.R:631:5
+  3.     └─manifoldhrf:::.lss_execute_full(...) at manifold_hrf/R/core_lss.R:82:3
+  4.       └─manifoldhrf:::.lss_process_voxels(...) at manifold_hrf/R/core_lss.R:280:3
+  5.         └─base::lapply(voxel_indices, worker_fun, ...) at manifold_hrf/R/core_lss.R:488:7
+  6.           └─manifoldhrf (local) FUN(X[[i]], ...)
+  7.             └─fmrilss::lss(...) at manifold_hrf/R/core_lss.R:265:5
+  8.               └─fmrilss:::.lss_r_optimized(Y_clean, X_clean, Z)
+  9.                 └─fmrilss::lss_optimized(Y, bdes, use_cpp = FALSE)
+ 10.                   └─fmrilss:::.lss_engine_optimized(...)
+ 11.                     └─fmrilss:::.project_R_optimized(X_base_fixed, Y, dmat_ran)
+ 12.                       ├─base::chol2inv(chol(XtX))
+ 13.                       ├─base::chol(XtX)
+ 14.                       └─base::chol.default(XtX)
+
+Error ('test-voxelfit-engine-collinearity.R:34:3'): solve_glm_for_gamma_core produces unstable betas for near collinear design
+Error in `qr.solve(XtX_reg, XtY)`: singular matrix 'a' in solve
 Backtrace:
     ▆
- 1. ├─testthat::expect_error(...) at test-lss.R:198:3
+ 1. └─manifoldhrf::solve_glm_for_gamma_core(list(Z1, Z2), Y, lambda_gamma = 0) at test-voxelfit-engine-collinearity.R:34:3
+ 2.   └─base::qr.solve(XtX_reg, XtY) at manifold_hrf/R/voxel_fit_core.R:130:3
+
+Failure ('test-voxelfit-engine-improved.R:196:3'): apply_identifiability_vectorized is efficient
+all(abs(beta_norms - 1) < 1e-10 | beta_norms == 0) is not TRUE
+
+`actual`:   FALSE
+`expected`: TRUE 
+
+Failure ('test-voxelwise-fit.R:490:3'): extract_xi_beta_raw_svd_core validates inputs
+`extract_xi_beta_raw_svd_core(gamma, 0, 3)` threw an error with unexpected message.
+Expected match: "positive integer"
+Actual message: "Gamma_coeffs_matrix has 6 rows but expected 0 (k * m)"
+Backtrace:
+    ▆
+ 1. ├─testthat::expect_error(...) at test-voxelwise-fit.R:490:3
  2. │ └─testthat:::quasi_capture(...)
  3. │   ├─testthat (local) .capture(...)
  4. │   │ └─base::withCallingHandlers(...)
  5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 6. └─manifoldhrf:::validate_design_matrix_list(...)
+ 6. └─manifoldhrf::extract_xi_beta_raw_svd_core(gamma, 0, 3)
 
-Failure ('test-lss.R:204:3'): validate_design_matrix_list catches errors
-`validate_design_matrix_list(list(), n)` threw an error with unexpected message.
-Expected match: "X_list must contain at least one matrix"
-Actual message: "Design matrices must be provided as a non-empty list"
+Failure ('test-voxelwise-fit.R:495:3'): extract_xi_beta_raw_svd_core validates inputs
+`extract_xi_beta_raw_svd_core(gamma, 2.5, 3)` threw an error with unexpected message.
+Expected match: "positive integer"
+Actual message: "invalid format '%d'; use format %f, %e, %g or %a for numeric objects"
 Backtrace:
     ▆
- 1. ├─testthat::expect_error(...) at test-lss.R:204:3
+ 1. ├─testthat::expect_error(...) at test-voxelwise-fit.R:495:3
  2. │ └─testthat:::quasi_capture(...)
  3. │   ├─testthat (local) .capture(...)
  4. │   │ └─base::withCallingHandlers(...)
  5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 6. └─manifoldhrf:::validate_design_matrix_list(list(), n)
+ 6. └─manifoldhrf::extract_xi_beta_raw_svd_core(gamma, 2.5, 3)
+ 7.   ├─base::stop(...) at manifold_hrf/R/voxel_fit_core.R:307:5
+ 8.   └─base::sprintf(...)
 
-Failure ('test-lss.R:214:3'): validate_design_matrix_list catches errors
-`validate_design_matrix_list(X_wrong, n)` threw an error with unexpected message.
-Expected match: "must have 50 rows"
-Actual message: "Design matrix 1 has 40 rows but expected 50"
+Failure ('test-voxelwise-fit.R:501:3'): extract_xi_beta_raw_svd_core validates inputs
+`extract_xi_beta_raw_svd_core(gamma, 2, -1)` threw an error with unexpected message.
+Expected match: "positive integer"
+Actual message: "Gamma_coeffs_matrix has 6 rows but expected -2 (k * m)"
 Backtrace:
     ▆
- 1. ├─testthat::expect_error(...) at test-lss.R:214:3
+ 1. ├─testthat::expect_error(...) at test-voxelwise-fit.R:501:3
  2. │ └─testthat:::quasi_capture(...)
  3. │   ├─testthat (local) .capture(...)
  4. │   │ └─base::withCallingHandlers(...)
  5. │   └─rlang::eval_bare(quo_get_expr(.quo), quo_get_env(.quo))
- 6. └─manifoldhrf:::validate_design_matrix_list(X_wrong, n)
+ 6. └─manifoldhrf::extract_xi_beta_raw_svd_core(gamma, 2, -1)
 
-[ FAIL 4 | WARN 141 | SKIP 7 | PASS 1069 ]
+Failure ('test-voxelwise-fit.R:756:3'): apply_intrinsic_identifiability_core handles zero voxels
+result$Beta_ident_matrix[, zero_voxels] not equal to matrix(0, k, length(zero_voxels)).
+6/6 mismatches (average diff: 0.532)
+[1]  0.6342 - 0 ==  0.6342
+[2]  1.2308 - 0 ==  1.2308
+[3] -0.1593 - 0 == -0.1593
+[4]  0.0283 - 0 ==  0.0283
+[5]  0.7997 - 0 ==  0.7997
+[6]  0.3414 - 0 ==  0.3414
+
+Failure ('test-voxelwise-fit.R:779:3'): apply_intrinsic_identifiability_core zeros tiny HRFs
+result$Xi_ident_matrix[, tiny_voxel] not equal to rep(0, m).
+3/3 mismatches (average diff: 0.215)
+[1] 0.215 - 0 == 0.215
+[2] 0.215 - 0 == 0.215
+[3] 0.215 - 0 == 0.215
+
+[ FAIL 9 | WARN 121 | SKIP 7 | PASS 1275 ]
 
 No one gets it right on their first try
 Warning messages:
 1: package ‘testthat’ was built under R version 4.3.3 
-2: replacing previous import ‘fmridataset::blockids’ by ‘fmrihrf::blockids’ when loading ‘fmrireg’ 
-3: replacing previous import ‘fmridataset::blocklens’ by ‘fmrihrf::blocklens’ when loading ‘fmrireg’ 
-4: replacing previous import ‘fmridataset::global_onsets’ by ‘fmrihrf::global_onsets’ when loading ‘fmrireg’ 
-5: replacing previous import ‘fmridataset::samples’ by ‘fmrihrf::samples’ when loading ‘fmrireg’ 
-6: replacing previous import ‘fmrilss::get_data_matrix’ by ‘fmrireg::get_data_matrix’ when loading ‘manifoldhrf’ 
+2: replacing previous import ‘fmridataset::blocklens’ by ‘fmrihrf::blocklens’ when loading ‘fmrireg’ 
+3: replacing previous import ‘fmrilss::get_data_matrix’ by ‘fmrireg::get_data_matrix’ when loading ‘manifoldhrf’ 
+4: replacing previous import ‘fmrilss::mixed_solve_cpp’ by ‘fmrireg::mixed_solve_cpp’ when loading ‘manifoldhrf’ 
 > 
 > 

@@ -1,14 +1,5 @@
 # Utility functions
 
-#' Default value operator
-#'
-#' Returns left hand side if not NULL, otherwise right hand side
-#' @param a value to check
-#' @param b default value
-#' @return a if not NULL else b
-#' @export
-`%||%` <- function(x, y) if (is.null(x)) y else x
-
 #' Adjust HRF Vector for Data Bounds
 #'
 #' Truncates or pads an HRF vector so that its length does not exceed the
@@ -50,6 +41,8 @@ adjust_hrf_for_bounds <- function(hrf, max_timepoints) {
 #'   (ordered by magnitude). The first element is assumed to be the trivial
 #'   eigenvalue equal to 1.
 #' @param min_var Minimum cumulative variance to retain (between 0 and 1).
+#' @param verbose Logical whether to show diagnostic messages about negative
+#'   eigenvalues (default: FALSE).
 #' @return A list with elements:
 #'   \itemize{
 #'     \item \code{m_auto}: Selected dimensionality.
@@ -57,7 +50,7 @@ adjust_hrf_for_bounds <- function(hrf, max_timepoints) {
 #'     \item \code{gaps}: Differences between successive eigenvalues.
 #'   }
 #' @keywords internal
-select_manifold_dim <- function(eigenvalues, min_var = 0.95) {
+select_manifold_dim <- function(eigenvalues, min_var = 0.95, verbose = FALSE) {
   if (!is.numeric(eigenvalues) || length(eigenvalues) == 0) {
     stop("eigenvalues must be a numeric vector")
   }
@@ -79,13 +72,15 @@ select_manifold_dim <- function(eigenvalues, min_var = 0.95) {
   negative_idx <- which(eig < -1e-12)
   
   if (length(negative_idx) > 0) {
-    # Only warn for significantly negative eigenvalues
+    # Only log for significantly negative eigenvalues
     significant_negative <- sum(eig < -1e-6)
     total_negative <- length(negative_idx)
     
-    if (significant_negative > 0) {
-      warning(sprintf(
-        "Found %d negative eigenvalues (min: %.6e). This is expected for row-stochastic matrices. Using abs() to proceed.",
+    if (significant_negative > 0 && verbose) {
+      # Log as debug message only if verbose mode is on
+      # Negative eigenvalues are normal for row-stochastic matrices from Gaussian kernels
+      message(sprintf(
+        "Note: Found %d negative eigenvalues (min: %.6e) in diffusion map. This is normal for row-stochastic matrices.",
         total_negative, min(eig[negative_idx])
       ))
     }
@@ -150,7 +145,26 @@ check_ram_feasibility <- function(T_trials, V, ram_limit_GB) {
     stop("ram_limit_GB must be a positive numeric scalar")
   }
   
-  expected_GB <- (T_trials * V * 8) / 1e9
+  # Convert to numeric to avoid integer overflow
+  # Calculate memory in GB directly to avoid overflow
+  T_trials <- as.numeric(T_trials)
+  V <- as.numeric(V)
+  
+  # Calculate GB step by step to avoid overflow
+  # 8 bytes per double, 1e9 bytes per GB
+  expected_GB <- (T_trials / 1e9) * V * 8
+  
+  # If still too large, try alternate calculation
+  if (!is.finite(expected_GB)) {
+    expected_GB <- T_trials * (V / 1e9) * 8
+  }
+  
+  # If still not finite, estimate is too large
+  if (!is.finite(expected_GB)) {
+    message("Memory requirement exceeds computational limits - using lazy evaluation for trial regressors.")
+    return(FALSE)
+  }
+  
   feasible <- expected_GB < ram_limit_GB
   if (!feasible) {
     message(sprintf(
@@ -177,4 +191,129 @@ check_ram_feasibility <- function(T_trials, V, ram_limit_GB) {
     stop(param_name, " must be a non-negative scalar")
   }
   as.numeric(lambda)
+}
+
+#' Check Memory Requirements for Distance Matrix
+#'
+#' Checks if creating a distance matrix would exceed available memory.
+#' 
+#' @param n_points Number of points in the distance matrix
+#' @param element_size Size of each element in bytes (default: 8 for double)
+#' @param safety_factor Fraction of available memory to use (default: 0.5)
+#' @return NULL (invisibly). Throws error if memory would be exceeded.
+#' @keywords internal
+check_distance_memory <- function(n_points, element_size = 8, safety_factor = 0.5) {
+  # Calculate required memory in GB
+  estimated_gb <- (n_points * n_points * element_size) / 1e9
+  
+  # Get available memory
+  available_gb <- .get_available_memory_gb()
+  
+  # Check if we would exceed memory limits
+  if (estimated_gb > available_gb * safety_factor) {
+    stop(sprintf(
+      "Distance matrix would require %.1f GB but only %.1f GB available (safety factor: %.0f%%)\n",
+      estimated_gb, available_gb, safety_factor * 100),
+      "Consider using sparse methods or processing in chunks.",
+      call. = FALSE)
+  }
+  
+  invisible(NULL)
+}
+
+#' Get Available Memory in GB
+#' 
+#' Platform-agnostic function to get available memory.
+#' 
+#' @return Available memory in GB
+#' @keywords internal
+.get_available_memory_gb <- function() {
+  # Final fallback if all methods fail
+  fallback_gb <- 8
+  
+  mem_gb <- tryCatch({
+    sysname <- Sys.info()["sysname"]
+    
+    # Use OS-specific logic
+    switch(sysname,
+      "Linux" = {
+        # Primary: Use MemAvailable from /proc/meminfo (in KB)
+        meminfo <- readLines("/proc/meminfo")
+        available_line <- grep("^MemAvailable:", meminfo, value = TRUE)
+        if (length(available_line) > 0) {
+          kb <- as.numeric(gsub("[^0-9]", "", available_line))
+          return(kb / 1024^2)  # KB to GB
+        }
+        
+        # Fallback: Use MemTotal if MemAvailable isn't present
+        total_line <- grep("^MemTotal:", meminfo, value = TRUE)
+        if (length(total_line) > 0) {
+          warning("Could not determine available memory on Linux, using total memory", call. = FALSE)
+          kb <- as.numeric(gsub("[^0-9]", "", total_line))
+          return(kb / 1024^2)
+        }
+        
+        stop("Could not parse /proc/meminfo")
+      },
+      
+      "Darwin" = {
+        # Primary: Calculate available memory from vm_stat
+        tryCatch({
+          pagesize <- as.numeric(system("sysctl -n hw.pagesize", intern = TRUE))
+          vm_stat <- system("vm_stat", intern = TRUE)
+          free_pages <- as.numeric(gsub("[^0-9]", "", grep("Pages free", vm_stat, value = TRUE)))
+          inactive_pages <- as.numeric(gsub("[^0-9]", "", grep("Pages inactive", vm_stat, value = TRUE)))
+          # Free + inactive pages gives good estimate of available memory
+          bytes <- (free_pages + inactive_pages) * pagesize
+          return(bytes / 1024^3)  # Bytes to GB
+        }, error = function(e) {
+          # Fallback: Get total memory from sysctl
+          warning("Could not determine available memory on macOS, using total memory", call. = FALSE)
+          bytes <- as.numeric(system("sysctl -n hw.memsize", intern = TRUE))
+          return(bytes / 1024^3)
+        })
+      },
+      
+      "Windows" = {
+        # Primary: Use wmic to get FreePhysicalMemory (in KB)
+        tryCatch({
+          mem_out <- system("wmic OS get FreePhysicalMemory /Value", intern = TRUE)
+          val_line <- grep("=", mem_out, value = TRUE)
+          if (length(val_line) > 0) {
+            kb <- as.numeric(trimws(strsplit(val_line, "=")[[1]][2]))
+            return(kb / 1024^2)
+          }
+          stop("Could not parse wmic output")
+        }, error = function(e) {
+          # Fallback: Get TotalPhysicalMemory (in Bytes)
+          warning("Could not determine free memory on Windows, using total memory", call. = FALSE)
+          tryCatch({
+            mem_out <- system("wmic ComputerSystem get TotalPhysicalMemory /Value", intern = TRUE)
+            val_line <- grep("=", mem_out, value = TRUE)
+            if (length(val_line) > 0) {
+              bytes <- as.numeric(trimws(strsplit(val_line, "=")[[1]][2]))
+              return(bytes / 1024^3)
+            }
+          }, error = function(e2) {
+            # Last resort for Windows - try memory.limit()
+            if (exists("memory.limit")) {
+              return(memory.limit() / 1024)  # MB to GB
+            }
+          })
+          stop("All Windows memory detection methods failed")
+        })
+      },
+      
+      # Unsupported OS
+      stop(paste("Unsupported operating system:", sysname))
+    )
+  }, error = function(e) {
+    # Final catch-all
+    warning(paste0("Could not determine system memory, assuming ", fallback_gb, "GB. Error: ", e$message), 
+            call. = FALSE)
+    return(fallback_gb)
+  })
+  
+  # Ensure positive value
+  max(mem_gb, 1, na.rm = TRUE)
 }
