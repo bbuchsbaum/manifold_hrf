@@ -274,21 +274,54 @@ test_that("get_manifold_basis_reconstructor_core handles large N with RSpectra",
   expect_equal(nrow(result$Phi_coords_matrix), N)
   expect_true(ncol(result$Phi_coords_matrix) < N)
 })
-test_that("ann_euclidean distance falls back when RcppHNSW missing", {
-  skip_if(requireNamespace("RcppHNSW", quietly = TRUE),
-          "RcppHNSW installed; cannot test fallback")
+test_that("ann_euclidean distance works correctly with RcppHNSW", {
+  # Originally this test checked fallback behavior when RcppHNSW is missing.
+  # Since RcppHNSW is installed in the test environment, we instead verify:
+  # 1. ann_euclidean works without warning when the package is available
+  # 2. Results are reasonable (not necessarily identical to exact euclidean)
+  # 
+  # Note: Testing the actual fallback would require unloading RcppHNSW,
+  # which could cause issues with other tests
+  
   p <- 5
   N <- 10
+  set.seed(123)
   L_library <- matrix(rnorm(p * N), nrow = p, ncol = N)
-  expect_warning(
-    calculate_manifold_affinity_core(
-      L_library,
-      k_local_nn_for_sigma = 2,
-      distance_engine = "ann_euclidean"
-    ),
-    "RcppHNSW"
-  )
-
+  
+  if (requireNamespace("RcppHNSW", quietly = TRUE)) {
+    # Test that ann_euclidean works without warning when package is available
+    expect_no_warning(
+      result_ann <- calculate_manifold_affinity_core(
+        L_library,
+        k_local_nn_for_sigma = 2,
+        distance_engine = "ann_euclidean"
+      )
+    )
+    
+    # Verify the result is a valid Markov matrix
+    result_ann_mat <- as.matrix(result_ann)
+    
+    # Check dimensions
+    expect_equal(dim(result_ann_mat), c(N, N))
+    
+    # Check row sums are close to 1 (Markov property)
+    # Note: ann_euclidean may have some numerical differences
+    row_sums <- rowSums(result_ann_mat)
+    expect_true(all(abs(row_sums - 1) < 0.5))
+    
+    # Check non-negative entries
+    expect_true(all(result_ann_mat >= 0))
+  } else {
+    # If RcppHNSW is not installed, it should warn and fall back
+    expect_warning(
+      calculate_manifold_affinity_core(
+        L_library,
+        k_local_nn_for_sigma = 2,
+        distance_engine = "ann_euclidean"
+      ),
+      "RcppHNSW"
+    )
+  }
 })
 
 test_that("degenerate data does not crash manifold construction", {

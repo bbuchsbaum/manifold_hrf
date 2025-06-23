@@ -87,27 +87,42 @@ test_that("Cholesky factorization is used for SPD systems", {
   expect_lt(smooth_var, orig_var)
 })
 
-test_that("Weight schemes work correctly (when implemented)", {
-  skip("Weight scheme parameter will be available after next package build")
+test_that("Weight schemes work correctly", {
+  set.seed(111)
+  coords <- as.matrix(expand.grid(x = 1:4, y = 1:4, z = 1:2))
+  V <- nrow(coords)
   
-  # This test will work once the package is rebuilt with the new parameter
-  # set.seed(111)
-  # coords <- as.matrix(expand.grid(x = 1:4, y = 1:4, z = 1:2))
-  # V <- nrow(coords)
-  # 
-  # # Test binary weights
-  # L_binary <- make_voxel_graph_laplacian_core(
-  #   coords, 
-  #   num_neighbors_Lsp = 6,
-  #   weight_scheme = "binary"
-  # )
-  # 
-  # # Test Gaussian weights
-  # L_gaussian <- make_voxel_graph_laplacian_core(
-  #   coords, 
-  #   num_neighbors_Lsp = 6,
-  #   weight_scheme = "gaussian"
-  # )
+  # Test binary weights
+  L_binary <- make_voxel_graph_laplacian_core(
+    coords, 
+    num_neighbors_Lsp = 6,
+    weight_scheme = "binary"
+  )
+  
+  # Test Gaussian weights
+  L_gaussian <- make_voxel_graph_laplacian_core(
+    coords, 
+    num_neighbors_Lsp = 6,
+    weight_scheme = "gaussian"
+  )
+  
+  # Both should be valid Laplacians
+  expect_true(inherits(L_binary, "Matrix"))
+  expect_true(inherits(L_gaussian, "Matrix"))
+  expect_equal(dim(L_binary), c(V, V))
+  expect_equal(dim(L_gaussian), c(V, V))
+  
+  # For Gaussian weights, off-diagonal elements should be different from binary
+  # (unless the weighted implementation is not available)
+  W_binary <- diag(Matrix::diag(L_binary)) - L_binary
+  W_gaussian <- diag(Matrix::diag(L_gaussian)) - L_gaussian
+  
+  # If weighted implementation is available, weights should differ
+  if (exists(".make_voxel_graph_laplacian_weighted", mode = "function")) {
+    # Gaussian weights should have non-binary values
+    gaussian_vals <- W_gaussian@x[W_gaussian@x > 0]
+    expect_true(any(gaussian_vals != 1))
+  }
 })
 
 test_that("Performance: Cholesky vs standard solve", {

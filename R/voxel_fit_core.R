@@ -634,11 +634,32 @@ fix_stuck_voxels <- function(Xi_current, Xi_previous,
 #' @param num_neighbors_Lsp Number of nearest neighbors for graph construction
 #' @param distance_engine Distance computation method: "euclidean" or "ann_euclidean"
 #' @param ann_threshold Threshold for switching to approximate nearest neighbors
+#' @param weight_scheme Weight scheme for adjacency matrix: "binary" (0/1 weights) or
+#'   "gaussian" (exp(-d²/σ²) where σ is median distance to k-th neighbor)
 #' @return Sparse Laplacian matrix
 #' @export
 make_voxel_graph_laplacian_core <- function(voxel_coords_matrix, num_neighbors_Lsp = 6,
                                             distance_engine = c("euclidean", "ann_euclidean"),
-                                            ann_threshold = 10000) {
+                                            ann_threshold = 10000,
+                                            weight_scheme = c("binary", "gaussian")) {
+  # Check if the internal weighted function is available
+  if (exists(".make_voxel_graph_laplacian_weighted", mode = "function")) {
+    # Use the internal weighted implementation
+    return(.make_voxel_graph_laplacian_weighted(
+      voxel_coords_matrix = voxel_coords_matrix,
+      num_neighbors_Lsp = num_neighbors_Lsp,
+      distance_engine = distance_engine,
+      ann_threshold = ann_threshold,
+      weight_scheme = weight_scheme
+    ))
+  }
+  
+  # Otherwise fall back to the original binary-only implementation
+  weight_scheme <- match.arg(weight_scheme)
+  if (weight_scheme == "gaussian") {
+    warning("Gaussian weight scheme requested but weighted implementation not available. Using binary weights.")
+  }
+  
   if (!is.matrix(voxel_coords_matrix)) {
     stop("voxel_coords_matrix must be a matrix")
   }

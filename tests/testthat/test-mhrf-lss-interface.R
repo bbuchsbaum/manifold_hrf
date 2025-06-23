@@ -104,7 +104,11 @@ skip("Requires fmrireg integration")
 
 test_that("extract_design_info works with FIR basis", {
   skip_if_not_installed("fmrireg")
-  skip("HRF_FIR is not exported from fmrireg")
+  skip_if_not_installed("fmrihrf")
+  
+  # Load necessary libraries
+  library(fmrihrf)
+  library(fmrireg)
 
   # Dummy events and sampling frame
   events <- data.frame(
@@ -116,9 +120,9 @@ test_that("extract_design_info works with FIR basis", {
 
   sframe <- fmrihrf::sampling_frame(blocklens = 10, TR = 1)
 
-  # Simple FIR basis with 3 columns
-  # Note: HRF_FIR is not exported, would need to use fmrihrf::HRF_FIR
-  fir_basis <- fmrihrf::HRF_FIR(nbasis = 3, span = 3)
+  # Simple FIR basis - using default HRF_FIR object
+  # HRF_FIR is a pre-defined object with 12 basis functions
+  fir_basis <- fmrihrf::HRF_FIR
 
   ev_model <- fmrireg::event_model(
     onset ~ hrf(condition, basis = fir_basis),
@@ -128,7 +132,7 @@ test_that("extract_design_info works with FIR basis", {
     drop_empty = TRUE
   )
 
-  di <- extract_design_info(ev_model, sframe)
+  di <- manifoldhrf:::extract_design_info(ev_model, sframe)
 
   expect_true(all(vapply(di$X_condition_list, ncol, integer(1)) == fmrihrf::nbasis(fir_basis)))
   expect_equal(length(di$X_trial_list), nrow(events))

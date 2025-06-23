@@ -8,7 +8,8 @@ make_voxel_graph_laplacian_core(
   voxel_coords_matrix,
   num_neighbors_Lsp = 6,
   distance_engine = c("euclidean", "ann_euclidean"),
-  ann_threshold = 10000
+  ann_threshold = 10000,
+  weight_scheme = c("binary", "gaussian")
 )
 }
 \arguments{
@@ -19,6 +20,9 @@ make_voxel_graph_laplacian_core(
 \item{distance_engine}{Distance computation method: "euclidean" or "ann_euclidean"}
 
 \item{ann_threshold}{Threshold for switching to approximate nearest neighbors}
+
+\item{weight_scheme}{Weight scheme for adjacency matrix: "binary" (0/1 weights) or
+"gaussian" (exp(-d²/σ²) where σ is median distance to k-th neighbor)}
 }
 \value{
 Sparse Laplacian matrix
